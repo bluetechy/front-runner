@@ -58,7 +58,7 @@ const sqlFilesIn = async (directory) => {
   const entries = await readdir(path.join(sqlDir, directory));
   return entries
     .filter((entry) => entry.endsWith(".sql"))
-    .sort()
+    .toSorted()
     .map((entry) => path.join(sqlDir, directory, entry));
 };
 

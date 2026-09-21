@@ -15,9 +15,12 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "npm run format:check && turbo run lint"
+    "lint:js": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "lint": "npm run format:check && npm run lint:js && turbo run lint"
   },
   "devDependencies": {
+    "oxlint": "^1.83.0",
     "prettier": "^3.9.8",
     "turbo": "^2.5.8"
   },

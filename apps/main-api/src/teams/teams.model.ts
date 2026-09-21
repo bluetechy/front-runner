@@ -1,10 +1,4 @@
-import {
-  Field,
-  ObjectType,
-  ID,
-  Int,
-  GraphQLISODateTime,
-} from "@nestjs/graphql";
+import { Field, ObjectType, ID, Int } from "@nestjs/graphql";
 
 @ObjectType()
 export class Team {

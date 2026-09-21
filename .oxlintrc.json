@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "apps/main-gui/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.test-dist/**",
+    "**/coverage/**"
+  ],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    "typescript/no-extraneous-class": ["error", { "allowWithDecorator": true }],
+    "import/no-unassigned-import": "off",
+    "import/no-named-as-default-member": "off",
+    "eslint/no-await-in-loop": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "apps/main-db/test/**"],
+      "env": { "jest": true }
+    }
+  ]
+}
