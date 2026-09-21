@@ -32,6 +32,10 @@ node_modules
 *.log
 *.pyc
 
+# Turborepo
+.turbo
+**/.turbo
+
 # Claude Code
 .claude/settings.local.json
 .claude/scheduled_tasks.lock

@@ -1,0 +1,22 @@
+{
+  "name": "front-runner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gamification Project monorepo",
+  "license": "ISC",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "start": "turbo run start",
+    "test": "turbo run test",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.8"
+  },
+  "packageManager": "npm@11.6.2"
+}
