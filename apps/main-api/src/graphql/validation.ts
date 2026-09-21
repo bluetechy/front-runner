@@ -15,6 +15,20 @@ export class PagePipe implements PipeTransform<PageArgs, PageArgs> {
     return page;
   }
 }
+// Shape only. Whether the address is reachable is not something a regular
+// expression can answer, and the database folds it to lower case -- this
+// rejects what dbo.Users."Email" could not store and what dbo.InviteToOrganization
+// would refuse anyway.
+@Injectable()
+export class EmailPipe implements PipeTransform<string, string> {
+  transform(value: string) {
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed || trimmed.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      throw new BadRequestException('A valid email address is required');
+    }
+    return trimmed;
+  }
+}
 @Injectable()
 export class NamePipe implements PipeTransform<string, string> {
   transform(value: string) {

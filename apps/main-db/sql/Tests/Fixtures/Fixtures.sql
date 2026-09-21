@@ -75,18 +75,25 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('Role.Lead',                '12121212-0000-4000-8000-000000000001'),
     ('Role.Reviewer',            '12121212-0000-4000-8000-000000000002'),
     ('Notification.Unread',      '13131313-0000-4000-8000-000000000001'),
-    ('Notification.Read',        '13131313-0000-4000-8000-000000000002');
+    ('Notification.Read',        '13131313-0000-4000-8000-000000000002'),
+    ('Invitation.Pending',       '14141414-0000-4000-8000-000000000001'),
+    ('Invitation.OwnerSeat',     '14141414-0000-4000-8000-000000000002'),
+    ('Invitation.Expired',       '14141414-0000-4000-8000-000000000003'),
+    ('Invitation.Declined',      '14141414-0000-4000-8000-000000000004'),
+    ('Invitation.DisabledOrg',   '14141414-0000-4000-8000-000000000005');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
     ("test"."Fixture"('Organization.Disabled'), 'Disabled Company', false, 'fixtures');
 
-INSERT INTO "dbo"."Users" ("UserUUID", "Name", "LoginName", "Email", "IsAdmin", "IsEnabled", "CreatedBy") VALUES
-    ("test"."Fixture"('User.Owner'),    'Olivia Owner',    'owner',    'owner@example.test',    false, true,  'fixtures'),
-    ("test"."Fixture"('User.Member'),   'Marcus Member',   'member',   'member@example.test',   false, true,  'fixtures'),
-    ("test"."Fixture"('User.Outsider'), 'Oscar Outsider',  'outsider', 'outsider@example.test', false, true,  'fixtures'),
-    ("test"."Fixture"('User.Admin'),    'Ada Admin',       'admin',    'admin@example.test',    true,  true,  'fixtures'),
-    ("test"."Fixture"('User.Disabled'), 'Dana Disabled',   'disabled', 'disabled@example.test', false, false, 'fixtures');
+-- Outsider carries no "SubjectId" on purpose: they are the account that
+-- predates Keycloak, so dbo.ProvisionUser has a row to claim by login name.
+INSERT INTO "dbo"."Users" ("UserUUID", "SubjectId", "Name", "LoginName", "Email", "IsAdmin", "IsEnabled", "CreatedBy") VALUES
+    ("test"."Fixture"('User.Owner'),    'subject-owner',    'Olivia Owner',    'owner',    'owner@example.test',    false, true,  'fixtures'),
+    ("test"."Fixture"('User.Member'),   'subject-member',   'Marcus Member',   'member',   'member@example.test',   false, true,  'fixtures'),
+    ("test"."Fixture"('User.Outsider'), NULL,               'Oscar Outsider',  'outsider', 'outsider@example.test', false, true,  'fixtures'),
+    ("test"."Fixture"('User.Admin'),    'subject-admin',    'Ada Admin',       'admin',    'admin@example.test',    true,  true,  'fixtures'),
+    ("test"."Fixture"('User.Disabled'), 'subject-disabled', 'Dana Disabled',   'disabled', 'disabled@example.test', false, false, 'fixtures');
 
 INSERT INTO "dbo"."Teams" ("TeamUUID", "OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Team.Core'),     "test"."Fixture"('Organization.Acme'), 'Core Team',     true,  'fixtures'),
@@ -134,11 +141,30 @@ INSERT INTO "dbo"."Points" ("PointUUID", "Name", "Description", "ExpirationDurat
 -- Owner owns Acme; Member and Disabled belong to it; Outsider belongs to
 -- nothing. Owner also owns the disabled organization, so ownership alone is
 -- not enough to pass IsOwnerOfOrganization.
+--
+-- Admin is a second owner of the disabled organization and of nothing else.
+-- That makes it the one organization an owner can be removed from: Owner is
+-- the sole owner of Acme, so dbo.LeaveOrganization refuses to take them out of
+-- it. The disabled organization is filtered out of every read function, so the
+-- extra row does not move any count another test asserts.
 INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "IsOwner", "CreatedBy") VALUES
     ("test"."Fixture"('User.Owner'),    "test"."Fixture"('Organization.Acme'),     true,  'fixtures'),
     ("test"."Fixture"('User.Member'),   "test"."Fixture"('Organization.Acme'),     false, 'fixtures'),
     ("test"."Fixture"('User.Disabled'), "test"."Fixture"('Organization.Acme'),     false, 'fixtures'),
-    ("test"."Fixture"('User.Owner'),    "test"."Fixture"('Organization.Disabled'), true,  'fixtures');
+    ("test"."Fixture"('User.Owner'),    "test"."Fixture"('Organization.Disabled'), true,  'fixtures'),
+    ("test"."Fixture"('User.Admin'),    "test"."Fixture"('Organization.Disabled'), true,  'fixtures');
+
+-- One invitation per state the functions branch on: waiting to be answered,
+-- offering ownership rather than plain membership, already lapsed, already
+-- answered, and attached to a disabled organization. Outsider holds the two
+-- addressed to them, and only the Acme one is answerable -- which is what
+-- dbo.GetUserInvitations filters down to.
+INSERT INTO "dbo"."OrganizationInvitations" ("InvitationUUID", "OrganizationUUID", "Email", "IsOwner", "Status", "InvitedByUserUUID", "ExpiresAt", "RespondedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Invitation.Pending'),     "test"."Fixture"('Organization.Acme'),     'outsider@example.test', false, 'Pending',  "test"."Fixture"('User.Owner'), '2999-01-01 00:00:00+00', NULL,                     'fixtures'),
+    ("test"."Fixture"('Invitation.OwnerSeat'),   "test"."Fixture"('Organization.Acme'),     'admin@example.test',    true,  'Pending',  "test"."Fixture"('User.Owner'), '2999-01-01 00:00:00+00', NULL,                     'fixtures'),
+    ("test"."Fixture"('Invitation.Expired'),     "test"."Fixture"('Organization.Acme'),     'stranger@example.test', false, 'Pending',  "test"."Fixture"('User.Owner'), '2020-01-01 00:00:00+00', NULL,                     'fixtures'),
+    ("test"."Fixture"('Invitation.Declined'),    "test"."Fixture"('Organization.Acme'),     'nobody@example.test',   false, 'Declined', "test"."Fixture"('User.Owner'), '2999-01-01 00:00:00+00', '2024-01-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Invitation.DisabledOrg'), "test"."Fixture"('Organization.Disabled'), 'outsider@example.test', false, 'Pending',  "test"."Fixture"('User.Owner'), '2999-01-01 00:00:00+00', NULL,                     'fixtures');
 
 -- Member manages Core; Owner is only a member of it. Member is also on the
 -- archived team, which the team reads must not return.

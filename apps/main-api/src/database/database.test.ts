@@ -18,6 +18,22 @@ describe('PostgreSQL adapter', () => {
     await service.onApplicationShutdown();
     expect(end).toHaveBeenCalledTimes(1);
   });
+  // A rule the schema enforces is an answer to the request, not a failure to
+  // process it. Returning 500 for "that invitation has expired" tells the caller
+  // to retry something that will never succeed.
+  it.each([
+    ['Action cannot be performed.', 'Forbidden', 403],
+    ['That invitation has expired.', 'Bad Request', 400],
+    ['The last owner cannot leave the organization.', 'Bad Request', 400],
+  ])('surfaces the deliberate exception %s as a client error', async (message, _name, status) => {
+    jest.spyOn(Pool.prototype, 'query').mockImplementation((async () => { throw Object.assign(new Error(message), { code: 'P0001' }); }) as never);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const service = new DatabaseService(config);
+    try {
+      await expect(service.query('SELECT 1')).rejects.toMatchObject({ message, status });
+    } finally { await service.onApplicationShutdown(); }
+  });
+
   it('sanitizes database errors and logs only the error code', async () => {
     jest.spyOn(Pool.prototype, 'query').mockImplementation((async () => { throw Object.assign(new Error('private SQL and credentials'), { code: '42501' }); }) as never);
     const log = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);

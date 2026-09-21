@@ -73,7 +73,8 @@ Each of the three carries a comment saying so on line 1.
 
 **So three files sort to the bottom of `Functions/`.** File names copy the object
 name exactly, casing included, and file trees sort uppercase before lowercase. The
-three trigger functions landing under `LoginUser.sql` is that, not a stray folder.
+three trigger functions landing under `SettlePointTransfer.sql` is that, not a
+stray folder.
 
 **Trigger function bodies mix both casings.** `update_modified_info` is snake_case
 but assigns to `NEW."UpdatedAt"`. Columns are PascalCase everywhere in the schema
@@ -147,13 +148,16 @@ These alter behaviour. Revert any you disagree with.
    "UserTeams"."UserUUID" = _UserUUID` — filtered on a table not in the statement.
    Changed to `"UserOrganizations"."UserUUID"`.
 9. `JoinOrganization`: returned `_IsOwner`, a variable that was never declared.
-   Replaced with a subquery against `UserOrganizations`.
+   Replaced with a subquery against `UserOrganizations`. (The function itself is
+   gone now — see "Organization membership is by invitation" above.)
 10. `init.sh`: added `set -e` and `-v ON_ERROR_STOP=1`. Every failure above was
     silent because psql exited 0 on error and the loop ignored it.
 
 ## Changes made while adding seeding and tests
 
-11. **`JoinOrganization` and `JoinTeam` could never run.** Both declare
+11. **`JoinOrganization` and `JoinTeam` could never run.** (`JoinOrganization`
+    has since been replaced by the invitation functions; the trap it fell into
+    is the reason every new one names its constraint in `ON CONFLICT`.) Both declare
     `RETURNS TABLE(... "OrganizationUUID" ... )` / `... "TeamUUID" ...`, which
     makes those names plpgsql variables, and both then used the same names as
     bare column references — `ON CONFLICT ("UserUUID", "OrganizationUUID")`,
@@ -192,12 +196,10 @@ These alter behaviour. Revert any you disagree with.
 - **`GetUsers` authorises with `_LoginName = 'admin'`** — a hardcoded string — rather
   than checking `Users."IsAdmin"`. Anyone who registers the login `admin` gets the
   full user list.
-- **`LoginUser` upserts on every call.** `INSERT ... ON CONFLICT DO NOTHING RETURNING
-  "UserUUID" INTO _UserUUID` then discards `_UserUUID`. Any unknown login silently
-  creates an enabled account.
-- **`JoinTeam` takes no authorisation check**, unlike `JoinOrganization` which requires
-  `IsOwnerOfOrganization`. Any caller can add any user to any team, and the following
-  `UPDATE` lets them set `IsManager`.
+- **`JoinTeam` takes no authorisation check**, unlike `InviteToOrganization` which
+  requires `IsOwnerOfOrganization`. Any caller can add any user to any team, and the
+  following `UPDATE` lets them set `IsManager`. Teams are still the old model: the
+  organization side went to invitations and consent, and the team side did not.
 - **`LeaveTeam` takes no authorisation check** either, unlike `LeaveOrganization`.
 - **`GetTeams` returns one row per team *membership*, not per team.** It joins
   `UserTeams` without filtering or de-duplicating, so a team with three members
@@ -214,6 +216,77 @@ These alter behaviour. Revert any you disagree with.
 Each of these has a `_KnownIssue` test locking in the current behaviour — see
 below.
 
+## Identity lives in Keycloak
+
+`dbo.Users` is a projection of an account Keycloak owns, not the account itself.
+There are no passwords, no credentials and no sign-in in this schema, and
+`dbo.ProvisionUser` — which replaced `LoginUser` — checks nothing: by the time
+it is called, `main-api` has already verified the token's signature against the
+realm's public keys. It maps a verified identity onto a row and nothing more.
+
+`Users."SubjectId"` is the Keycloak `sub` claim and is the identity. It is
+immutable; `LoginName`, `Name` and `Email` are copies of claims the user can
+edit, refreshed on sign-in. Two consequences worth knowing before building on
+this:
+
+- **A NULL `SubjectId` is claimable by login name.** That is how the seeded rows
+  — written before Keycloak existed — survive the move: the first sign-in with a
+  matching username takes the row over. It is safe only while Keycloak is the
+  sole source of login names. A second identity provider issuing the same
+  username would land on the same row, so adding one means removing this path
+  and migrating the remaining NULLs first.
+- **`LoginName` is still the actor handle everywhere else.** Every other
+  function takes `_LoginName`, so a rename in Keycloak changes the value those
+  calls are made with. Nothing stores it as a foreign key — the `*UUID` columns
+  do that — so a rename is safe, but audit columns (`CreatedBy`, `UpdatedBy`)
+  keep whatever name was current when the row was written.
+
+## Organization membership is by invitation
+
+An account exists on its own and belongs to nothing. `dbo.JoinOrganization` —
+which let an owner put any user into their organization without asking — is
+gone, replaced by `dbo.OrganizationInvitations` and five functions around it:
+an owner invites an address, and the account holding that address accepts or
+declines. This is the GitHub and Cloudflare model, and the reason the table is
+keyed on an email rather than a `UserUUID` is that an invitation can precede the
+account.
+
+`dbo.LeaveOrganization` still does both removals — leaving, and being removed by
+an owner — but now refuses to remove the last enabled owner. An organization
+without one has nobody who can invite, create teams or hand ownership on, and
+there is no route back into it.
+
+An organization is administered through four functions that did not exist
+before: `dbo.GetOrganizationMembers` (any member may read it — knowing who else
+is in the room is not a privilege, unlike `dbo.GetOrganizationInvitations`),
+`dbo.SetOrganizationRole`, `dbo.RenameOrganization` and
+`dbo.SetOrganizationEnabled`.
+
+`dbo.SetOrganizationRole` is what makes the last-owner guard survivable.
+Ownership could otherwise only be granted by an invitation offering it up front,
+so handing over to somebody already inside would mean removing them and
+re-inviting — while `dbo.LeaveOrganization` refused to let the last owner go in
+the meantime. Promote the successor, then step down. It refuses to demote the
+last owner for the same reason leaving refuses to remove them, and both now
+share `dbo.IsLastOwnerOfOrganization` rather than carrying a copy of the rule.
+
+**Two functions deliberately bypass the `Is*OfOrganization` helpers.**
+`dbo.GetOrganization` and `dbo.SetOrganizationEnabled` read `dbo.UserOrganizations`
+directly, because those helpers also require the organization to be *enabled* —
+and an owner restoring an organization they archived is exactly the case that
+has to work. A check that dies with the thing it checks is a door that locks
+from the inside. `dbo.GetOrganizations` grew an `_IncludeDisabled` parameter for
+the same reason: without it there is no way to find an archived organization to
+restore.
+
+Two rough edges this deliberately leaves:
+
+- **Nothing sweeps expired invitations.** A lapsed row stays `Pending` forever
+  and `ExpiresAt` is what makes it unusable, so every reader has to test both.
+  `TestOrganizationInvitations_LapseWithoutChangingStatus` pins that.
+- **Nothing sends the invitation anywhere.** There is no mail, so an invitee
+  finds out by calling `dbo.GetUserInvitations`. Delivery needs its own design.
+
 ## Known issues covered by tests
 
 These tests assert behaviour that is **wrong but current**, so that the suite
@@ -224,7 +297,6 @@ you to replace the test rather than to fix the code.
 | Test | Issue |
 |---|---|
 | `TestGetUsers_IgnoresIsAdmin_KnownIssue` | `GetUsers` authorises on the literal login `'admin'`, not on `Users."IsAdmin"` |
-| `TestLoginUser_CreatesAnAccountForAnUnknownLogin_KnownIssue` | `LoginUser` silently creates an enabled account for any unknown login, with no credential check |
 | `TestGetTeams_DuplicatesTeamsPerMember_KnownIssue` | `GetTeams` emits one row per membership rather than per team |
 | `TestJoinTeam_AllowsAnyCaller_KnownIssue` | `JoinTeam` performs no authorisation check |
 | `TestJoinTeam_CreatesUnreachableMembershipsForOutsiders_KnownIssue` | `JoinTeam` creates team memberships the read functions cannot see |

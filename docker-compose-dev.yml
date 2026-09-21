@@ -14,8 +14,11 @@ services:
             POSTGRES_USER: ${APP_DB_USER}
             POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
             CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
-            HYDRA_BASE_URL: ${HYDRA_BASE_URL:-https://hydraqa.unicity.net/v5a-test}
-            HYDRA_NAMESPACE: ${HYDRA_NAMESPACE:-https://hydraqa.unicity.net/v5a-test/employees}
+            # The issuer is the browser's address for Keycloak, because that is
+            # what ends up in the token. The key set is fetched over the mesh.
+            KEYCLOAK_ISSUER_URL: http://localhost:${KEYCLOAK_PUBLISHED_PORT}/realms/${KEYCLOAK_REALM}
+            KEYCLOAK_JWKS_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+            KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
         depends_on:
             main-db:
                 condition: service_healthy
@@ -65,6 +68,36 @@ services:
 #        stdin_open: true
 #        volumes:
 #            - "./apps/main-gui/src:/app/src"
+    keycloak-idp:
+        build:
+            context: ./apps/keycloak-idp
+            dockerfile: Dockerfile
+        # Production mode against PostgreSQL rather than start-dev against the
+        # embedded store, so that what runs here is what would be deployed.
+        # --import-realm only does anything on an empty Keycloak database.
+        command: [ "start", "--optimized", "--import-realm" ]
+        env_file:
+            - .env
+        environment:
+            KC_DB: postgres
+            KC_DB_URL: jdbc:postgresql://${POSTGRES_ADDRESS}:${POSTGRES_PORT}/${KEYCLOAK_DB_NAME}
+            KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+            KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+            KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+            KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+            # Must be the address the browser uses: it is what Keycloak writes
+            # into the token's issuer, and main-api compares that literally.
+            KC_HOSTNAME: http://localhost:${KEYCLOAK_PUBLISHED_PORT}
+            KC_HTTP_ENABLED: "true"
+            KC_HEALTH_ENABLED: "true"
+        depends_on:
+            main-db:
+                condition: service_healthy
+        networks:
+            - service-mesh
+        ports:
+            - "${KEYCLOAK_PUBLISHED_PORT}:${KEYCLOAK_PORT}"
+        restart: unless-stopped
     main-kvs:
         image: redis:8.10.1
         networks:

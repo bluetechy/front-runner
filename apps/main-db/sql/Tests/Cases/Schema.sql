@@ -18,7 +18,8 @@ BEGIN
         ('BadgeAchievements'), ('BadgeCategories'), ('BadgeCriteria'),
         ('BadgeEventCriteria'), ('BadgeEvents'), ('BadgeGroupRelationships'),
         ('BadgeGroups'), ('BadgeReviews'), ('BadgeStatistics'), ('Badges'), ('Checklists'),
-        ('EventLog'), ('Labels'), ('Notifications'), ('Organizations'), ('PointLevels'),
+        ('EventLog'), ('Labels'), ('Notifications'), ('OrganizationInvitations'),
+        ('Organizations'), ('PointLevels'),
         ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'), ('Points'),
         ('Roadmaps'), ('Roles'), ('SharedBadges'), ('SurveyAnswers'),
         ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
@@ -40,7 +41,8 @@ BEGIN
             'ApprovalWorkflows', 'AssignmentHistory', 'Attachments', 'BadgeAchievements',
             'BadgeCategories', 'BadgeCriteria', 'BadgeEventCriteria', 'BadgeEvents',
             'BadgeGroupRelationships', 'BadgeGroups', 'BadgeReviews', 'BadgeStatistics',
-            'Badges', 'Checklists', 'EventLog', 'Labels', 'Notifications', 'Organizations',
+            'Badges', 'Checklists', 'EventLog', 'Labels', 'Notifications',
+            'OrganizationInvitations', 'Organizations',
             'PointLevels', 'PointMultipliers', 'PointRedemptions', 'PointTransfers',
             'Points', 'Roadmaps', 'Roles', 'SharedBadges', 'SurveyAnswers',
             'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
@@ -59,19 +61,27 @@ DECLARE
 BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
-        ('AddOrganization'), ('AddTeam'), ('AddUserPoints'), ('AwardBadgeToUser'),
+        ('AcceptOrganizationInvitation'), ('AddOrganization'), ('AddTeam'),
+        ('AddUserPoints'), ('AwardBadgeToUser'),
         ('CheckPointTransferLimit'), ('CreateBadgeGroup'),
+        ('DeclineOrganizationInvitation'),
         ('GetApprovalWorkflowStagesCount'), ('GetBadgeGroups'),
         ('GetBadgeHolders'), ('GetBadgeProgress'), ('GetBadgeStatistics'), ('GetBadges'),
-        ('GetExpiredBadges'), ('GetOrganizations'), ('GetPointHistory'),
+        ('GetExpiredBadges'), ('GetInvitation'), ('GetOrganizationInvitations'),
+        ('GetOrganizations'), ('GetPointHistory'),
         ('GetPointLeaderboard'), ('GetPointMultiplier'), ('GetPointRedemptions'),
         ('GetPointStatistics'), ('GetPointTotals'), ('GetPointTransfers'), ('GetPoints'),
-        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserUUID'), ('GetUsers'),
-        ('IsManagerOfTeam'), ('IsMemberOfOrganization'), ('IsMemberOfTeam'),
-        ('IsOwnerOfOrganization'), ('JoinOrganization'), ('JoinTeam'),
-        ('LeaveOrganization'), ('LeaveTeam'), ('LoginUser'), ('ReorderTasks'),
-        ('RequestPointRedemption'),
-        ('RequestPointTransfer'), ('ReverseUserPoints'), ('SettlePointRedemption'),
+        ('GetOrganization'), ('GetOrganizationMembers'),
+        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserInvitations'),
+        ('GetUserUUID'), ('GetUsers'), ('InviteToOrganization'),
+        ('IsLastOwnerOfOrganization'), ('IsManagerOfTeam'),
+        ('IsMemberOfOrganization'), ('IsMemberOfTeam'),
+        ('IsOwnerOfOrganization'), ('JoinTeam'),
+        ('LeaveOrganization'), ('LeaveTeam'), ('ProvisionUser'),
+        ('RenameOrganization'), ('ReorderTasks'),
+        ('RequestPointRedemption'), ('RequestPointTransfer'), ('ReverseUserPoints'),
+        ('RevokeOrganizationInvitation'), ('SetOrganizationEnabled'),
+        ('SetOrganizationRole'), ('SettlePointRedemption'),
         ('SettlePointTransfer'), ('calculate_tallies'), ('insert_modified_info'),
         ('update_modified_info')
     ) AS "Expected" ("Name")
@@ -199,7 +209,11 @@ BEGIN
         ('FK_BadgeStatistics_Badges'), ('FK_Checklists_Tasks'),
         ('FK_EventLog_Organizations'), ('FK_EventLog_Users'), ('FK_Labels_Organizations'),
         ('FK_Notifications_Organizations'), ('FK_Notifications_Tasks'),
-        ('FK_Notifications_Users'), ('FK_PointLevels_Points'),
+        ('FK_Notifications_Users'),
+        ('FK_OrganizationInvitations_Organizations'),
+        ('FK_OrganizationInvitations_Users_AcceptedByUserUUID'),
+        ('FK_OrganizationInvitations_Users_InvitedByUserUUID'),
+        ('FK_PointLevels_Points'),
         ('FK_PointRedemptions_Organizations'), ('FK_PointRedemptions_Points'),
         ('FK_PointRedemptions_Users'), ('FK_PointTransfers_Organizations'),
         ('FK_PointTransfers_Points'), ('FK_PointTransfers_Users_ReceiverUserUUID'),
@@ -313,6 +327,19 @@ BEGIN
     PERFORM "test"."AssertRaises"(
         'INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES (''Impostor'', ''member'', ''test'')',
         'Users accepted a duplicate LoginName'
+    );
+
+    PERFORM "test"."AssertRaises"(
+        'INSERT INTO "dbo"."Users" ("SubjectId", "Name", "LoginName", "CreatedBy") VALUES (''subject-member'', ''Impostor'', ''impostor'', ''test'')',
+        'Users accepted a second account for one identity provider subject'
+    );
+
+    PERFORM "test"."AssertRaises"(
+        format(
+            'INSERT INTO "dbo"."OrganizationInvitations" ("OrganizationUUID", "Email", "InvitedByUserUUID", "CreatedBy") VALUES (%L, %L, %L, ''test'')',
+            "test"."Fixture"('Organization.Acme'), 'outsider@example.test', "test"."Fixture"('User.Owner')
+        ),
+        'OrganizationInvitations accepted a second invitation for one address'
     );
 
     PERFORM "test"."AssertRaises"(

@@ -44,11 +44,14 @@ application account. `apps/main-api/.env.example` lists the API configuration;
 copy its values into your local environment, not into the image. The scripts do
 not automatically read an API-local `.env`.
 
-`HYDRA_BASE_URL` and `HYDRA_NAMESPACE` configure the existing login provider.
-Compose defaults to the legacy QA provider. Outside Compose, login reports an
-unconfigured provider unless both variables are set. No external authentication
-request is made at startup. `CORS_ORIGINS` is an explicit comma-separated allowlist;
-set it to the actual frontend origin(s). Browser cookies are not used by this API.
+`KEYCLOAK_ISSUER_URL`, `KEYCLOAK_AUDIENCE` and the optional `KEYCLOAK_JWKS_URL`
+configure token verification. The issuer is the address the **browser** signs in
+at, because that is what Keycloak writes into the token; the key set address is
+the one **this process** can reach, which inside Compose is a different host. On
+the host both are `http://localhost:30003/...`. No request is made to Keycloak at
+startup — the keys are fetched when the first token arrives. `CORS_ORIGINS` is an
+explicit comma-separated allowlist; set it to the actual frontend origin(s).
+Browser cookies are not used by this API.
 
 ## Checks
 
@@ -62,10 +65,12 @@ npm run test:coverage --workspace main-api
 
 Jest compiles TypeScript into ignored `.test-dist` and executes ESM using Node's
 VM module support. Its experimental VM warning is expected. Tests use isolated
-configuration, mocked database calls and identity-provider responses; they do not
-need a running PostgreSQL instance or contact the real identity provider. HTTP
-integration tests start ephemeral local listeners. The database SQL suite remains
-in `main-db` and should be run separately when SQL changes.
+configuration and mocked database calls; they do not need a running PostgreSQL
+instance or a running Keycloak. Token verification is not stubbed — the tests
+generate an RS256 key pair, sign real tokens with it and hand the application a
+local key set, so signature, issuer, audience and expiry are all genuinely
+checked. HTTP integration tests start ephemeral local listeners. The database SQL
+suite remains in `main-db` and should be run separately when SQL changes.
 
 `lint` checks TypeScript and cross-vertical import boundaries. It is not a full
 stylistic ESLint ruleset. Production compilation excludes test files.
@@ -80,13 +85,16 @@ The **repository root** is the build context because the lockfile belongs to the
 workspace. The final target includes compiled application code and production
 dependencies, runs as the `node` user, and starts `node dist/main.js` directly.
 Supply environment variables at runtime. No credentials or `.env` files are
-copied into the image. Production requires a JWT secret of at least 32 characters.
+copied into the image, and the API holds no signing key of its own — it verifies
+Keycloak's signatures and mints nothing. Production requires an HTTPS issuer.
 
 - `GET /health/live`: process liveness (used by the image healthcheck).
 - `GET /health/ready`: database connection readiness; returns 503 on failure.
-- `POST /graphql`: GraphQL JSON requests; `Authorization: Bearer <token>` except login.
+- `POST /graphql`: GraphQL JSON requests. Every operation requires
+  `Authorization: Bearer <Keycloak access token>`; there is no public one.
 
 Production introspection is disabled. Configure TLS termination and rate limiting
-at the deployment ingress, including login throttling, before public exposure.
+at the deployment ingress before public exposure; sign-in throttling belongs to
+Keycloak now, not to this service.
 Subscriptions, durable events, embedded-widget credentials and agent tools are
 future features, not implemented by this refactor.

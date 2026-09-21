@@ -7,6 +7,7 @@ A Turborepo monorepo.
   - `apps/main-api` — NestJS/TypeScript GraphQL API
   - `apps/main-db` — Postgres image and schema
   - `apps/main-gui` — React frontend
+  - `apps/keycloak-idp` — Keycloak, the identity provider
   - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
   - `.env` — configuration shared by every Compose service
 
@@ -28,9 +29,10 @@ development defaults and are not used anywhere else.
 
 ## Service graph
 
-Run these from the repository root. `main-api`, `main-db`, and `main-kvs` are
-enabled in `docker-compose-dev.yml`; `main-gui` remains commented out. The API
-uses Node 24 and reloads when its mounted TypeScript source changes. See
+Run these from the repository root. `main-api`, `main-db`, `main-kvs` and
+`keycloak-idp` are enabled in `docker-compose-dev.yml`; `main-gui` remains
+commented out. The API uses Node 24 and reloads when its mounted TypeScript
+source changes. See
 [API setup, design decisions, and migration](apps/main-api/docs/README.md).
 
 To startup the service graph:
@@ -52,7 +54,32 @@ To shutdown the service graph:
 To shutdown and also discard the database volume, forcing the schema to be
 rebuilt from `apps/main-db/sql` on the next startup:
 
-  - `make dc3-clean`
+  - `make dc3-clean` — this also discards every Keycloak account, since Keycloak
+    keeps its realm in a database on the same volume.
+
+## Authentication
+
+Keycloak owns accounts and sign-in; `main-api` owns permissions. The browser
+signs in at Keycloak directly and sends the access token it gets back, and the
+API verifies it against the realm's public keys — it issues no tokens of its own
+and has no login operation.
+
+  - Admin console — <http://localhost:30003/admin> (`admin` / `admin`)
+  - Realm — `front-runner`, imported on first start from
+    `apps/keycloak-idp/realm`, with an account per seeded user whose password is
+    their username
+
+An account is yours and belongs to nothing on its own. Organization membership
+works the way it does on GitHub or Cloudflare: an owner invites an email
+address, and the person holding it accepts or declines. Nobody is added to an
+organization without agreeing, and the last owner of an organization cannot be
+removed from it. See [`apps/keycloak-idp/README.md`](apps/keycloak-idp/README.md)
+for the realm, and [`migration.md`](apps/main-api/docs/migration.md) for the
+GraphQL operations.
+
+On a volume created before Keycloak existed, its database has to be made once:
+
+  - `make db-keycloak`
 
 ## Database
 

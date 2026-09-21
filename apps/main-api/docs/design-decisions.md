@@ -93,19 +93,82 @@ timeouts. These are bounds, not a full cost model or deployment rate limiter.
 
 ## 5. Authentication and error handling
 
-All non-public operations require expiring HS256 Bearer JWTs. An enabled account
-is checked once per HTTP request, and token role claims are not trusted for
-permissions. Login preserves the existing Hydra integration but makes its endpoint
-and namespace configuration explicit. Native fetch adds a timeout and validates
-the response. JWTs contain the login name, subject and timestamps, not upstream
-tokens or copied profile data. Tokens are valid for at most one day.
+**Keycloak issues the tokens; this API only verifies them.** The browser runs
+authorization code with PKCE against Keycloak directly and sends the access
+token it gets back. There is no `login` operation, no signing secret, and no
+public operation at all — the API mints nothing and holds no credential, which
+is the only arrangement that lets MFA, password reset, self-registration and any
+future social or enterprise identity provider work without further changes here.
 
-Production requires a sufficiently long signing secret. Existing shorter local
-secrets remain usable only for development. External-provider and database errors
-do not expose raw upstream responses, SQL, parameters or stack traces to clients.
-Issuer/audience policy, identity-provider replacement, tenant-scoped integration
-credentials, and public-login rate limiting need their own design when opening
-the platform to third parties.
+Every request carries an RS256 Bearer token verified against the realm's public
+keys, fetched over the Compose network and cached until Keycloak rotates them.
+Issuer and audience are both checked: a token minted by this realm for a
+different client is refused, and so is an ID token presented in place of an
+access token — they are signed by the same keys and carry the same subject, so
+nothing else would tell them apart.
+
+An account is resolved once per HTTP request. The Keycloak `sub` claim is the
+identity; the username and email are copies refreshed when they drift, so the
+ordinary request costs one indexed read and provisioning writes only on a first
+sign-in or a changed profile. Token role claims are never trusted for
+permissions — every authorization decision is the database's.
+
+**The guard is global and default-deny, and three things are exempt.** It is
+registered as an `APP_GUARD`, so a resolver is protected the day it is written
+rather than the day somebody remembers to decorate it. Two endpoints opt out
+with a `@Public()`, and introspection is exempt because it resolves no field at
+all; that is the whole list.
+
+| Unauthenticated | Why |
+| --- | --- |
+| `GET /health/live` | The orchestrator has no token and must be able to ask whether the process is alive. It reports nothing but that. |
+| `GET /health/ready` | Same caller, same reason. It answers 200 or 503 from a `SELECT 1` and returns no row, no schema detail and no error text. |
+| GraphQL introspection | The schema shape, not the data. Enabled outside production and off when `NODE_ENV=production`, so a deployment publishes no field list. Field *resolution* is guarded regardless — an introspection query cannot read a record. |
+
+Nothing in the GraphQL schema is public. Every query and mutation is about a
+particular person's organizations, invitations, teams, points or badges, and
+there is no anonymous view — no public leaderboard, no organization directory —
+for which an exemption would be worth its cost. A refused call is refused
+*before* the database is touched, so an unauthenticated request never reaches a
+query, and `app.test.ts` enumerates the built schema rather than a hand-kept
+list: adding a root field that answers without a token fails the suite.
+
+**Authorization for teams lives in the API; everywhere else it lives in SQL.**
+These are two layers: the guard establishes *who is calling*, and something
+below it decides *what they may do*. For organizations and invitations that
+decision is inside the SQL function, which raises a refusal the API maps to 403
+— so the rule holds no matter who calls, including a second service or a psql
+session. For teams it is in `TeamsService.access()` instead: `joinTeam` and
+`leaveTeam` check organization membership, owner-or-team-manager standing, and
+that the target belongs to the organization, all in TypeScript, because the
+`JoinTeam` and `LeaveTeam` functions themselves check nothing at all.
+
+The GraphQL surface is therefore guarded, but the guard is one layer thinner
+than the rest of the schema and sits on the wrong side of the boundary this
+codebase otherwise keeps. Anything reaching those two functions by another path
+gets no check, and `JoinTeam` will happily create a membership in an
+organization the user does not belong to — which every read function then
+ignores, because `IsMemberOfTeam` and `IsManagerOfTeam` test organization
+membership too. The membership exists and is invisible.
+
+Separately, `joinTeam` is the last operation that adds someone to something
+without their consent: an owner or manager places a member on a team, where the
+organization side now requires an invitation and an acceptance.
+
+None of this was introduced by the move to Keycloak. Each behaviour is locked in
+by a `_KnownIssue` test, with the detail in `apps/main-db/SCHEMA-NOTES.md` under
+“Still broken — not touched, your call.” The fix is to push the checks down into
+the two functions and drop the TypeScript equivalents. `GetUsers` has a related
+problem, authorizing on the literal login `'admin'` rather than on
+`Users."IsAdmin"`.
+
+Database and identity-provider errors do not expose raw upstream responses, SQL,
+parameters or stack traces to clients. A key server that cannot be reached
+answers 503 rather than 401, because an outage is not evidence that a session
+ended. Token revocation is not checked: an access token stays good until it
+expires, which the realm caps at five minutes. Refresh-token rotation, back-
+channel logout, tenant-scoped integration credentials and deployment rate
+limiting need their own design when opening the platform to third parties.
 
 ## 6. Versions, ESM and tests
 

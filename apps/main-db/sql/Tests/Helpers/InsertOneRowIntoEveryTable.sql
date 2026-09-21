@@ -66,6 +66,9 @@ BEGIN
     INSERT INTO "dbo"."SharedBadges" ("UserUUID", "BadgeUUID", "SharedWithUserUUID", "CreatedBy") VALUES (_UserUUID, _BadgeUUID, "test"."Fixture"('User.Member'), _By);
 
     INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _By);
+    -- An address nobody holds, so the invitation stays Pending and no other
+    -- test's dbo.GetUserInvitations picks it up.
+    INSERT INTO "dbo"."OrganizationInvitations" ("OrganizationUUID", "Email", "InvitedByUserUUID", "CreatedBy") VALUES (_OrganizationUUID, 'smoke@example.test', _UserUUID, _By);
     INSERT INTO "dbo"."UserTeams" ("UserUUID", "TeamUUID", "CreatedBy") VALUES (_UserUUID, _TeamUUID, _By);
     INSERT INTO "dbo"."UserBadges" ("UserUUID", "OrganizationUUID", "BadgeUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _BadgeUUID, _By);
     INSERT INTO "dbo"."UserPointLevels" ("UserUUID", "OrganizationUUID", "PointLevelUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointLevelUUID, _By);

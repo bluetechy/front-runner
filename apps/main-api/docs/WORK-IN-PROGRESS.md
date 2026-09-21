@@ -79,11 +79,31 @@ npm exec --offline --package=node@24.21.0 -- npm run test --workspace main-api
 
 - The old GUI needs the migration documented in `migration.md`: legacy feature
   URLs were intentionally replaced. Point amounts are now decimal strings.
-- Live login against the external Hydra provider was not exercised. Its behavior
-  is covered with controlled responses in Jest.
+- Live sign-in has since been exercised end to end against the running realm:
+  real authorization-code + PKCE sign-ins as seeded users, driving invite,
+  accept, decline, revoke, role changes and archive/restore. Token verification
+  is additionally covered in Jest against real RS256 signatures from a key pair
+  generated in the test. What remains unexercised is a browser doing the
+  redirect, rather than a script performing the same requests.
 - No subscriptions, job workers, AI agents, embedded widgets, ORM or new RBAC
   system are included. Existing database policy limitations are documented.
-- Production requires a JWT secret of at least 32 characters; Compose preserves
-  the existing shorter local development key.
+- The API no longer signs anything, so there is no JWT secret. Production
+  requires an HTTPS issuer; the local realm runs over plain HTTP and says so.
+- Nothing delivers an invitation. An invitee discovers one by querying
+  `invitations`; there is no mail, and that needs its own design.
+- **Team authorization sits in the API, not the schema.** `joinTeam` and
+  `leaveTeam` are checked in `TeamsService.access()` — organization membership,
+  owner-or-manager standing, target in the organization — because the `JoinTeam`
+  and `LeaveTeam` SQL functions check nothing. The GraphQL surface is guarded;
+  the rule just lives one layer higher than the organization rules do, so any
+  other caller of those functions gets no check, and `JoinTeam` can still create
+  a membership in an organization the user does not belong to, which the read
+  functions then ignore. Fix is to push the checks into the SQL and delete the
+  TypeScript ones. Detail in `apps/main-db/SCHEMA-NOTES.md`, “Still broken —
+  not touched, your call.”
+- `joinTeam` remains the last operation that adds someone to something without
+  consent; organizations moved to invitation-and-acceptance, teams did not.
+- `GetUsers` authorizes on the literal login `'admin'` rather than on
+  `Users."IsAdmin"`, so whoever registers that username gets the full user list.
 - Deployment rate limiting and third-party credential policy remain deployment/
   product work, not unfinished pieces of this framework refactor.

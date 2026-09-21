@@ -2,8 +2,9 @@
 #
 # Runs once, the first time the container starts on an empty data directory.
 #
-# It creates the application database and role and builds the schema into it.
-# It deliberately does not seed: an empty schema is the starting point, and
+# It creates the application database and role and builds the schema into it,
+# and creates the separate database Keycloak keeps its own realm and accounts
+# in. It deliberately does not seed: an empty schema is the starting point, and
 # demo data is applied on demand with `make db-seed`.
 #
 set -e
@@ -20,3 +21,7 @@ CREATE USER $app_user WITH PASSWORD '$app_password';
 SQL
 
 /opt/main-db/bin/apply.sh "$db_name"
+
+# Keycloak's database is not part of the application schema and is never built
+# by apply.sh -- Keycloak migrates it itself on first start.
+/opt/main-db/bin/keycloak-db.sh

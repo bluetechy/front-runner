@@ -63,6 +63,12 @@ dc3-psql:
 # volume. Seeding and testing are separate and on demand.
 ########################################################################
 
+# make db-keycloak - create the database Keycloak keeps its realm and accounts
+# in. Done automatically by init.sh on a new volume; run this by hand on a
+# volume that predates Keycloak. Idempotent.
+db-keycloak:
+	$(COMPOSE) exec main-db /opt/main-db/bin/keycloak-db.sh
+
 # make db-rebuild - drop the database and build the schema again from
 # apps/main-db/sql, without discarding the volume or the container. This is
 # how a schema change is applied; it leaves the database empty.

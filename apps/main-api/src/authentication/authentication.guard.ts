@@ -1,13 +1,15 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../database/index.js';
 import { GraphqlContext, Principal, PUBLIC_OPERATION } from './authentication.decorators.js';
+import { KeycloakService, type VerifiedIdentity } from './keycloak.service.js';
+
+interface Account { UserUUID: string; Name: string; LoginName: string; Email: string; IsEnabled: boolean }
 
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector, private readonly jwt: JwtService, private readonly db: DatabaseService) {}
+  constructor(private readonly reflector: Reflector, private readonly keycloak: KeycloakService, private readonly db: DatabaseService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (this.reflector.getAllAndOverride<boolean>(PUBLIC_OPERATION, [context.getHandler(), context.getClass()])) return true;
@@ -21,16 +23,34 @@ export class AuthenticationGuard implements CanActivate {
   private async authenticate(header?: string): Promise<Principal> {
     const match = /^Bearer ([^\s]+)$/i.exec(header ?? '');
     if (!match?.[1]) throw new UnauthorizedException('A Bearer token is required');
-    let payload: { LoginName?: unknown; exp?: unknown };
-    try { payload = await this.jwt.verifyAsync(match[1], { algorithms: ['HS256'] }); }
-    catch { throw new UnauthorizedException('Invalid or expired token'); }
-    if (typeof payload.LoginName !== 'string' || !payload.LoginName || typeof payload.exp !== 'number') {
-      throw new UnauthorizedException('Invalid token claims');
-    }
-    const [user] = await this.db.query<{ UserUUID: string }>(
-      'SELECT "UserUUID" FROM dbo."Users" WHERE "LoginName" = $1 AND "IsEnabled" = true', [payload.LoginName],
+    const identity = await this.keycloak.verify(match[1]);
+
+    // The common request is a user who signed in earlier and has changed
+    // nothing since, so it costs one indexed read. Provisioning -- which
+    // writes -- is kept for the sign-ins that actually need it: a subject this
+    // installation has never seen, and a profile Keycloak has since edited.
+    const [known] = await this.db.query<Account>(
+      'SELECT "UserUUID", "Name", "LoginName", "Email", "IsEnabled" FROM dbo."Users" WHERE "SubjectId" = $1',
+      [identity.subjectId],
     );
-    if (!user) throw new UnauthorizedException('User is unavailable');
-    return { userId: user.UserUUID, loginName: payload.LoginName };
+    const account = this.current(known, identity) ? known : await this.provision(identity);
+
+    if (!account?.IsEnabled) throw new UnauthorizedException('User is unavailable');
+    return { userId: account.UserUUID, loginName: account.LoginName };
+  }
+
+  private current(account: Account | undefined, identity: VerifiedIdentity): account is Account {
+    return !!account
+      && account.LoginName === identity.loginName
+      && account.Email === identity.email
+      && (identity.name === null || account.Name === identity.name);
+  }
+
+  private async provision(identity: VerifiedIdentity): Promise<Account | undefined> {
+    const [account] = await this.db.query<Account>(
+      'SELECT * FROM dbo."ProvisionUser"($1, $2, $3, $4)',
+      [identity.subjectId, identity.loginName, identity.name, identity.email],
+    );
+    return account;
   }
 }

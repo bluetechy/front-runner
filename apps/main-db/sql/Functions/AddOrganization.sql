@@ -4,7 +4,8 @@ CREATE FUNCTION "dbo"."AddOrganization" (_LoginName varchar(64), _OrganizationNa
     "TeamCount" integer,
     "UserCount" integer,
     "OwnerCount" integer,
-    "IsOwner" boolean
+    "IsOwner" boolean,
+    "IsEnabled" boolean
 ) AS $$
     DECLARE
         _UserUUID uuid = "dbo"."GetUserUUID"(_LoginName);
@@ -19,6 +20,7 @@ CREATE FUNCTION "dbo"."AddOrganization" (_LoginName varchar(64), _OrganizationNa
             0,
             1,
             CASE WHEN _IsOwner = true THEN 1 ELSE 0 END,
-            _IsOwner;
+            _IsOwner,
+            true;
     END;
 $$ LANGUAGE plpgsql;

@@ -7,7 +7,8 @@
 # it is a development tool and nothing else.
 #
 # The application role is cluster-wide and survives, so this does not need to
-# recreate it.
+# recreate it. Keycloak's database is a separate one and is not touched: every
+# account in the installation lives there, and they are not development data.
 #
 set -euo pipefail
 

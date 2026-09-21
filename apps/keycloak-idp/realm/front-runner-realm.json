@@ -1,0 +1,264 @@
+{
+  "realm": "front-runner",
+  "enabled": true,
+  "displayName": "Front Runner",
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "clients": [
+    {
+      "clientId": "main-gui",
+      "name": "Front Runner GUI",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost/*",
+        "http://localhost:80/*",
+        "http://localhost:3000/*",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost",
+        "http://localhost:3000",
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost/*##http://localhost:5173/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "main-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "main-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "main-api",
+      "name": "Front Runner API",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "Account",
+      "email": "support@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "matthewm",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Matthew",
+      "lastName": "Mattson",
+      "email": "matthew.mattson@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "matthewm",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "jdoe",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "email": "jane.doe@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "jdoe",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "rsingh",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Ravi",
+      "lastName": "Singh",
+      "email": "ravi.singh@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "rsingh",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "lchen",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Li",
+      "lastName": "Chen",
+      "email": "li.chen@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "lchen",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "mgarcia",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Maria",
+      "lastName": "Garcia",
+      "email": "maria.garcia@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "mgarcia",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "tnguyen",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Thanh",
+      "lastName": "Nguyen",
+      "email": "thanh.nguyen@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "tnguyen",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "kowusu",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Kwame",
+      "lastName": "Owusu",
+      "email": "kwame.owusu@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "kowusu",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "sjohnson",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Sam",
+      "lastName": "Johnson",
+      "email": "sam.johnson@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sjohnson",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "ahassan",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Amina",
+      "lastName": "Hassan",
+      "email": "amina.hassan@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ahassan",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "pkowalski",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Piotr",
+      "lastName": "Kowalski",
+      "email": "piotr.kowalski@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "pkowalski",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "dretired",
+      "enabled": false,
+      "emailVerified": true,
+      "firstName": "Dana",
+      "lastName": "Retired",
+      "email": "dana.retired@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "dretired",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "newhire",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "New",
+      "lastName": "Hire",
+      "email": "newhire@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "newhire",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
