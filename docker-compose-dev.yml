@@ -32,6 +32,10 @@ services:
         restart: always
         volumes:
             - main-db-data:/var/lib/postgresql
+            # Mounted rather than baked in so editing the SQL and running
+            # `make db-rebuild` picks it up without a docker build.
+            - "./apps/main-db/sql:/sql:ro"
+            - "./apps/main-db/bin:/opt/main-db/bin:ro"
 #    main-gui:
 #        build:
 #            context: ./apps/main-gui

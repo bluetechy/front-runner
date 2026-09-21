@@ -6,8 +6,8 @@ CREATE FUNCTION "dbo"."JoinTeam" (_LoginName varchar(64), _TeamUUID uuid, _UserU
     "IsManager" boolean
 ) AS $$
     BEGIN
-        INSERT INTO "dbo"."UserTeams" ("UserUUID", "TeamUUID", "CreatedBy") VALUES (_UserUUID, _TeamUUID, _LoginName) ON CONFLICT ("UserUUID", "TeamUUID") DO NOTHING;
-        UPDATE "dbo"."UserTeams" SET "IsManager" = _IsManager, "UpdatedBy" = _LoginName WHERE "UserUUID" = _UserUUID AND "TeamUUID" = _TeamUUID;
+        INSERT INTO "dbo"."UserTeams" ("UserUUID", "TeamUUID", "CreatedBy") VALUES (_UserUUID, _TeamUUID, _LoginName) ON CONFLICT ON CONSTRAINT "UserTeams_UUIDs_UniqueKey" DO NOTHING;
+        UPDATE "dbo"."UserTeams" SET "IsManager" = _IsManager, "UpdatedBy" = _LoginName WHERE "UserTeams"."UserUUID" = _UserUUID AND "UserTeams"."TeamUUID" = _TeamUUID;
         RETURN QUERY
         SELECT
             "Teams"."OrganizationUUID",

@@ -12,7 +12,7 @@ CREATE FUNCTION "dbo"."JoinOrganization" (_LoginName varchar(64), _OrganizationU
         IF NOT _IsOwnerOfOrganization THEN
             RAISE EXCEPTION 'Action cannot be performed.';
         END IF;
-        INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _LoginName) ON CONFLICT ("UserUUID", "OrganizationUUID") DO NOTHING;
+        INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _LoginName) ON CONFLICT ON CONSTRAINT "UserOrganizations_UUIDs_UniqueKey" DO NOTHING;
         RETURN QUERY
         SELECT
             "Organizations"."OrganizationUUID",

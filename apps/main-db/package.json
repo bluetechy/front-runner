@@ -3,5 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "main-db",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "test": "node --env-file-if-exists=../../.env --test",
+    "test:watch": "node --env-file-if-exists=../../.env --test --watch",
+    "test:ci": "node --env-file-if-exists=../../.env --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results.xml"
+  },
+  "devDependencies": {
+    "pg": "^8.11.3"
+  }
 }

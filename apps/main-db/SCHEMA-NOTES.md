@@ -5,21 +5,36 @@
 SQL Server / SSDT style — one object per file, file name identical to the object name.
 
 ```
+bin/
+  apply.sh          build the schema into a named database
+  rebuild.sh        drop the application database and build it again
+  seed.sh           load a seed dataset on demand
+test/
+  database.test.js  discovers and drives the SQL tests
 sql/
   Functions/        one function per file            (22)
   Tables/           CREATE TABLE only, no triggers   (20)
   Triggers/         one trigger per file             (42)
   ForeignKeys/      FK constraints, one file per table (8 files, 16 constraints)
   Security/         Permissions.sql
-  Scripts/          Seed.sql
+  Seeds/Dev/        demo data, applied on demand      (9)
+  Tests/            see Tests/README.md
+    Helpers/        assertions and shared setup       (8)
+    Fixtures/       the world every test starts from  (1)
+    Cases/          one file per object under test    (23)
   Drafts/           not built; see "Drafts" below
     Tables/                                          (45)
     Functions/                                       (72)
     StoredProcedures/                                (97)
 ```
 
-`init.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security -> Scripts`.
-Nothing under `Drafts/` is applied.
+`bin/apply.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security`.
+`init.sh` creates the database and role on first container start and then calls it.
+Nothing under `Drafts/`, `Seeds/` or `Tests/` is applied by either.
+
+**Schema creation and seeding are separate.** A fresh database is empty. Demo
+data is `make db-seed`; the tests build their own scratch database and load
+their own fixtures. See the "Database" section of the repository README.
 
 ## Naming convention
 
@@ -87,6 +102,29 @@ These alter behaviour. Revert any you disagree with.
 10. `init.sh`: added `set -e` and `-v ON_ERROR_STOP=1`. Every failure above was
     silent because psql exited 0 on error and the loop ignored it.
 
+## Changes made while adding seeding and tests
+
+11. **`JoinOrganization` and `JoinTeam` could never run.** Both declare
+    `RETURNS TABLE(... "OrganizationUUID" ... )` / `... "TeamUUID" ...`, which
+    makes those names plpgsql variables, and both then used the same names as
+    bare column references — `ON CONFLICT ("UserUUID", "OrganizationUUID")`,
+    and in `JoinTeam` also `WHERE "UserUUID" = _UserUUID AND "TeamUUID" =
+    _TeamUUID`. Every call raised `column reference "..." is ambiguous`. The
+    `ON CONFLICT` inference lists became `ON CONFLICT ON CONSTRAINT
+    "UserOrganizations_UUIDs_UniqueKey"` / `"UserTeams_UUIDs_UniqueKey"`, and
+    the `UPDATE` predicate is now table-qualified. Behaviour is otherwise
+    unchanged. Found by the test suite.
+12. `Security/Permissions.sql` took its database name and application user from
+    psql variables instead of hard-coding `dbo` and `root`, and lost its
+    `\connect`, so it can be applied to the scratch test database too.
+13. `apply.sh` always creates the schema `dbo`, where `init.sh` previously
+    created a schema named after `APP_DB_NAME`. Every object under `sql/` is
+    written `"dbo"."Thing"`, so the schema name was never actually variable —
+    changing `APP_DB_NAME` used to produce a database nothing could be built
+    into.
+14. `sql/Scripts/Seed.sql` was deleted. Its content lives on, expanded, in
+    `sql/Seeds/Dev/`.
+
 ## Still broken — not touched, your call
 
 - **`ForeignKeys/` was never run.** `init.sh` only looped over `Functions/` and
@@ -112,9 +150,44 @@ These alter behaviour. Revert any you disagree with.
   `IsOwnerOfOrganization`. Any caller can add any user to any team, and the following
   `UPDATE` lets them set `IsManager`.
 - **`LeaveTeam` takes no authorisation check** either, unlike `LeaveOrganization`.
-- **`Dockerfile` uses the legacy `ENV key value` form** and hardcodes
-  `POSTGRES_PASSWORD admin`, while `init.sh` hardcodes `CREATE USER root WITH
-  PASSWORD 'root'`.
+- **`GetTeams` returns one row per team *membership*, not per team.** It joins
+  `UserTeams` without filtering or de-duplicating, so a team with three members
+  comes back three times. The `IsManager` column is already computed by a
+  correlated subquery, so the join earns nothing — a `DISTINCT`, or dropping the
+  join, fixes it. Found while writing the tests.
+- **`JoinTeam` does not require organization membership.** It will happily put a
+  user on a team in an organization they do not belong to, and every read
+  function then ignores the row: `IsMemberOfTeam` and `IsManagerOfTeam` both
+  test organization membership too, so the membership exists but is invisible.
+  Either `JoinTeam` should reject it or it should add the organization
+  membership as well. Found while writing the tests.
+
+Each of these has a `_KnownIssue` test locking in the current behaviour — see
+below.
+
+## Known issues covered by tests
+
+These tests assert behaviour that is **wrong but current**, so that the suite
+stays green and the defect stays visible and documented. Every one carries a
+comment describing what correct would look like, and a failure message telling
+you to replace the test rather than to fix the code.
+
+| Test | Issue |
+|---|---|
+| `TestGetUsers_IgnoresIsAdmin_KnownIssue` | `GetUsers` authorises on the literal login `'admin'`, not on `Users."IsAdmin"` |
+| `TestLoginUser_CreatesAnAccountForAnUnknownLogin_KnownIssue` | `LoginUser` silently creates an enabled account for any unknown login, with no credential check |
+| `TestGetTeams_DuplicatesTeamsPerMember_KnownIssue` | `GetTeams` emits one row per membership rather than per team |
+| `TestJoinTeam_AllowsAnyCaller_KnownIssue` | `JoinTeam` performs no authorisation check |
+| `TestJoinTeam_CreatesUnreachableMembershipsForOutsiders_KnownIssue` | `JoinTeam` creates team memberships the read functions cannot see |
+| `TestLeaveTeam_AllowsAnyCaller_KnownIssue` | `LeaveTeam` performs no authorisation check |
+| `TestUpdateModifiedInfo_LeavesUpdatedByToTheCaller` | `update_modified_info` maintains `UpdatedAt` but not `UpdatedBy`; a caller who forgets it leaves the previous author's name on the row |
+
+If one of these starts failing, the underlying bug was probably fixed — read the
+comment above the test before changing anything.
+
+`TestSchema_EveryTableHasAuditColumns` carries the one structural exemption:
+`UserTallies` is allowed to lack `CreatedAt`/`CreatedBy`. Every other table is
+required to have all four, so a new table without them fails the suite.
 
 ## Drafts
 

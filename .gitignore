@@ -49,3 +49,7 @@ node_modules
 # Codex
 /.codex/config.toml
 /.codex/rules/claude-permissions.rules
+
+# Test output
+test-results.xml
+**/test-results.xml
