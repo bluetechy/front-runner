@@ -1,0 +1,12 @@
+**
+!package.json
+!package-lock.json
+!apps
+!apps/main-api
+!apps/main-api/**
+apps/main-api/node_modules
+apps/main-api/dist
+apps/main-api/.test-dist
+apps/main-api/coverage
+apps/main-api/.env*
+apps/main-api/docs

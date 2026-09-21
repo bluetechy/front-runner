@@ -1,26 +1,49 @@
 {
   "name": "main-api",
-  "version": "1.0.0",
-  "description": "main-api",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "webmaster",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Front Runner NestJS GraphQL API",
   "license": "ISC",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "start": "node --env-file-if-exists=../../.env dist/main.js",
+    "start:prod": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck && node scripts/check-boundaries.mjs",
+    "test": "node scripts/test.mjs",
+    "test:watch": "node scripts/test.mjs --watch",
+    "test:coverage": "node scripts/test.mjs --coverage"
+  },
   "dependencies": {
-    "axios": "^1.5.0",
-    "body-parser": "^1.20.2",
-    "body-parser-graphql": "^1.1.0",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "express-boom": "^3.0.0",
-    "express-graphql": "^0.11.0",
-    "graphql": "^15.8.0",
-    "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^2.7.0",
-    "pg": "^8.11.3",
-    "redis": "^4.6.8",
-    "uuid": "^9.0.0"
-  }
+    "@apollo/server": "5.5.1",
+    "@as-integrations/express5": "1.1.2",
+    "@nestjs/apollo": "14.0.1",
+    "@nestjs/common": "12.0.4",
+    "@nestjs/config": "12.0.0",
+    "@nestjs/core": "12.0.4",
+    "@nestjs/graphql": "14.0.1",
+    "@nestjs/jwt": "12.0.2",
+    "@nestjs/platform-express": "12.0.4",
+    "graphql": "16.14.2",
+    "pg": "8.23.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@babel/parser": "7.29.9",
+    "@jest/globals": "30.5.2",
+    "@nestjs/testing": "12.0.4",
+    "@types/express": "5.0.6",
+    "@types/node": "24.13.6",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "jest": "30.5.2",
+    "supertest": "7.2.2",
+    "typescript": "7.0.2"
+  },
+  "type": "module"
 }
