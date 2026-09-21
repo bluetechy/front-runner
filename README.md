@@ -7,7 +7,7 @@ A Turborepo monorepo.
   - `apps/main-api` — GraphQL/Express API
   - `apps/main-db` — Postgres image and schema
   - `apps/main-gui` — React frontend
-  - `services/service-graph` — Docker Compose orchestration
+  - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
 
 ## Turborepo
 
@@ -18,9 +18,10 @@ Filter a single app with `npx turbo run build --filter=main-api`.
 
 ## Service graph
 
+Run these from the repository root.
+
 To startup the service graph:
 
-  - `cd services/service-graph`
   - `make dc3-up-d`
 
 To call the frontend application:
@@ -29,5 +30,4 @@ To call the frontend application:
 
 To shutdown the service graph:
 
-  - `cd services/service-graph`
   - `make dc3-down`
