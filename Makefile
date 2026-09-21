@@ -2,7 +2,7 @@
 # CONSTANTS FOR MAKEFILE
 ########################################################################
 
-PROJECT_UID = gamification
+PROJECT_UID = front-runner
 PROJECT_ENV = dev
 PROJECT_NAME = ${PROJECT_UID}-${PROJECT_ENV}
 
