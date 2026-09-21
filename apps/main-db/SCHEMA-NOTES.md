@@ -238,16 +238,21 @@ required to have all four, so a new table without them fails the suite.
 deleted for referencing a missing table — those are flagged with a
 `-- MISSING REFS:` header in the file instead.
 
-It is a second, parallel schema: snake_case, `serial` integer keys, no audit columns,
-and it references a `users(user_id)` table that does not exist anywhere in this repo.
-The live schema is uuid-keyed and PascalCase. The two do not interoperate.
+It is **the same product, drafted earlier** — organizations, teams, badges, points,
+and the workflow features built on top of them. It is not a second application's
+schema. What differs is convention, not domain: `serial` integer keys instead of
+uuid, no audit columns, no `OrganizationUUID` anywhere, unquoted and unschema'd
+identifiers, and references to a `Users(UserId)` table that this repo does not have
+(the live one is `"dbo"."Users"."UserUUID"`). So the two do not *interoperate* as
+written, but the drafts are the design this schema grew out of and the backlog it
+has not caught up with yet — read them as a feature inventory, not as dead code.
 
 **Overlaps with the live schema** — flagged with `-- OVERLAP:` in each file:
 
 | Draft | Live equivalent |
 |---|---|
 | `Badges`, `BadgeAchievements`, `BadgeCriteria`, `BadgeCategories`, `BadgeEvents`, `BadgeEventCriteria`, `BadgeGroups`, `BadgeGroupRelationships`, `BadgeReviews`, `BadgeStatistics`, `SharedBadges` | the matching `dbo.Badge*` tables |
-| `UserBadges` | `dbo.UserBadges` |
+| `UserBadges` | `dbo.UserBadges` — columns folded in, see below |
 | `PointTypes` | `dbo.Points` |
 | `PointTransactions` | `dbo.UserPoints` |
 | `UserPointTotals` | `dbo.UserTallies` |
@@ -256,9 +261,45 @@ The 11 badge tables were commented out in the original file, which lines up exac
 with the live `dbo.Badge*` tables — they look migrated already. They are kept as
 drafts rather than deleted.
 
-`Drafts/Tables/UserBadges.sql` is the one overlap carrying columns the live table
-lacks: `EarnedDescription`, `ProgressGoal`, `ProgressCurrent`, `RevokedAt`. Worth
-folding into `dbo.UserBadges` if badge progress tracking is still wanted.
+### Columns folded in from the drafts
+
+Ten draft columns are now live. The names follow the live convention rather than
+the draft's, which strips the prefix that repeats the table name
+(`TransactionDetails` -> `"Details"` on `UserPoints`); `"EarnedDescription"` keeps
+its qualifier because a bare `"Description"` on `UserBadges` reads as the badge's.
+
+| Table | Columns | From |
+|---|---|---|
+| `dbo.UserBadges` | `EarnedAt`, `EarnedDescription`, `ProgressGoal`, `ProgressCurrent`, `RevokedAt` | `Drafts/Tables/UserBadges.sql` |
+| `dbo.UserPoints` | `Reason`, `Details` | `PointTransactions.TransactionReason`, `.TransactionDetails` |
+| `dbo.Points` | `ExpirationDuration`, `ResetCondition` | `PointTypes` |
+| `dbo.UserTallies` | `DailyLimit`, `SpendLimit` | `UserPointTotals` |
+
+Three things about them are not obvious:
+
+**A `UserBadges` row no longer means "earned".** `EarnedAt` is NULL while the badge
+is in progress and `RevokedAt` is set when one is taken back, so `GetBadges` now
+filters on both — otherwise adding the columns would have quietly started reporting
+unearned badges as held. `GetBadges` also returns `EarnedAt` and `EarnedDescription`
+now; main-api selects `*` from it, so both reach the API response.
+
+**Nothing reads the other nine yet.** `ExpirationDuration` and `ResetCondition` are
+policy that no function enforces — expiry is still per-row on
+`UserPoints."ExpiresAt"`. Same for the two limits and for `Reason`/`Details`.
+`TestSchema_DraftColumnsExist` is what holds them in place until a reader exists;
+it is a hardcoded list for the same reason the other structural lists are.
+
+**The two limits are policy on a derived table.** `UserTallies` is otherwise
+maintained entirely by `calculate_tallies`, which rewrites `"Amount"` on every point
+row. It upserts with `DO NOTHING` and its `UPDATE` names only `"Amount"` and
+`"UpdatedBy"`, so a limit set on a tally survives — `TestCalculateTallies_PreservesTheLimitsOnATally`
+locks that in. If `calculate_tallies` ever grows into a full upsert, the limits are
+what it will silently clear.
+
+**Follow-up:** the progress columns are write-only from the application's side.
+`Drafts/Functions/GetBadgeProgress.sql` and `GetUserBadgeProgressSummary.sql` are the
+readers they were drafted for; neither is migrated. `Tests/Cases/UserBadges.sql`
+reaches into the table directly in the meantime.
 
 ### Duplicates resolved
 

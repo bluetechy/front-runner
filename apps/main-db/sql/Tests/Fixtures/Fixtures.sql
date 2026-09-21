@@ -6,9 +6,9 @@
 -- It is deliberately small and adversarial rather than realistic — one of
 -- everything that the functions branch on: an owner and a plain member, an
 -- outsider who belongs to nothing, a disabled user, a disabled organization,
--- a disabled team, a disabled badge, and point rows that are expired, active
--- and not-yet-expired. Demo data for working with the API lives in
--- sql/Seeds/Dev instead.
+-- a disabled team, a disabled badge, a badge still in progress, a revoked
+-- badge, and point rows that are expired, active and not-yet-expired. Demo
+-- data for working with the API lives in sql/Seeds/Dev instead.
 --
 
 CREATE TABLE "test"."Fixtures" (
@@ -29,6 +29,8 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('Team.Archived',            '33333333-0000-4000-8000-000000000003'),
     ('Badge.Rookie',             '44444444-0000-4000-8000-000000000001'),
     ('Badge.Retired',            '44444444-0000-4000-8000-000000000002'),
+    ('Badge.InProgress',         '44444444-0000-4000-8000-000000000003'),
+    ('Badge.Revoked',            '44444444-0000-4000-8000-000000000004'),
     ('Point.Points',             '55555555-0000-4000-8000-000000000001'),
     ('Point.Gems',               '55555555-0000-4000-8000-000000000002'),
     ('UserPoint.MemberActive',   '66666666-0000-4000-8000-000000000001'),
@@ -54,12 +56,16 @@ INSERT INTO "dbo"."Teams" ("TeamUUID", "OrganizationUUID", "Name", "IsEnabled", 
     ("test"."Fixture"('Team.Archived'), "test"."Fixture"('Organization.Acme'), 'Archived Team', false, 'fixtures');
 
 INSERT INTO "dbo"."Badges" ("BadgeUUID", "Name", "Description", "Level", "IsEnabled", "CreatedBy") VALUES
-    ("test"."Fixture"('Badge.Rookie'),  'Rookie',  'First badge.',   1, true,  'fixtures'),
-    ("test"."Fixture"('Badge.Retired'), 'Retired', 'Retired badge.', 4, false, 'fixtures');
+    ("test"."Fixture"('Badge.Rookie'),     'Rookie',     'First badge.',      1, true,  'fixtures'),
+    ("test"."Fixture"('Badge.Retired'),    'Retired',    'Retired badge.',    4, false, 'fixtures'),
+    ("test"."Fixture"('Badge.InProgress'), 'In Progress', 'Half-earned badge.', 2, true,  'fixtures'),
+    ("test"."Fixture"('Badge.Revoked'),    'Revoked',    'Badge taken back.', 3, true,  'fixtures');
 
-INSERT INTO "dbo"."Points" ("PointUUID", "Name", "Description", "CreatedBy") VALUES
-    ("test"."Fixture"('Point.Points'), 'Points', 'General purpose points.', 'fixtures'),
-    ("test"."Fixture"('Point.Gems'),   'Gems',   'Premium currency.',       'fixtures');
+-- Gems carries the expiry policy columns, Points leaves them NULL, so both
+-- shapes are exercised. Nothing reads them yet -- see SCHEMA-NOTES.md.
+INSERT INTO "dbo"."Points" ("PointUUID", "Name", "Description", "ExpirationDuration", "ResetCondition", "CreatedBy") VALUES
+    ("test"."Fixture"('Point.Points'), 'Points', 'General purpose points.', NULL,              NULL,                 'fixtures'),
+    ("test"."Fixture"('Point.Gems'),   'Gems',   'Premium currency.',       interval '1 year', 'Start of the year.', 'fixtures');
 
 -- Owner owns Acme; Member and Disabled belong to it; Outsider belongs to
 -- nothing. Owner also owns the disabled organization, so ownership alone is
@@ -78,16 +84,22 @@ INSERT INTO "dbo"."UserTeams" ("UserUUID", "TeamUUID", "IsManager", "CreatedBy")
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Team.Support'),  false, 'fixtures'),
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Team.Archived'), false, 'fixtures');
 
-INSERT INTO "dbo"."UserBadges" ("UserUUID", "OrganizationUUID", "BadgeUUID", "CreatedBy") VALUES
-    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Rookie'),  'fixtures'),
-    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Retired'), 'fixtures');
+-- Four badge rows for the member, one per state GetBadges branches on: earned
+-- and visible, earned but on a disabled badge, still in progress (EarnedAt is
+-- NULL), and earned then revoked. Only the Rookie row comes back from
+-- GetBadges, which is what TestGetBadges_ReturnsTheBadgesAUserHolds counts.
+INSERT INTO "dbo"."UserBadges" ("UserUUID", "OrganizationUUID", "BadgeUUID", "EarnedAt", "EarnedDescription", "ProgressGoal", "ProgressCurrent", "RevokedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Rookie'),     '2024-01-01 00:00:00+00', 'Signed up',        1,  1, NULL,                     'fixtures'),
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Retired'),    '2024-02-01 00:00:00+00', 'Earned long ago',  1,  1, NULL,                     'fixtures'),
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.InProgress'), NULL,                     NULL,              10,  4, NULL,                     'fixtures'),
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Revoked'),    '2024-03-01 00:00:00+00', 'Earned in error',  1,  1, '2024-04-01 00:00:00+00', 'fixtures');
 
 -- Member's Points tally works out to 12.5000: 10 active, plus 2.5 that expire
 -- in the far future, minus the 5 that expired in 2020. Gems is a second tally
 -- row for the same user, and Owner has a third.
-INSERT INTO "dbo"."UserPoints" ("UserPointUUID", "UserUUID", "OrganizationUUID", "PointUUID", "Description", "Amount", "ExpiresAt", "CreatedBy") VALUES
-    ("test"."Fixture"('UserPoint.MemberActive'),  "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Active',      10.0000, NULL,                     'fixtures'),
-    ("test"."Fixture"('UserPoint.MemberExpired'), "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Expired',      5.0000, '2020-01-01 00:00:00+00', 'fixtures'),
-    ("test"."Fixture"('UserPoint.MemberFuture'),  "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Not yet due',  2.5000, '2999-01-01 00:00:00+00', 'fixtures'),
-    ("test"."Fixture"('UserPoint.MemberGems'),    "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Gems'),   'Gems',         3.0000, NULL,                     'fixtures'),
-    ("test"."Fixture"('UserPoint.OwnerActive'),   "test"."Fixture"('User.Owner'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Active',       7.0000, NULL,                     'fixtures');
+INSERT INTO "dbo"."UserPoints" ("UserPointUUID", "UserUUID", "OrganizationUUID", "PointUUID", "Description", "Reason", "Details", "Amount", "ExpiresAt", "CreatedBy") VALUES
+    ("test"."Fixture"('UserPoint.MemberActive'),  "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Active',      'Award',  '{"Source": "fixtures"}'::jsonb, 10.0000, NULL,                     'fixtures'),
+    ("test"."Fixture"('UserPoint.MemberExpired'), "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Expired',      NULL,     NULL,                            5.0000, '2020-01-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('UserPoint.MemberFuture'),  "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Not yet due',  NULL,     NULL,                            2.5000, '2999-01-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('UserPoint.MemberGems'),    "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Gems'),   'Gems',         NULL,     NULL,                            3.0000, NULL,                     'fixtures'),
+    ("test"."Fixture"('UserPoint.OwnerActive'),   "test"."Fixture"('User.Owner'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Active',       NULL,     NULL,                            7.0000, NULL,                     'fixtures');

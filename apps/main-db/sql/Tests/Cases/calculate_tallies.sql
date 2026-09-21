@@ -97,3 +97,33 @@ BEGIN
     PERFORM "test"."AssertEquals"(_Count, 1::bigint, 'a second point row created a second tally row');
 END;
 $$ LANGUAGE plpgsql;
+
+-- DailyLimit and SpendLimit are policy someone set, sitting on a table that is
+-- otherwise derived. calculate_tallies rewrites "Amount" on every point row
+-- and upserts with DO NOTHING, so the limits have to survive that.
+CREATE FUNCTION "test"."TestCalculateTallies_PreservesTheLimitsOnATally" () RETURNS void AS $$
+DECLARE
+    _DailyLimit decimal(19,4);
+    _SpendLimit decimal(19,4);
+    _Amount decimal(19,4);
+BEGIN
+    UPDATE "dbo"."UserTallies" SET "DailyLimit" = 50.0000, "SpendLimit" = 25.0000, "UpdatedBy" = 'test'
+    WHERE "UserTallies"."UserUUID" = "test"."Fixture"('User.Member')
+        AND "UserTallies"."OrganizationUUID" = "test"."Fixture"('Organization.Acme')
+        AND "UserTallies"."PointUUID" = "test"."Fixture"('Point.Points');
+
+    INSERT INTO "dbo"."UserPoints" ("UserUUID", "OrganizationUUID", "PointUUID", "Description", "Amount", "CreatedBy")
+    VALUES ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Bonus', 1.5000, 'test');
+
+    SELECT "UserTallies"."DailyLimit", "UserTallies"."SpendLimit", "UserTallies"."Amount"
+    INTO _DailyLimit, _SpendLimit, _Amount
+    FROM "dbo"."UserTallies"
+    WHERE "UserTallies"."UserUUID" = "test"."Fixture"('User.Member')
+        AND "UserTallies"."OrganizationUUID" = "test"."Fixture"('Organization.Acme')
+        AND "UserTallies"."PointUUID" = "test"."Fixture"('Point.Points');
+
+    PERFORM "test"."AssertEquals"(_DailyLimit, 50.0000::decimal(19,4), 'calculate_tallies cleared DailyLimit');
+    PERFORM "test"."AssertEquals"(_SpendLimit, 25.0000::decimal(19,4), 'calculate_tallies cleared SpendLimit');
+    PERFORM "test"."AssertEquals"(_Amount, 14.0000::decimal(19,4), 'the tally should still have been recalculated');
+END;
+$$ LANGUAGE plpgsql;

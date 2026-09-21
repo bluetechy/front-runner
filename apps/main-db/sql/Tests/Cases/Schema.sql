@@ -60,6 +60,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Columns folded in from sql/Drafts. Most have no function reading them yet,
+-- so nothing else in the suite would notice one being dropped -- this list is
+-- what holds them in place until a reader exists. See SCHEMA-NOTES.md.
+CREATE FUNCTION "test"."TestSchema_DraftColumnsExist" () RETURNS void AS $$
+DECLARE
+    _Missing text;
+BEGIN
+    SELECT string_agg(format('%s.%s', "Expected"."Table", "Expected"."Column"), ', ' ORDER BY "Expected"."Table", "Expected"."Column") INTO _Missing
+    FROM (VALUES
+        ('Points',      'ExpirationDuration', 'interval'),
+        ('Points',      'ResetCondition',     'text'),
+        ('UserBadges',  'EarnedAt',           'timestamp with time zone'),
+        ('UserBadges',  'EarnedDescription',  'text'),
+        ('UserBadges',  'ProgressGoal',       'integer'),
+        ('UserBadges',  'ProgressCurrent',    'integer'),
+        ('UserBadges',  'RevokedAt',          'timestamp with time zone'),
+        ('UserPoints',  'Reason',             'character varying'),
+        ('UserPoints',  'Details',            'jsonb'),
+        ('UserTallies', 'DailyLimit',         'numeric'),
+        ('UserTallies', 'SpendLimit',         'numeric')
+    ) AS "Expected" ("Table", "Column", "Type")
+    WHERE NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE "table_schema" = 'dbo'
+            AND "table_name" = "Expected"."Table"
+            AND "column_name" = "Expected"."Column"
+            AND "data_type" = "Expected"."Type"
+    );
+
+    PERFORM "test"."AssertEquals"(_Missing, NULL::text, 'columns missing, or holding a different type than expected');
+END;
+$$ LANGUAGE plpgsql;
+
 -- UserTallies is the one table without CreatedAt/CreatedBy: it is written
 -- only by calculate_tallies, which upserts rather than inserting once.
 CREATE FUNCTION "test"."TestSchema_EveryTableHasAuditColumns" () RETURNS void AS $$

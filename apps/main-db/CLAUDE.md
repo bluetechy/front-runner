@@ -22,12 +22,13 @@ broken for exactly that reason.
 | Added a table | the list in `TestSchema_ExpectedTablesExist`, an insert in `sql/Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
 | Added a foreign key | the list in `TestSchema_ExpectedForeignKeysExist` |
 | `sql/Triggers/` or a trigger function | `sql/Tests/Cases/<trigger_function>.sql` (`calculate_tallies`, `insert_modified_info`, `update_modified_info`) |
+| Added a column | a case proving what it means, and the list in `TestSchema_DraftColumnsExist` if nothing reads it yet |
 | Deleted or renamed anything | every `sql/Tests/Cases/` file and `Schema.sql` list that names it |
 
-The structural tests in `sql/Tests/Cases/Schema.sql` hold hardcoded lists of tables,
-functions and foreign keys on purpose: adding something without listing it fails
-the suite, which is the reminder. Don't delete an entry to make the suite pass —
-add the new one.
+The structural tests in `sql/Tests/Cases/Schema.sql` hold hardcoded lists of
+tables, functions, foreign keys and draft-sourced columns on purpose: adding
+something without listing it fails the suite, which is the reminder. Don't
+delete an entry to make the suite pass — add the new one.
 
 Run them before saying you're done:
 
@@ -59,6 +60,12 @@ exceptions: `sql/Tests/Cases/` names the file for the object under test and hold
 every `test."Test<Object>_<Behaviour>"` function for it, and `sql/Seeds/Dev/`
 leads with an ordering number (`06_UserOrganizations.sql`) because rows have to
 load parents before children.
+
+A case file's object can be a table, not just a function: `Cases/UserBadges.sql`
+holds what that table's columns *mean* (a NULL `EarnedAt` is a badge in progress),
+while facts true of every table — audit columns, triggers, the table list — stay
+in `Cases/Schema.sql`. Give a table its own case file when it carries state worth
+explaining; don't add one that only restates `Schema.sql`.
 
 `SCHEMA-NOTES.md` has the full naming table, its nuances, and the register of
 what the schema still gets wrong. `sql/Tests/README.md` has the assertion helpers
@@ -101,6 +108,10 @@ installed.
   a team; read `dbo.UserTeams` directly for that.
 - **Adding a fixture row changes counts other tests assert.** `Fixtures.sql` is
   shared by everything; grep for the counts before adding a user or a team.
+- **A `dbo.UserBadges` row is not proof the badge was earned.** `EarnedAt` is
+  NULL while it is in progress and `RevokedAt` is set when it is taken back, so
+  anything reading the table has to filter on both the way `GetBadges` does.
+  The fixtures carry one row in each state.
 
 ## Tests suffixed `_KnownIssue`
 

@@ -37,6 +37,11 @@ Tests/
 one-object-per-file rule bends: the file is named for the object under test,
 not for the functions inside it.
 
+The object can be a table. `Cases/UserBadges.sql` covers what that table's
+columns mean — a NULL `EarnedAt` is a badge still in progress — because no
+function exposes them yet. Structural facts true of *every* table stay in
+`Cases/Schema.sql`.
+
 When the object is one of the three snake_case trigger functions, the file keeps
 that casing and the test functions PascalCase it: `Cases/calculate_tallies.sql`
 holds `test."TestCalculateTallies_AddsToAnExistingTally"`. See the naming nuances
