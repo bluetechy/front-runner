@@ -13,9 +13,12 @@
     "dev": "turbo run dev",
     "start": "turbo run start",
     "test": "turbo run test",
-    "lint": "turbo run lint"
+    "format": "prettier --write \"*.{yml,yaml}\"",
+    "format:check": "prettier --check \"*.{yml,yaml}\"",
+    "lint": "npm run format:check && turbo run lint"
   },
   "devDependencies": {
+    "prettier": "^3.9.8",
     "turbo": "^2.5.8"
   },
   "packageManager": "npm@11.6.2"

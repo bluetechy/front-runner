@@ -1,0 +1,6 @@
+# Prettier is deliberately scoped to the repo-root YAML (docker-compose-*.yml).
+# The JS/TS/SCSS sources predate it and running it over them would rewrite ~130
+# files in one unreviewable diff. Remove entries here as each tree adopts it.
+/apps
+/packages
+node_modules

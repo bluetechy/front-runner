@@ -1,111 +1,111 @@
 services:
-    main-api:
-        build:
-            context: .
-            dockerfile: apps/main-api/Dockerfile
-            target: development
-        env_file:
-            - .env
-        environment:
-            NODE_ENV: development
-            POSTGRES_ADDRESS: main-db
-            POSTGRES_PORT: 5432
-            POSTGRES_DATABASE: ${APP_DB_NAME}
-            POSTGRES_USER: ${APP_DB_USER}
-            POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
-            CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
-            # The issuer is the browser's address for Keycloak, because that is
-            # what ends up in the token. The key set is fetched over the mesh.
-            KEYCLOAK_ISSUER_URL: http://localhost:${KEYCLOAK_PUBLISHED_PORT}/realms/${KEYCLOAK_REALM}
-            KEYCLOAK_JWKS_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
-            KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
-        depends_on:
-            main-db:
-                condition: service_healthy
-        networks:
-            - service-mesh
-        ports:
-            - "${API_PUBLISHED_PORT}:${API_PORT}"
-        restart: unless-stopped
-        init: true
-        volumes:
-            - "./apps/main-api/src:/app/apps/main-api/src:ro"
-    main-db:
-        build:
-            context: ./apps/main-db
-            dockerfile: Dockerfile
-        env_file:
-            - .env
-        healthcheck:
-            test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${APP_DB_NAME}" ]
-            interval: 10s
-            timeout: 5s
-            retries: 10
-            start_period: 60s
-        networks:
-            - service-mesh
-        ports:
-            - ${POSTGRES_PUBLISHED_PORT}:${POSTGRES_PORT}
-        restart: always
-        volumes:
-            - main-db-data:/var/lib/postgresql
-            # Mounted rather than baked in so editing the SQL and running
-            # `make db-rebuild` picks it up without a docker build.
-            - "./apps/main-db/sql:/sql:ro"
-            - "./apps/main-db/bin:/opt/main-db/bin:ro"
-#    main-gui:
-#        build:
-#            context: ./apps/main-gui
-#            dockerfile: Dockerfile
-#            target: stage2
-#        env_file:
-#            - .env
-#        networks:
-#            - service-mesh
-#        ports:
-#            - ${GUI_PUBLISHED_PORT}:${GUI_PORT}
-#        restart: always
-#        stdin_open: true
-#        volumes:
-#            - "./apps/main-gui/src:/app/src"
-    keycloak-idp:
-        build:
-            context: ./apps/keycloak-idp
-            dockerfile: Dockerfile
-        # Production mode against PostgreSQL rather than start-dev against the
-        # embedded store, so that what runs here is what would be deployed.
-        # --import-realm only does anything on an empty Keycloak database.
-        command: [ "start", "--optimized", "--import-realm" ]
-        env_file:
-            - .env
-        environment:
-            KC_DB: postgres
-            KC_DB_URL: jdbc:postgresql://${POSTGRES_ADDRESS}:${POSTGRES_PORT}/${KEYCLOAK_DB_NAME}
-            KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
-            KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-            KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
-            KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-            # Must be the address the browser uses: it is what Keycloak writes
-            # into the token's issuer, and main-api compares that literally.
-            KC_HOSTNAME: http://localhost:${KEYCLOAK_PUBLISHED_PORT}
-            KC_HTTP_ENABLED: "true"
-            KC_HEALTH_ENABLED: "true"
-        depends_on:
-            main-db:
-                condition: service_healthy
-        networks:
-            - service-mesh
-        ports:
-            - "${KEYCLOAK_PUBLISHED_PORT}:${KEYCLOAK_PORT}"
-        restart: unless-stopped
-    main-kvs:
-        image: redis:8.10.1
-        networks:
-            - service-mesh
-        ports:
-            - ${REDIS_PUBLISHED_PORT}:${REDIS_PORT}
-        restart: always
+  keycloak-idp:
+    build:
+      context: ./apps/keycloak-idp
+      dockerfile: Dockerfile
+    # Production mode against PostgreSQL rather than start-dev against the
+    # embedded store, so that what runs here is what would be deployed.
+    # --import-realm only does anything on an empty Keycloak database.
+    command: ["start", "--optimized", "--import-realm"]
+    env_file:
+      - .env
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${POSTGRES_ADDRESS}:${POSTGRES_PORT}/${KEYCLOAK_DB_NAME}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # Must be the address the browser uses: it is what Keycloak writes
+      # into the token's issuer, and main-api compares that literally.
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PUBLISHED_PORT}
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    depends_on:
+      main-db:
+        condition: service_healthy
+    networks:
+      - service-mesh
+    ports:
+      - "${KEYCLOAK_PUBLISHED_PORT}:${KEYCLOAK_PORT}"
+    restart: unless-stopped
+  main-api:
+    build:
+      context: ./apps/main-api
+      dockerfile: Dockerfile
+      target: development
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      POSTGRES_ADDRESS: main-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${APP_DB_NAME}
+      POSTGRES_USER: ${APP_DB_USER}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
+      # The issuer is the browser's address for Keycloak, because that is
+      # what ends up in the token. The key set is fetched over the mesh.
+      KEYCLOAK_ISSUER_URL: http://localhost:${KEYCLOAK_PUBLISHED_PORT}/realms/${KEYCLOAK_REALM}
+      KEYCLOAK_JWKS_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
+    depends_on:
+      main-db:
+        condition: service_healthy
+    networks:
+      - service-mesh
+    ports:
+      - "${API_PUBLISHED_PORT}:${API_PORT}"
+    restart: unless-stopped
+    init: true
+    volumes:
+      - "./apps/main-api/src:/app/apps/main-api/src:ro"
+  main-db:
+    build:
+      context: ./apps/main-db
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${APP_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - service-mesh
+    ports:
+      - ${POSTGRES_PUBLISHED_PORT}:${POSTGRES_PORT}
+    restart: always
+    volumes:
+      - main-db-data:/var/lib/postgresql
+      # Mounted rather than baked in so editing the SQL and running
+      # `make db-rebuild` picks it up without a docker build.
+      - "./apps/main-db/sql:/sql:ro"
+      - "./apps/main-db/bin:/opt/main-db/bin:ro"
+  # main-gui:
+  #   build:
+  #     context: ./apps/main-gui
+  #     dockerfile: Dockerfile
+  #     target: stage2
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - service-mesh
+  #   ports:
+  #     - ${GUI_PUBLISHED_PORT}:${GUI_PORT}
+  #   restart: always
+  #   stdin_open: true
+  #   volumes:
+  #     - "./apps/main-gui/src:/app/src"
+  main-kvs:
+    image: redis:8.10.1
+    networks:
+      - service-mesh
+    ports:
+      - ${REDIS_PUBLISHED_PORT}:${REDIS_PORT}
+    restart: always
 networks:
-    service-mesh: {}
+  service-mesh: {}
 volumes:
-    main-db-data: {}
+  main-db-data: {}
