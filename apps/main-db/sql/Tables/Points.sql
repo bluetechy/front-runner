@@ -9,6 +9,3 @@ CREATE TABLE "dbo"."Points" (
     "UpdatedAt" TIMESTAMPTZ,
     "UpdatedBy" varchar(64)
 );
-
-CREATE TRIGGER "Points_ModifiedInfo_Insert" BEFORE INSERT ON "dbo"."Points" FOR EACH ROW EXECUTE PROCEDURE "dbo"."insert_modified_info"();
-CREATE TRIGGER "Points_ModifiedInfo_Update" BEFORE UPDATE ON "dbo"."Points" FOR EACH ROW EXECUTE PROCEDURE "dbo"."update_modified_info"();

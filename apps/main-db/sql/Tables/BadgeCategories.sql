@@ -7,6 +7,3 @@ CREATE TABLE "dbo"."BadgeCategories" (
     "UpdatedAt" TIMESTAMPTZ,
     "UpdatedBy" varchar(64)
 );
-
-CREATE TRIGGER "BadgeCategories_ModifiedInfo_Insert" BEFORE INSERT ON "dbo"."BadgeCategories" FOR EACH ROW EXECUTE PROCEDURE "dbo"."insert_modified_info"();
-CREATE TRIGGER "BadgeCategories_ModifiedInfo_Update" BEFORE UPDATE ON "dbo"."BadgeCategories" FOR EACH ROW EXECUTE PROCEDURE "dbo"."update_modified_info"();

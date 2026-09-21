@@ -20,7 +20,7 @@ CREATE FUNCTION "dbo"."JoinOrganization" (_LoginName varchar(64), _OrganizationU
             CAST((SELECT COUNT("Teams"."TeamUUID") FROM "dbo"."Teams" WHERE "Teams"."OrganizationUUID" = "Organizations"."OrganizationUUID" AND "Teams"."IsEnabled" = true) AS INTEGER),
             CAST((SELECT COUNT("Users"."UserUUID") FROM "dbo"."UserOrganizations" LEFT JOIN "dbo"."Users" ON ("Users"."UserUUID" = "UserOrganizations"."UserUUID") WHERE "UserOrganizations"."OrganizationUUID" = "Organizations"."OrganizationUUID" AND "Users"."IsEnabled" = true) AS INTEGER),
             CAST((SELECT COUNT("Users"."UserUUID") FROM "dbo"."UserOrganizations" LEFT JOIN "dbo"."Users" ON ("Users"."UserUUID" = "UserOrganizations"."UserUUID") WHERE "UserOrganizations"."OrganizationUUID" = "Organizations"."OrganizationUUID" AND "Users"."IsEnabled" = true AND "UserOrganizations"."IsOwner" = true) AS INTEGER),
-            _IsOwner
+            (SELECT "UserOrganizations"."IsOwner" FROM "dbo"."UserOrganizations" WHERE "UserOrganizations"."UserUUID" = _UserUUID AND "UserOrganizations"."OrganizationUUID" = _OrganizationUUID)
         FROM
             "dbo"."Organizations"
         WHERE

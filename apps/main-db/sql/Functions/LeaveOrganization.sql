@@ -13,7 +13,7 @@ CREATE FUNCTION "dbo"."LeaveOrganization" (_LoginName varchar(64), _Organization
         IF NOT _IsOwnerOfOrganization AND _ActorUUID != _UserUUID THEN
             RAISE EXCEPTION 'Action cannot be performed.';
         END IF;
-        DELETE FROM "dbo"."UserOrganizations" WHERE "UserOrganizations"."OrganizationUUID" = _OrganizationUUID AND "UserTeams"."UserUUID" = _UserUUID;
+        DELETE FROM "dbo"."UserOrganizations" WHERE "UserOrganizations"."OrganizationUUID" = _OrganizationUUID AND "UserOrganizations"."UserUUID" = _UserUUID;
         RETURN QUERY
         SELECT
             "Organizations"."OrganizationUUID",

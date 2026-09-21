@@ -11,6 +11,3 @@ CREATE TABLE "dbo"."Users" (
     "UpdatedBy" varchar(64),
     CONSTRAINT "Users_LoginName_UniqueKey" UNIQUE ("LoginName")
 );
-
-CREATE TRIGGER "Users_ModifiedInfo_Insert" BEFORE INSERT ON "dbo"."Users" FOR EACH ROW EXECUTE PROCEDURE "dbo"."insert_modified_info"();
-CREATE TRIGGER "Users_ModifiedInfo_Update" BEFORE UPDATE ON "dbo"."Users" FOR EACH ROW EXECUTE PROCEDURE "dbo"."update_modified_info"();
