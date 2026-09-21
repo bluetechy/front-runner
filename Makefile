@@ -20,7 +20,7 @@ dc3-build-api: dc3-down
 
 # make dc3-build-cache
 dc3-build-cache: dc3-down
-	docker-compose -p $(PROJECT_NAME) -f docker-compose-$(PROJECT_ENV).yml build main-cache
+	docker-compose -p $(PROJECT_NAME) -f docker-compose-$(PROJECT_ENV).yml build main-kvs
 
 # make dc3-build-db
 dc3-build-db: dc3-down
