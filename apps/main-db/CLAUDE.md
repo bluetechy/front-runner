@@ -108,6 +108,13 @@ installed.
   a team; read `dbo.UserTeams` directly for that.
 - **Adding a fixture row changes counts other tests assert.** `Fixtures.sql` is
   shared by everything; grep for the counts before adding a user or a team.
+- **Writing `Status = 'Completed'` moves no points.** Settlement is
+  `dbo.SettlePointTransfer` and `dbo.SettlePointRedemption`; they write the
+  `dbo.UserPoints` rows that `calculate_tallies` then sums. Updating the status
+  column directly leaves the balance untouched and the record lying.
+- **Never write `dbo.UserTallies` by hand.** It is derived. Write the ledger row
+  — `dbo.AddUserPoints` — and let the trigger do it. The drafts maintained both
+  copies by hand, which is how they drifted apart.
 - **A ledger total is not a balance.** `dbo.GetPointTotals` counts expired
   rows because it describes what moved; `dbo.GetTallies` drops them because it
   describes what is still good. Reaching for the wrong one gives a number that

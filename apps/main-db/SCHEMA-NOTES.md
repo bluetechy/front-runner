@@ -12,21 +12,21 @@ bin/
 test/
   runner.test.js    discovers and drives the SQL tests
 sql/
-  Functions/        one function per file            (29)
+  Functions/        one function per file            (36)
   Tables/           CREATE TABLE only, no triggers   (51)
   Triggers/         one trigger per file            (104)
-  ForeignKeys/      FK constraints, one file per table (38 files, 82 constraints)
+  ForeignKeys/      FK constraints, one file per table (39 files, 83 constraints)
   Security/         Permissions.sql
   Seeds/Dev/        demo data, applied on demand     (40)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (49)
+    Cases/          one file per object under test    (53)
   Drafts/           not built; see "Drafts" below
     Functions/        real logic, to rewrite         (16)
-    StoredProcedures/ real logic, to rewrite         (18)
-    Unbuilt.sql       117 signatures, nothing written
+    StoredProcedures/ real logic, to rewrite          (5)
+    Unbuilt.sql       118 signatures, nothing written
 ```
 
 `bin/apply.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security`.
@@ -257,8 +257,8 @@ What is left, and what finishing it means:
 
 | | Count | What "merged" looks like |
 |---|---|---|
-| `Functions/` + `StoredProcedures/` | 34 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
-| `Unbuilt.sql` | 117 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
+| `Functions/` + `StoredProcedures/` | 21 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
+| `Unbuilt.sql` | 118 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
 
 The 52 are the only files left whose content cannot be reconstructed from the
 live schema, which is the whole reason they survived the cut. Several are
@@ -359,6 +359,65 @@ definition tables are global (`Points`, `Badges`, and now `PointLevels` and
 now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
 drops the draft's `PointTypeId`: the level it names already carries the point
 type, so repeating it would let the two disagree.
+
+### The points writers
+
+Thirteen point-writing drafts became seven functions. The live schema has no
+stored procedures — every object under `sql/Functions/` is a function, and
+these are too.
+
+| Live function | Replaces |
+|---|---|
+| `AddUserPoints` | `AddPointsToUser`, `SpendPoints`, `RevokePointsFromUser` |
+| `ReverseUserPoints` | `ReversePointTransaction` |
+| `GetPointMultiplier` | `ApplyPointMultiplier` |
+| `RequestPointTransfer` | `TransferPoints`, `BulkTransferPoints` |
+| `SettlePointTransfer` | `ConfirmPointTransfer`, `ApprovePointTransferRequest` |
+| `RequestPointRedemption` | `RedeemPoints`, `RedeemPointsForReward` |
+| `SettlePointRedemption` | — the settlement half of the same |
+
+**This is where "nothing moves a balance" finally closes.** `SettlePointTransfer`
+writes the matching pair of `UserPoints` rows and `SettlePointRedemption` writes
+the negative one; `calculate_tallies` carries both into the tallies.
+
+**The drafts maintained the balance by hand, twice.** Every one of them wrote a
+row to the ledger *and* a row to the running total. In this schema only the
+ledger row is written and `calculate_tallies` derives the rest, because two
+hand-maintained copies of a balance is how they drift apart. `ConfirmPointTransfer`
+was the worst case: it updated both totals and touched no ledger at all, so the
+balance and its history disagreed from then on.
+
+**Request and settle are separate, which fixes a real bug.** `RedeemPoints`
+checked affordability, deducted the points, *and* filed the redemption as
+`Pending` — so a redemption awaiting approval had already been paid for, and
+rejecting it returned nothing. The check stays at request time; the deduction
+happens at settlement, and rejection costs nothing.
+
+**`ApplyPointMultiplier` did something nobody wanted.** It multiplied the user's
+whole balance by the factor, so opening a "double points" event retroactively
+doubled everything they had ever earned. `GetPointMultiplier` returns the factor
+in force (largest wins when windows overlap, 1 when none) and `AddUserPoints`
+scales the award by it only when asked.
+`TestAddUserPoints_MultiplierDoesNotTouchEarlierRows` is the guard.
+
+**`UserPoints` gained `ReversesUserPointUUID`**, unique and self-referencing.
+`ReversePointTransaction` wrote the negation and nothing more, so one
+transaction could be reversed any number of times, each moving the balance
+again. Now the second attempt fails.
+
+**Authorization, which the drafts had none of.** Granting, revoking, reversing
+and settling are owner acts and check `IsOwnerOfOrganization`. Requesting a
+transfer or a redemption spends your own points, so those check membership and
+force the caller to be the sender. `TestSettlePointTransfer_RejectsANonOwner`
+catches the obvious hole: a sender approving their own transfer.
+
+**Three drafts did not come across.** `BulkTransferPoints` and
+`BulkRedeemPointsForRewards` looped over an array — a caller's loop, not a
+database function. `RedeemPointsForReward` and its bulk sibling read a `Rewards`
+table that never existed anywhere. `PointRollover` is in `Unbuilt.sql` with the
+reasoning: it read a `DailyPoints` column that never existed and computed
+"unused" as used minus cap, the subtraction inverted, and the coherent reading
+of carry-over is already `UserPoints."ExpiresAt"`.
 
 ### The points readers
 
@@ -604,15 +663,17 @@ ledgers and no rule for which one a balance comes from. The drafts read
 `PointUsageLogs` in 20 files and `PointTransactions` in 3; both should be read
 as `dbo.UserPoints` when those functions are migrated.
 
-**None of the five moves a balance.** `PointRedemptions` and `PointTransfers`
-are records of intent and approval — a row marked `Completed` has still not
-changed anyone's tally, because `calculate_tallies` sums `dbo.UserPoints` and
-nothing else. Settling a redemption means writing a negative `UserPoints` row;
-settling a transfer means writing the matching pair. Neither is implemented, and
-the tests in `Tests/Cases/PointRedemptions.sql` and `PointTransfers.sql` pin the
-current behaviour so the gap is visible rather than assumed closed.
-`PointMultipliers` is the same kind of gap: the factor is stored, and whatever
-awards points has to apply it before the amount is written.
+**The tables still move nothing by themselves — the functions do.** A row in
+`PointRedemptions` or `PointTransfers` is a record of intent, and writing
+`Status = 'Completed'` into it by hand changes nobody's tally, because
+`calculate_tallies` sums `dbo.UserPoints` and nothing else. That gap was open
+until `dbo.SettlePointTransfer` and `dbo.SettlePointRedemption` arrived; they
+are the only things that write the ledger rows a settlement implies. Going
+round them by updating `Status` directly still silently moves nothing, which is
+what `TestPointTransfers_DoNotMoveEitherBalance` and
+`TestPointRedemptions_DoNotImplyTheBalanceMoved` still assert.
+`PointMultipliers` is the same shape: the factor is stored, and
+`dbo.AddUserPoints` applies it only when asked.
 
 `UserPointLevels` is history, not a derived view. A level reached stays reached
 when the balance falls back — `Seeds/Dev/12_UserPointLevels.sql` carries one row

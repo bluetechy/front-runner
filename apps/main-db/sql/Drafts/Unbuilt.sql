@@ -1375,3 +1375,35 @@ BEGIN
             TaskId = TaskId;
 END;
 $$ LANGUAGE plpgsql;
+
+
+--
+-- PointRollover, moved here rather than migrated.
+--
+-- It read UserPointTotals.DailyPoints, a column that never existed in any
+-- draft, and computed "unused" as DailyPoints - DailyLimit, which is used
+-- minus the cap -- the subtraction is the wrong way round. Granting somebody
+-- points for having *not* earned them is also not a coherent thing to want.
+--
+-- The coherent reading of "carry over" -- points that would otherwise lapse --
+-- is already covered: dbo.UserPoints."ExpiresAt" decides what lapses and
+-- dbo.calculate_tallies stops counting it. Kept as a signature in case the
+-- intent was something else.
+--
+CREATE OR REPLACE PROCEDURE PointRollover(UserId INT)
+AS $$
+BEGIN
+    -- Calculate and carry over unused daily points to the next day
+    DECLARE UnusedPoints INT;
+    SELECT DailyPoints - DailyLimit INTO UnusedPoints
+    FROM UserPointTotals
+    WHERE UserId = UserId;
+
+    IF UnusedPoints > 0 THEN
+    UPDATE UserPointTotals
+    SET Points = Points + UnusedPoints,
+            DailyPoints = DailyLimit
+        WHERE UserId = UserId;
+    END IF;
+    END;
+$$ LANGUAGE plpgsql;
