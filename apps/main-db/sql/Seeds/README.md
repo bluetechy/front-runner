@@ -55,7 +55,8 @@ are the parent tables; `06`-`09` are the memberships and balances that point at
 them; `10`-`14` are the points features built on top -- levels, multipliers,
 redemptions and transfers; `15`-`23` are roadmaps, tasks and everything hanging
 off a task; `24`-`29` are approvals, `30`-`34` are surveys and `35`-`40` are
-roles, permissions, attachments, notifications and the event log. The file number
+roles, permissions, attachments, notifications and the event log, and `41`-`44`
+are the badge criteria, groups and shares the badge readers need. The file number
 is decimal and the UUID prefix is hex, so the two stop lining up after `14`.
 
 ## Writing a seed file
@@ -137,6 +138,10 @@ Each parent table owns a leading nibble, so a UUID is identifiable on sight:
 | `2a000000-...` | `Attachments` |
 | `2b000000-...` | `Notifications` |
 | `2c000000-...` | `EventLog` |
+| `2d000000-...` | `BadgeCriteria` |
+| `2e000000-...` | `BadgeGroups` |
+| `2f000000-...` | `BadgeGroupRelationships` |
+| `30000000-...` | `SharedBadges` |
 
 `a` through `f` are used up, so the scheme carries on into two-digit prefixes
 counting from `10`. It is still one distinct leading byte per table, which is

@@ -59,16 +59,19 @@ DECLARE
 BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
-        ('AddOrganization'), ('AddTeam'), ('AddUserPoints'), ('CheckPointTransferLimit'),
-        ('GetBadges'), ('GetOrganizations'), ('GetPointHistory'), ('GetPointLeaderboard'),
-        ('GetPointMultiplier'), ('GetPointRedemptions'), ('GetPointStatistics'),
-        ('GetPointTotals'), ('GetPointTransfers'), ('GetPoints'), ('GetTallies'),
-        ('GetTeams'), ('GetUser'), ('GetUserUUID'), ('GetUsers'), ('IsManagerOfTeam'),
-        ('IsMemberOfOrganization'), ('IsMemberOfTeam'), ('IsOwnerOfOrganization'),
-        ('JoinOrganization'), ('JoinTeam'), ('LeaveOrganization'), ('LeaveTeam'),
-        ('LoginUser'), ('RequestPointRedemption'), ('RequestPointTransfer'),
-        ('ReverseUserPoints'), ('SettlePointRedemption'), ('SettlePointTransfer'),
-        ('calculate_tallies'), ('insert_modified_info'), ('update_modified_info')
+        ('AddOrganization'), ('AddTeam'), ('AddUserPoints'), ('AwardBadgeToUser'),
+        ('CheckPointTransferLimit'), ('CreateBadgeGroup'), ('GetBadgeGroups'),
+        ('GetBadgeHolders'), ('GetBadgeProgress'), ('GetBadgeStatistics'), ('GetBadges'),
+        ('GetExpiredBadges'), ('GetOrganizations'), ('GetPointHistory'),
+        ('GetPointLeaderboard'), ('GetPointMultiplier'), ('GetPointRedemptions'),
+        ('GetPointStatistics'), ('GetPointTotals'), ('GetPointTransfers'), ('GetPoints'),
+        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserUUID'), ('GetUsers'),
+        ('IsManagerOfTeam'), ('IsMemberOfOrganization'), ('IsMemberOfTeam'),
+        ('IsOwnerOfOrganization'), ('JoinOrganization'), ('JoinTeam'),
+        ('LeaveOrganization'), ('LeaveTeam'), ('LoginUser'), ('RequestPointRedemption'),
+        ('RequestPointTransfer'), ('ReverseUserPoints'), ('SettlePointRedemption'),
+        ('SettlePointTransfer'), ('calculate_tallies'), ('insert_modified_info'),
+        ('update_modified_info')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
         SELECT 1 FROM pg_proc

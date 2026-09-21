@@ -12,20 +12,20 @@ bin/
 test/
   runner.test.js    discovers and drives the SQL tests
 sql/
-  Functions/        one function per file            (36)
+  Functions/        one function per file            (43)
   Tables/           CREATE TABLE only, no triggers   (51)
   Triggers/         one trigger per file            (104)
   ForeignKeys/      FK constraints, one file per table (39 files, 83 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand     (40)
+  Seeds/Dev/        demo data, applied on demand     (44)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (53)
+    Cases/          one file per object under test    (60)
   Drafts/           not built; see "Drafts" below
-    Functions/        real logic, to rewrite         (16)
-    StoredProcedures/ real logic, to rewrite          (5)
+    Functions/        real logic, to rewrite          (2)
+    StoredProcedures/ real logic, to rewrite          (2)
     Unbuilt.sql       118 signatures, nothing written
 ```
 
@@ -257,7 +257,7 @@ What is left, and what finishing it means:
 
 | | Count | What "merged" looks like |
 |---|---|---|
-| `Functions/` + `StoredProcedures/` | 21 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
+| `Functions/` + `StoredProcedures/` | 4 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
 | `Unbuilt.sql` | 118 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
 
 The 52 are the only files left whose content cannot be reconstructed from the
@@ -359,6 +359,56 @@ definition tables are global (`Points`, `Badges`, and now `PointLevels` and
 now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
 drops the draft's `PointTypeId`: the level it names already carries the point
 type, so repeating it would let the two disagree.
+
+### The badge functions
+
+Seventeen badge drafts became six functions plus one extension. `dbo.GetBadges`
+already existed and already did what `GetUserBadges` did, so it grew arguments
+rather than a sibling.
+
+| Live function | Replaces |
+|---|---|
+| `GetBadges` *(extended)* | `GetUserBadges`, `GetRecentlyEarnedBadges`, `GetUserRareBadges` |
+| `GetBadgeHolders` | `GetUsersWithBadge`, `GetBadgeOwners` |
+| `GetBadgeProgress` | `GetBadgeProgress`, `GetUserBadgeProgressSummary`, `GetNextPotentialBadges`, `SuggestBadgesForUser` |
+| `GetBadgeGroups` | `GetBadgeGroups`, `GetBadgeGroupProgress` |
+| `GetBadgeStatistics` | `BadgeCompletionAnalytics`, `BadgeSharingAnalytics` |
+| `GetExpiredBadges` | `CheckExpiredBadges` |
+| `AwardBadgeToUser` | `AwardBadgeToUser` |
+| `CreateBadgeGroup` | `CreateBadgeGroup` |
+
+**`GetUsersWithBadge` and `GetBadgeOwners` were byte-identical** — an exact
+duplicate pair that the earlier passes over `Drafts/` did not catch. Both are
+`GetBadgeHolders`.
+
+**Four drafts counted a badge in progress as a badge held.** Once `EarnedAt` and
+`RevokedAt` existed, "has a `UserBadges` row" stopped meaning "holds the badge",
+and every draft predates that. `GetBadgeGroupProgress` counted rows without
+checking, so a half-finished badge completed the group; `CheckExpiredBadges`
+reported lapsed badges against people who had never earned them. Every reader
+here filters on earned-and-unrevoked.
+
+**`BadgeCompletionAnalytics` computed a meaningless rate.** It divided
+completions by `COUNT(DISTINCT UserId)` over `UserBadges` — the share of people
+already holding a badge who hold it, near 100% by construction. It also joined
+`BadgeCriteria` without grouping by it, so a badge with two criteria counted
+every holder twice. `GetBadgeStatistics` rates holders against holders plus
+in-progress, and `TestGetBadgeStatistics_AreNotDoubledByASecondCriteria` guards
+the double-count.
+
+**`AwardBadgeToUser` would have awarded nothing.** It inserted a bare
+`UserBadges` row, which in this schema means a NULL `EarnedAt` — a badge *in
+progress*, invisible to every reader. It now sets `EarnedAt`, completes a badge
+already being worked towards rather than colliding on the unique key, and lifts
+a previous revocation.
+
+**`GetBadgeProgress` caps its percentage at 100.** The draft divided without a
+bound, so progress past the goal reported over 100%.
+
+**Two did not come across.** `AssignBadgesInBulk` looped an array of users — a
+caller's loop, as with the bulk point procedures. `BadgeSharingAnalytics` read a
+`UserSharedBadges` table that never existed anywhere; `dbo.SharedBadges` is what
+it meant, and `GetBadgeStatistics` reads that.
 
 ### The points writers
 

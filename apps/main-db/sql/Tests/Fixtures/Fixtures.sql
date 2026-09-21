@@ -31,6 +31,9 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('Badge.Retired',            '44444444-0000-4000-8000-000000000002'),
     ('Badge.InProgress',         '44444444-0000-4000-8000-000000000003'),
     ('Badge.Revoked',            '44444444-0000-4000-8000-000000000004'),
+    ('Badge.Rare',               '44444444-0000-4000-8000-000000000005'),
+    ('Badge.Expiring',           '44444444-0000-4000-8000-000000000006'),
+    ('BadgeGroup.Starter',       '44444444-0000-4000-8000-000000000007'),
     ('Point.Points',             '55555555-0000-4000-8000-000000000001'),
     ('Point.Gems',               '55555555-0000-4000-8000-000000000002'),
     ('UserPoint.MemberActive',   '66666666-0000-4000-8000-000000000001'),
@@ -96,6 +99,32 @@ INSERT INTO "dbo"."Badges" ("BadgeUUID", "Name", "Description", "Level", "IsEnab
     ("test"."Fixture"('Badge.InProgress'), 'In Progress', 'Half-earned badge.', 2, true,  'fixtures'),
     ("test"."Fixture"('Badge.Revoked'),    'Revoked',    'Badge taken back.', 3, true,  'fixtures');
 
+-- Rarity and expiry live on the owner's badges, so the member's counts -- which
+-- several GetBadges tests assert -- stay where they were.
+INSERT INTO "dbo"."Badges" ("BadgeUUID", "Name", "Description", "Level", "Rarity", "ExpiresAt", "IsEnabled", "CreatedBy") VALUES
+    ("test"."Fixture"('Badge.Rare'),     'Rare Find', 'Hard to get.',   5, 'Rare',   NULL,                     true, 'fixtures'),
+    ("test"."Fixture"('Badge.Expiring'), 'Seasonal',  'Lapsed in 2020.', 1, 'Common', '2020-01-01 00:00:00+00', true, 'fixtures');
+
+UPDATE "dbo"."Badges" SET "Rarity" = 'Common', "UpdatedBy" = 'fixtures'
+WHERE "BadgeUUID" = "test"."Fixture"('Badge.Rookie');
+
+-- Rookie is a one-step badge the member finished; InProgress needs ten and the
+-- member is on four. A badge with no criteria row cannot be progressed against
+-- and does not appear in dbo.GetBadgeProgress at all.
+INSERT INTO "dbo"."BadgeCriteria" ("BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES
+    ("test"."Fixture"('Badge.Rookie'),     'Sign up.',    'Activity',    1,  'fixtures'),
+    ("test"."Fixture"('Badge.InProgress'), 'Ten actions.', 'Achievement', 10, 'fixtures');
+
+INSERT INTO "dbo"."BadgeGroups" ("BadgeGroupUUID", "Name", "Description", "CreatedBy") VALUES
+    ("test"."Fixture"('BadgeGroup.Starter'), 'Starter', 'The first two badges.', 'fixtures');
+
+INSERT INTO "dbo"."BadgeGroupRelationships" ("BadgeUUID", "BadgeGroupUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('Badge.Rookie'),     "test"."Fixture"('BadgeGroup.Starter'), 'fixtures'),
+    ("test"."Fixture"('Badge.InProgress'), "test"."Fixture"('BadgeGroup.Starter'), 'fixtures');
+
+INSERT INTO "dbo"."SharedBadges" ("UserUUID", "BadgeUUID", "SharedWithUserUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Badge.Rookie'), "test"."Fixture"('User.Owner'), 'fixtures');
+
 -- Gems carries the expiry policy columns, Points leaves them NULL, so both
 -- shapes are exercised. Nothing reads them yet -- see SCHEMA-NOTES.md.
 INSERT INTO "dbo"."Points" ("PointUUID", "Name", "Description", "ExpirationDuration", "ResetCondition", "CreatedBy") VALUES
@@ -127,7 +156,9 @@ INSERT INTO "dbo"."UserBadges" ("UserUUID", "OrganizationUUID", "BadgeUUID", "Ea
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Rookie'),     '2024-01-01 00:00:00+00', 'Signed up',        1,  1, NULL,                     'fixtures'),
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Retired'),    '2024-02-01 00:00:00+00', 'Earned long ago',  1,  1, NULL,                     'fixtures'),
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.InProgress'), NULL,                     NULL,              10,  4, NULL,                     'fixtures'),
-    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Revoked'),    '2024-03-01 00:00:00+00', 'Earned in error',  1,  1, '2024-04-01 00:00:00+00', 'fixtures');
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Revoked'),    '2024-03-01 00:00:00+00', 'Earned in error',  1,  1, '2024-04-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('User.Owner'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Rare'),       '2024-05-01 00:00:00+00', 'Found it',         1,  1, NULL,                     'fixtures'),
+    ("test"."Fixture"('User.Owner'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Badge.Expiring'),   '2024-06-01 00:00:00+00', 'Seasonal award',   1,  1, NULL,                     'fixtures');
 
 -- Member's Points tally works out to 12.5000: 10 active, plus 2.5 that expire
 -- in the far future, minus the 5 that expired in 2020. Gems is a second tally

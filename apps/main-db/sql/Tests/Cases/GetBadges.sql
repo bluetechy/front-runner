@@ -73,3 +73,39 @@ BEGIN
     PERFORM "test"."AssertEquals"(_Count, 0::bigint, 'GetBadges answered a caller who is not in the organization');
 END;
 $$ LANGUAGE plpgsql;
+
+-- GetUserBadges was this function for a named user rather than the caller.
+CREATE FUNCTION "test"."TestGetBadges_CanLookAtAnotherUser" () RETURNS void AS $$
+DECLARE
+    _Names text;
+BEGIN
+    SELECT string_agg("Name", ', ' ORDER BY "Name") INTO _Names
+    FROM "dbo"."GetBadges"('member', "test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Owner'));
+    PERFORM "test"."AssertEquals"(_Names, 'Rare Find, Seasonal', 'the member should be able to see what the owner holds');
+END;
+$$ LANGUAGE plpgsql;
+
+-- GetUserRareBadges was this filter.
+CREATE FUNCTION "test"."TestGetBadges_FiltersByRarity" () RETURNS void AS $$
+DECLARE
+    _Name text;
+BEGIN
+    SELECT "Name" INTO _Name
+    FROM "dbo"."GetBadges"('owner', "test"."Fixture"('Organization.Acme'), NULL, 'Rare');
+    PERFORM "test"."AssertEquals"(_Name, 'Rare Find', 'only the rare badge should match');
+END;
+$$ LANGUAGE plpgsql;
+
+-- GetRecentlyEarnedBadges was this order plus a limit; the order is now the
+-- default, newest first.
+CREATE FUNCTION "test"."TestGetBadges_ReturnTheNewestFirstUnderALimit" () RETURNS void AS $$
+DECLARE
+    _Name text;
+    _Count bigint;
+BEGIN
+    SELECT count(*) INTO _Count FROM "dbo"."GetBadges"('owner', "test"."Fixture"('Organization.Acme'), NULL, NULL, 1);
+    SELECT "Name" INTO _Name   FROM "dbo"."GetBadges"('owner', "test"."Fixture"('Organization.Acme'), NULL, NULL, 1);
+    PERFORM "test"."AssertEquals"(_Count, 1::bigint, 'a limit of one returns one');
+    PERFORM "test"."AssertEquals"(_Name, 'Seasonal', 'and it should be the one earned in June, not the one from May');
+END;
+$$ LANGUAGE plpgsql;
