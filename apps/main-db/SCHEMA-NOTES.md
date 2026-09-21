@@ -12,7 +12,7 @@ bin/
 test/
   runner.test.js    discovers and drives the SQL tests
 sql/
-  Functions/        one function per file            (22)
+  Functions/        one function per file            (29)
   Tables/           CREATE TABLE only, no triggers   (51)
   Triggers/         one trigger per file            (104)
   ForeignKeys/      FK constraints, one file per table (38 files, 82 constraints)
@@ -22,9 +22,9 @@ sql/
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (43)
+    Cases/          one file per object under test    (49)
   Drafts/           not built; see "Drafts" below
-    Functions/        real logic, to rewrite         (34)
+    Functions/        real logic, to rewrite         (16)
     StoredProcedures/ real logic, to rewrite         (18)
     Unbuilt.sql       117 signatures, nothing written
 ```
@@ -257,7 +257,7 @@ What is left, and what finishing it means:
 
 | | Count | What "merged" looks like |
 |---|---|---|
-| `Functions/` + `StoredProcedures/` | 52 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
+| `Functions/` + `StoredProcedures/` | 34 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
 | `Unbuilt.sql` | 117 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
 
 The 52 are the only files left whose content cannot be reconstructed from the
@@ -359,6 +359,51 @@ definition tables are global (`Points`, `Badges`, and now `PointLevels` and
 now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
 drops the draft's `PointTypeId`: the level it names already carries the point
 type, so repeating it would let the two disagree.
+
+### The points readers
+
+Eighteen point-reading drafts became seven functions. The collapse was the
+point: most of them were one query with a different `WHERE` clause.
+
+| Live function | Replaces |
+|---|---|
+| `GetPointHistory` | `GetUserPointTransactions`, `GetPointActivityHistory`, `GetPointEarningsHistory`, `GetPointTransactionsByType`, `AuditPointTransactions`, `CheckExpiringPoints` |
+| `GetPointTotals` | `CalculateUserDailyPoints`, `CalculateUserWeeklyPoints`, `CalculateUserMonthlyPoints`, `GetTotalPointsEarned` |
+| `GetPointLeaderboard` | `GetPointLeaderboard`, `GetPointLeaderboardForGroup` |
+| `GetPointStatistics` | `GetPointUsageStatistics` |
+| `GetPointRedemptions` | `GetPointRedemptionHistory` |
+| `GetPointTransfers` | `GetPointTransferHistory` |
+| `CheckPointTransferLimit` | `CheckPointTransferLimits` |
+
+**Every one of them now authorises.** The drafts had none at all —
+`GetUserPointTransactions(UserId)` handed any caller any user's ledger. All
+seven take `(_LoginName, _OrganizationUUID)` and check
+`IsMemberOfOrganization` the way `GetBadges` and `GetPoints` do, and each has a
+test proving an outsider gets nothing back.
+
+**Two drafts did not come across.** `CalculateUserPointBalance` summed the
+ledger to get a balance, which `dbo.UserTallies` already holds and
+`dbo.GetTallies` already reads — a second answer to a settled question.
+`ExportPointHistoryToCsv` formatted rows as CSV, which is not the database's
+job.
+
+**The ledger total is not the balance**, and `GetPointTotals` versus
+`GetTallies` is where that shows: totals count expired rows because they
+describe what moved, tallies drop them because they describe what is still
+good. For the member fixture that is 17.5 against 12.5.
+`TestGetPointTotals_DifferFromTheBalanceByTheExpiredRows` pins the pair
+together so neither drifts.
+
+**`UserTallies` gained `DailyTransferLimit` and `MonthlyTransferLimit`.**
+`CheckPointTransferLimits` was the largest draft in the folder and read two
+tables that never existed — `UserPointTransferLimits` for the caps and a
+`PointTransfers` carrying `PointsChange`. The existing `DailyLimit` (earning)
+and `SpendLimit` (spending) do not express a cap on transfers out, so rather
+than overload them the two columns came with the function. NULL means no cap,
+and only `Completed` transfers count against them.
+
+The draft also matched the calendar month with `EXTRACT(MONTH FROM ...)`, which
+matches that month in *every* year. The live one uses `date_trunc('month', now())`.
 
 ### The platform tables
 

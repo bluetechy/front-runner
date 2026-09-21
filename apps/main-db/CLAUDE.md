@@ -108,6 +108,10 @@ installed.
   a team; read `dbo.UserTeams` directly for that.
 - **Adding a fixture row changes counts other tests assert.** `Fixtures.sql` is
   shared by everything; grep for the counts before adding a user or a team.
+- **A ledger total is not a balance.** `dbo.GetPointTotals` counts expired
+  rows because it describes what moved; `dbo.GetTallies` drops them because it
+  describes what is still good. Reaching for the wrong one gives a number that
+  looks plausible and is wrong.
 - **An overdue task is not just "not Completed".** `dbo.Tasks."Status"` has two
   terminal values, so overdue is `Status NOT IN ('Completed', 'Cancelled')`.
   The drafts' boolean did not have this problem and the translation looks

@@ -59,12 +59,14 @@ DECLARE
 BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
-        ('AddOrganization'), ('AddTeam'), ('calculate_tallies'), ('GetBadges'),
-        ('GetOrganizations'), ('GetPoints'), ('GetTallies'), ('GetTeams'), ('GetUser'),
-        ('GetUsers'), ('GetUserUUID'), ('insert_modified_info'), ('IsManagerOfTeam'),
-        ('IsMemberOfOrganization'), ('IsMemberOfTeam'), ('IsOwnerOfOrganization'),
-        ('JoinOrganization'), ('JoinTeam'), ('LeaveOrganization'), ('LeaveTeam'),
-        ('LoginUser'), ('update_modified_info')
+        ('AddOrganization'), ('AddTeam'), ('CheckPointTransferLimit'), ('GetBadges'),
+        ('GetOrganizations'), ('GetPointHistory'), ('GetPointLeaderboard'),
+        ('GetPointRedemptions'), ('GetPointStatistics'), ('GetPointTotals'),
+        ('GetPointTransfers'), ('GetPoints'), ('GetTallies'), ('GetTeams'), ('GetUser'),
+        ('GetUserUUID'), ('GetUsers'), ('IsManagerOfTeam'), ('IsMemberOfOrganization'),
+        ('IsMemberOfTeam'), ('IsOwnerOfOrganization'), ('JoinOrganization'), ('JoinTeam'),
+        ('LeaveOrganization'), ('LeaveTeam'), ('LoginUser'), ('calculate_tallies'),
+        ('insert_modified_info'), ('update_modified_info')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
         SELECT 1 FROM pg_proc
@@ -94,8 +96,10 @@ BEGIN
         ('UserBadges',  'RevokedAt',          'timestamp with time zone'),
         ('UserPoints',  'Reason',             'character varying'),
         ('UserPoints',  'Details',            'jsonb'),
-        ('UserTallies', 'DailyLimit',         'numeric'),
-        ('UserTallies', 'SpendLimit',         'numeric')
+        ('UserTallies', 'DailyLimit',           'numeric'),
+        ('UserTallies', 'SpendLimit',           'numeric'),
+        ('UserTallies', 'DailyTransferLimit',   'numeric'),
+        ('UserTallies', 'MonthlyTransferLimit', 'numeric')
     ) AS "Expected" ("Table", "Column", "Type")
     WHERE NOT EXISTS (
         SELECT 1 FROM information_schema.columns
