@@ -12,7 +12,6 @@ COPY ./package.json /app
 
 #Install dependencies
 RUN npm install
-RUN npm rebuild node-sass
 
 FROM stage1 as stage2
 COPY . .

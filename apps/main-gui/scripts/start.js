@@ -14,6 +14,9 @@ process.on('unhandledRejection', err => {
 // Ensure environment variables are read.
 require('../config/env');
 
+// Must come before webpack is loaded.
+require('../config/md4-shim');
+
 
 const fs = require('fs');
 const chalk = require('react-dev-utils/chalk');
