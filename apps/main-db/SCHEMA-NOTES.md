@@ -257,13 +257,12 @@ What is left, and what finishing it means:
 
 | | Count | What "merged" looks like |
 |---|---|---|
-| `Functions/` + `StoredProcedures/` | 4 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
+| `Functions/` + `StoredProcedures/` | 2 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
 | `Unbuilt.sql` | 118 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
 
-The 52 are the only files left whose content cannot be reconstructed from the
-live schema, which is the whole reason they survived the cut. Several are
-redundant with each other — see "Near-duplicates" below — so they collapse to
-fewer than 52 live functions.
+The two are `GetApprovalStepsForUser` and `MergeUserAccounts`. They are the only
+files left whose content cannot be reconstructed from the live schema, which is
+the whole reason they survived the cut.
 
 **Every table the remaining logic needs now exists.** That was not true before
 the migrations — draft bodies referenced seven tables that had never been
@@ -602,6 +601,14 @@ advisory — `ApprovalDecisions` takes a decision from anybody.
 that has left the stages has a NULL `CurrentStageUUID`; the outcome is in
 `Status`.
 
+**`dbo.GetApprovalWorkflowStagesCount` is how long a workflow is.** The draft
+counted every row in `ApprovalWorkflowStages` across the whole database — no
+organization, and no workflow either, since the parent table did not exist yet.
+The live one joins through `ApprovalWorkflows` to scope the count, and takes an
+optional workflow to narrow it to one. A non-member gets 0, which is also what
+an empty workflow returns; neither is a workflow you can send a request into,
+so the ambiguity costs nothing.
+
 **One integrity gap left open.** A decision names a request and a stage
 independently, so it can cite a stage from a workflow the request is not
 running. Closing it means carrying `ApprovalWorkflowUUID` on the decision and
@@ -681,6 +688,17 @@ correct one so the difference is visible rather than theoretical.
 circular, and it allowed a task exactly one dependency. `dbo.TaskDependencies`
 is now the whole relation. Nothing rejects a cycle or a self-dependency; that
 belongs to whatever advances a task's status, and there are tests saying so.
+
+**`dbo.ReorderTasks` is the one function these tables have**, and the draft
+behind it could not have run. `FOR TaskId, position IN ARRAY TaskIds` is not
+plpgsql; it wrote the `RoadmapWorkflowTasks` that never existed; and
+`WHERE TaskId = TaskId` compared the parameter to itself, so it matched every
+row in the table and would have stamped one order number onto all of them. The
+live one is `unnest(...) WITH ORDINALITY` in a single statement — the array
+*is* the order — scoped to an organization, refusing a duplicate task or one
+from elsewhere rather than half-applying the move.
+`TestReorderTasks_PutsTasksInTheOrderGiven` is the regression test for the
+shadowed parameter: three tasks, three different numbers.
 
 **`dbo.TaskLabels` is not from the drafts.** `Drafts/Tables/Labels.sql` defines
 labels and nothing that wears one — no draft table, function or procedure

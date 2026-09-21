@@ -60,7 +60,8 @@ BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
         ('AddOrganization'), ('AddTeam'), ('AddUserPoints'), ('AwardBadgeToUser'),
-        ('CheckPointTransferLimit'), ('CreateBadgeGroup'), ('GetBadgeGroups'),
+        ('CheckPointTransferLimit'), ('CreateBadgeGroup'),
+        ('GetApprovalWorkflowStagesCount'), ('GetBadgeGroups'),
         ('GetBadgeHolders'), ('GetBadgeProgress'), ('GetBadgeStatistics'), ('GetBadges'),
         ('GetExpiredBadges'), ('GetOrganizations'), ('GetPointHistory'),
         ('GetPointLeaderboard'), ('GetPointMultiplier'), ('GetPointRedemptions'),
@@ -68,7 +69,8 @@ BEGIN
         ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserUUID'), ('GetUsers'),
         ('IsManagerOfTeam'), ('IsMemberOfOrganization'), ('IsMemberOfTeam'),
         ('IsOwnerOfOrganization'), ('JoinOrganization'), ('JoinTeam'),
-        ('LeaveOrganization'), ('LeaveTeam'), ('LoginUser'), ('RequestPointRedemption'),
+        ('LeaveOrganization'), ('LeaveTeam'), ('LoginUser'), ('ReorderTasks'),
+        ('RequestPointRedemption'),
         ('RequestPointTransfer'), ('ReverseUserPoints'), ('SettlePointRedemption'),
         ('SettlePointTransfer'), ('calculate_tallies'), ('insert_modified_info'),
         ('update_modified_info')
