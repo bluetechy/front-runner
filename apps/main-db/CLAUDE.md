@@ -54,14 +54,17 @@ re-runnable.
 
 ## Conventions
 
-One object per file, file named exactly for the object. `sql/Tests/Cases/` is
-the deliberate exception: the file is named for the object under test and holds
-every `test."Test<Object>_<Behaviour>"` function for it.
+One object per file, file named exactly for the object. Two deliberate
+exceptions: `sql/Tests/Cases/` names the file for the object under test and holds
+every `test."Test<Object>_<Behaviour>"` function for it, and `sql/Seeds/Dev/`
+leads with an ordering number (`06_UserOrganizations.sql`) because rows have to
+load parents before children.
 
-`SCHEMA-NOTES.md` has the full naming table and the register of what the schema
-still gets wrong. `sql/Tests/README.md` has the assertion helpers and how a run
-works. Read the relevant one before a non-trivial change rather than inferring
-the convention from a single file.
+`SCHEMA-NOTES.md` has the full naming table, its nuances, and the register of
+what the schema still gets wrong. `sql/Tests/README.md` has the assertion helpers
+and how a run works. `sql/Seeds/README.md` has how seeding works and the rules
+that keep a seed file re-runnable. Read the relevant one before a non-trivial
+change rather than inferring the convention from a single file.
 
 ## Traps that have already caused bugs here
 

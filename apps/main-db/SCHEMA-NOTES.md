@@ -18,6 +18,7 @@ sql/
   ForeignKeys/      FK constraints, one file per table (8 files, 16 constraints)
   Security/         Permissions.sql
   Seeds/Dev/        demo data, applied on demand      (9)
+                    see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)

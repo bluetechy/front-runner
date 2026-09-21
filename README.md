@@ -72,6 +72,9 @@ To load demo data for working against the API and GUI:
   - `make db-reseed` -- empties every table first, so the result is exactly the
     dataset and nothing else.
 
+  `apps/main-db/sql/Seeds/README.md` covers how a seed run works and how to add
+  to the dataset.
+
 To run the database tests:
 
   - `make db-test` -- builds a throwaway `dbo_test` from the same SQL, runs
