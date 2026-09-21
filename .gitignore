@@ -9,3 +9,35 @@
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Editors / IDEs
+.idea/*
+!.idea/php.xml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+*.iml
+*.swo
+*.swp
+
+# Other VCS
+.svn
+
+# Logs & build artifacts
+*.log
+*.pyc
+
+# Claude Code
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/plans/
+.claude/worktrees/
+
+# Codex
+/.codex/config.toml
+/.codex/rules/claude-permissions.rules
