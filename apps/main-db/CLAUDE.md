@@ -1,0 +1,86 @@
+# main-db
+
+Postgres schema, seed data and tests. Applies to everything under
+`apps/main-db`.
+
+## Changing SQL means changing tests
+
+**Any change under `sql/` requires the test suite to be updated in the same
+change.** Not a follow-up, not "later" — the suite is the only thing standing
+between a schema edit and a silent runtime failure, and several functions in
+here shipped broken for exactly that reason.
+
+| What you changed | What else to touch |
+|---|---|
+| `sql/Functions/<Name>.sql` | `sql/Tests/Cases/<Name>.sql` — add cases for the new behaviour, update the ones the change invalidates |
+| Added a function | the above, plus the list in `TestSchema_ExpectedFunctionsExist` (`Tests/Cases/Schema.sql`) |
+| Added a table | the list in `TestSchema_ExpectedTablesExist`, an insert in `Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
+| Added a foreign key | the list in `TestSchema_ExpectedForeignKeysExist` |
+| `sql/Triggers/` or a trigger function | `Tests/Cases/<trigger_function>.sql` (`calculate_tallies`, `insert_modified_info`, `update_modified_info`) |
+| Deleted or renamed anything | every `Tests/Cases/` file and `Schema.sql` list that names it |
+
+The structural tests in `Tests/Cases/Schema.sql` hold hardcoded lists of tables,
+functions and foreign keys on purpose: adding something without listing it fails
+the suite, which is the reminder. Don't delete an entry to make the suite pass —
+add the new one.
+
+Run them before saying you're done:
+
+```
+make db-test                                  # all of them, ~300ms
+make db-test ARGS="--test-name-pattern=Foo"   # a subset
+```
+
+The Compose stack has to be up (`make dc3-up-d`). Tests build their own
+throwaway `dbo_test`, so they never touch the development database. Schema
+edits reach the running container through a bind mount, so there is no rebuild
+step — but they do not reach the *application* database until `make db-rebuild`.
+
+## There are no migrations
+
+Schema changes are edits to the files under `sql/`, applied by dropping and
+rebuilding: `make db-rebuild`, then `make db-seed`. Don't add a migrations
+directory, a version table, or `ALTER` scripts — if a change needs to preserve
+existing rows, say so rather than inventing a mechanism.
+
+Seed data (`sql/Seeds/Dev/`) is separate from schema creation and never runs
+automatically. Seed rows carry fixed UUIDs and upsert, so keep them
+re-runnable.
+
+## Conventions
+
+One object per file, file named exactly for the object. `sql/Tests/Cases/` is
+the deliberate exception: the file is named for the object under test and holds
+every `test."Test<Object>_<Behaviour>"` function for it.
+
+`SCHEMA-NOTES.md` has the full naming table and the register of what the schema
+still gets wrong. `sql/Tests/README.md` has the assertion helpers and how a run
+works. Read the relevant one before a non-trivial change rather than inferring
+the convention from a single file.
+
+## Traps that have already caused bugs here
+
+- **Output columns shadow table columns.** A function declared
+  `RETURNS TABLE("TeamUUID" uuid, ...)` makes `"TeamUUID"` a plpgsql variable,
+  so a bare `WHERE "TeamUUID" = ...` or `ON CONFLICT ("TeamUUID")` raises
+  *column reference is ambiguous* on every call. Table-qualify the predicate;
+  name the constraint in `ON CONFLICT`.
+- **`now()` and `CURRENT_TIMESTAMP` are fixed for the whole transaction.** A row
+  inserted and updated inside one test has `UpdatedAt = CreatedAt`. To prove an
+  update moves `UpdatedAt` forward, update a *fixture* row.
+- **`IsMemberOfTeam` and `IsManagerOfTeam` also require organization
+  membership.** They can't confirm that a user with no organization was added to
+  a team; read `dbo.UserTeams` directly for that.
+- **Adding a fixture row changes counts other tests assert.** `Fixtures.sql` is
+  shared by everything; grep for the counts before adding a user or a team.
+
+## Tests suffixed `_KnownIssue`
+
+These assert behaviour that is **wrong but current**, so the suite stays green
+and the defect stays visible. If one fails, the underlying bug was probably
+fixed — read the comment above the test and replace it with the positive case.
+Never edit one just to get back to green.
+
+Adding a new one is the right move when you find a defect you are not fixing in
+this change: write the test, name it `_KnownIssue`, comment what correct looks
+like, and add a row to the table in `SCHEMA-NOTES.md`.
