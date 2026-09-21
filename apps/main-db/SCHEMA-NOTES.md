@@ -25,9 +25,9 @@ sql/
     Cases/          one file per object under test    (39)
   Drafts/           not built; see "Drafts" below
     Tables/           still to migrate                (6)
-    Functions/        real bodies, still to migrate  (61)
-    StoredProcedures/ real bodies, still to migrate  (60)
-    Stubs.sql         48 signatures with no bodies
+    Functions/        real logic, to rewrite         (34)
+    StoredProcedures/ real logic, to rewrite         (18)
+    Unbuilt.sql       117 signatures, nothing written
 ```
 
 `bin/apply.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security`.
@@ -244,20 +244,25 @@ required to have all four, so a new table without them fails the suite.
 `sql/Drafts/` is what is left of the former `Tables-ChatGPT.sql` and
 `Functions-ChatGPT.sql`. Nothing in it is applied by `init.sh`.
 
-**It is a backlog, not an archive. Migrating something deletes its draft.**
-That rule arrived late — the first four migrations documented what they
-superseded and left the files sitting there, so `Drafts/Tables/` reached 87%
-dead weight before anyone noticed. The register below is what the mappings
-became; git history is where the deleted originals live. Keep the rule going:
-if a draft's job is done, it goes.
+**The folder is being merged into the live schema and is meant to reach zero.**
+It is a backlog, not an archive: migrating something deletes its draft. That
+rule arrived late — the first four migrations documented what they superseded
+and left the files sitting there, so `Drafts/Tables/` reached 87% dead weight
+before anyone noticed. The register below is what those mappings became; git
+history is where the deleted originals live.
 
-What is left, and why each part earns its place:
+What is left, and what finishing it means:
 
-| | Count | Why it is still here |
+| | Count | What "merged" looks like |
 |---|---|---|
-| `Tables/` | 6 | the platform tables, not yet designed: `AccessControlLists`, `ActivityFeed`, `Attachments`, `EventLog`, `Notifications`, `UserRoles` |
-| `Functions/` + `StoredProcedures/` | 121 | real bodies. None will run as written, but the logic is the last thing in here that cannot be reconstructed from the live schema |
-| `Stubs.sql` | 48 signatures | names, parameters and return shapes for operations nobody has written. Were 48 files saying nothing each |
+| `Tables/` | 6 | `AccessControlLists`, `ActivityFeed`, `Attachments`, `EventLog`, `Notifications`, `UserRoles` — the same table migration as the previous five rounds |
+| `Functions/` + `StoredProcedures/` | 52 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
+| `Unbuilt.sql` | 117 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
+
+The 52 are the only files left whose content cannot be reconstructed from the
+live schema, which is the whole reason they survived the cut. Several are
+redundant with each other — see "Near-duplicates" below — so they collapse to
+fewer than 52 live functions.
 
 **Every table the remaining logic needs now exists.** That was not true before
 the migrations — draft bodies referenced seven tables that had never been
