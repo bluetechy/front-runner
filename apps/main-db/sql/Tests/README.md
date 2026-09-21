@@ -37,6 +37,11 @@ Tests/
 one-object-per-file rule bends: the file is named for the object under test,
 not for the functions inside it.
 
+When the object is one of the three snake_case trigger functions, the file keeps
+that casing and the test functions PascalCase it: `Cases/calculate_tallies.sql`
+holds `test."TestCalculateTallies_AddsToAnExistingTally"`. See the naming nuances
+in `../../SCHEMA-NOTES.md`.
+
 ## Writing a test
 
 ```sql

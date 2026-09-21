@@ -53,9 +53,50 @@ their own fixtures. See the "Database" section of the repository README.
 | Foreign key | `FK_<Table>_<ReferencedTable>` | `FK_UserBadges_Badges` |
 | Foreign key, 2nd to same table | `FK_<Table>_<ReferencedTable>_<Column>` | `FK_SharedBadges_Users_SharedWithUserUUID` |
 | File name | exactly the object name + `.sql` | `Triggers/Users_ModifiedInfo_Insert.sql` |
+| Test function | `test."Test<Object>_<Behaviour>"` | `test."TestGetUser_ReturnsTheMatchingUser"` |
+| Test helper | PascalCase verb phrase in the `test` schema | `test."AssertRowCount"` |
+| Seed file | `<NN>_<Table>.sql`, numbered in dependency order | `Seeds/Dev/06_UserOrganizations.sql` |
 
-The two casings for functions are deliberate: PascalCase names are the API the app
-calls, snake_case names are internal trigger plumbing.
+### Nuances
+
+Everything below is deliberate. It is written down because each one looks like a
+slip when you meet it in a single file.
+
+**Two casings for functions.** PascalCase is the API the application calls.
+snake_case is internal trigger plumbing, and there are exactly three:
+`calculate_tallies`, `insert_modified_info`, `update_modified_info`. The test for
+"is this ours to call?" is the return type — every snake_case function here is
+`RETURNS TRIGGER` and is reached only through `EXECUTE PROCEDURE` in `sql/Triggers/`.
+Each of the three carries a comment saying so on line 1.
+
+**So three files sort to the bottom of `Functions/`.** File names copy the object
+name exactly, casing included, and file trees sort uppercase before lowercase. The
+three trigger functions landing under `LoginUser.sql` is that, not a stray folder.
+
+**Trigger function bodies mix both casings.** `update_modified_info` is snake_case
+but assigns to `NEW."UpdatedAt"`. Columns are PascalCase everywhere in the schema
+and a trigger function does not get its own copy of them, so the mix is forced.
+
+**Test function names PascalCase the object, test file names do not.** The tests
+for `calculate_tallies` live in `Tests/Cases/calculate_tallies.sql` — file named
+for the object, casing preserved — as functions named
+`test."TestCalculateTallies_SumsOnlyUnexpiredRows"`. `Test<Object>_` reads badly
+with an underscore already in `<Object>`, so the object gets PascalCased inside the
+function name only.
+
+**Seed files carry an ordering prefix.** `Seeds/Dev/` is the one place a file name
+is not exactly an object name: rows have to load parents before children, so the
+number leads (`09_UserPoints.sql`). Seeds are data, not schema objects.
+
+**Every identifier is quoted, which makes it case-sensitive.** `"dbo"."Users"` is a
+different table from `dbo.users`. Unquoted identifiers fold to lowercase in Postgres,
+so an unquoted reference to any live object is a bug, not a style choice. `sql/Drafts/`
+is still unquoted — see below.
+
+**Parameters lead with an underscore.** `_OrganizationUUID`, not `OrganizationUUID`,
+so a parameter can never collide with the PascalCase column of the same name. The
+related trap that this does *not* solve — `RETURNS TABLE` output columns shadowing
+table columns — is in `CLAUDE.md`.
 
 `sql/Drafts/` was converted to the same convention: every table, column, function,
 procedure and parameter is now PascalCase, and each file is named after its object.
