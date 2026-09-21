@@ -1,0 +1,1 @@
+ALTER TABLE "dbo"."ApprovalWorkflowStages" ADD CONSTRAINT "FK_ApprovalWorkflowStages_ApprovalWorkflows" FOREIGN KEY ("ApprovalWorkflowUUID") REFERENCES "dbo"."ApprovalWorkflows" ("ApprovalWorkflowUUID");

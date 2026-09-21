@@ -22,6 +22,14 @@ DECLARE
     _RoadmapUUID uuid;
     _TaskUUID uuid;
     _LabelUUID uuid;
+    _ApprovalWorkflowUUID uuid;
+    _ApprovalWorkflowStageUUID uuid;
+    _ApprovalRequestUUID uuid;
+    _PointRedemptionUUID uuid;
+    _SurveyUUID uuid;
+    _SurveyQuestionUUID uuid;
+    _SurveyQuestionOptionUUID uuid;
+    _SurveyParticipantUUID uuid;
 BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
@@ -35,6 +43,14 @@ BEGIN
     INSERT INTO "dbo"."PointMultipliers" ("Name", "Description", "Factor", "CreatedBy") VALUES ('Smoke Multiplier', 'Smoke test multiplier.', 2.0000, _By);
     INSERT INTO "dbo"."Roadmaps" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Roadmap', 'Smoke test roadmap.', _By) RETURNING "RoadmapUUID" INTO _RoadmapUUID;
     INSERT INTO "dbo"."Labels" ("OrganizationUUID", "Name", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Label', _By) RETURNING "LabelUUID" INTO _LabelUUID;
+    INSERT INTO "dbo"."ApprovalWorkflows" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Workflow', 'Smoke test workflow.', _By) RETURNING "ApprovalWorkflowUUID" INTO _ApprovalWorkflowUUID;
+    INSERT INTO "dbo"."ApprovalWorkflowStages" ("ApprovalWorkflowUUID", "Name", "CreatedBy") VALUES (_ApprovalWorkflowUUID, 'Smoke Stage', _By) RETURNING "ApprovalWorkflowStageUUID" INTO _ApprovalWorkflowStageUUID;
+    INSERT INTO "dbo"."ApprovalWorkflowPermissions" ("ApprovalWorkflowStageUUID", "UserUUID", "CreatedBy") VALUES (_ApprovalWorkflowStageUUID, _UserUUID, _By);
+    INSERT INTO "dbo"."Surveys" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Survey', 'Smoke test survey.', _By) RETURNING "SurveyUUID" INTO _SurveyUUID;
+    INSERT INTO "dbo"."SurveyQuestions" ("SurveyUUID", "QuestionText", "QuestionType", "CreatedBy") VALUES (_SurveyUUID, 'Smoke question?', 'Choice', _By) RETURNING "SurveyQuestionUUID" INTO _SurveyQuestionUUID;
+    INSERT INTO "dbo"."SurveyQuestionOptions" ("SurveyQuestionUUID", "OptionText", "CreatedBy") VALUES (_SurveyQuestionUUID, 'Smoke option.', _By) RETURNING "SurveyQuestionOptionUUID" INTO _SurveyQuestionOptionUUID;
+    INSERT INTO "dbo"."SurveyParticipants" ("SurveyUUID", "UserUUID", "CreatedBy") VALUES (_SurveyUUID, _UserUUID, _By) RETURNING "SurveyParticipantUUID" INTO _SurveyParticipantUUID;
+    INSERT INTO "dbo"."SurveyAnswers" ("SurveyParticipantUUID", "SurveyQuestionUUID", "SurveyQuestionOptionUUID", "CreatedBy") VALUES (_SurveyParticipantUUID, _SurveyQuestionUUID, _SurveyQuestionOptionUUID, _By);
 
     INSERT INTO "dbo"."BadgeCriteria" ("BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES (_BadgeUUID, 'Smoke criteria.', 'Activity', 1, _By);
     INSERT INTO "dbo"."BadgeEventCriteria" ("BadgeEventUUID", "BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES (_BadgeEventUUID, _BadgeUUID, 'Smoke event criteria.', 'Achievement', 1, _By);
@@ -48,7 +64,7 @@ BEGIN
     INSERT INTO "dbo"."UserTeams" ("UserUUID", "TeamUUID", "CreatedBy") VALUES (_UserUUID, _TeamUUID, _By);
     INSERT INTO "dbo"."UserBadges" ("UserUUID", "OrganizationUUID", "BadgeUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _BadgeUUID, _By);
     INSERT INTO "dbo"."UserPointLevels" ("UserUUID", "OrganizationUUID", "PointLevelUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointLevelUUID, _By);
-    INSERT INTO "dbo"."PointRedemptions" ("UserUUID", "OrganizationUUID", "PointUUID", "Amount", "Description", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointUUID, 1.0000, 'Smoke redemption.', _By);
+    INSERT INTO "dbo"."PointRedemptions" ("UserUUID", "OrganizationUUID", "PointUUID", "Amount", "Description", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointUUID, 1.0000, 'Smoke redemption.', _By) RETURNING "PointRedemptionUUID" INTO _PointRedemptionUUID;
     INSERT INTO "dbo"."PointTransfers" ("OrganizationUUID", "PointUUID", "SenderUserUUID", "ReceiverUserUUID", "Amount", "Description", "CreatedBy") VALUES (_OrganizationUUID, _PointUUID, _UserUUID, "test"."Fixture"('User.Member'), 1.0000, 'Smoke transfer.', _By);
 
     -- TaskDependencies needs two tasks, but every table here has to gain
@@ -60,6 +76,13 @@ BEGIN
     INSERT INTO "dbo"."TaskLabels" ("TaskUUID", "LabelUUID", "CreatedBy") VALUES (_TaskUUID, _LabelUUID, _By);
     INSERT INTO "dbo"."AssignmentHistory" ("TaskUUID", "PreviousUserUUID", "NewUserUUID", "CreatedBy") VALUES (_TaskUUID, NULL, _UserUUID, _By);
     INSERT INTO "dbo"."Checklists" ("TaskUUID", "Description", "CreatedBy") VALUES (_TaskUUID, 'Smoke checklist item.', _By);
+
+    -- The request approves the redemption above. Exactly one subject column
+    -- may be set, so the other two stay NULL.
+    INSERT INTO "dbo"."ApprovalRequests" ("OrganizationUUID", "ApprovalWorkflowUUID", "CurrentStageUUID", "RequestedByUserUUID", "RequestText", "PointRedemptionUUID", "CreatedBy")
+    VALUES (_OrganizationUUID, _ApprovalWorkflowUUID, _ApprovalWorkflowStageUUID, _UserUUID, 'Smoke request.', _PointRedemptionUUID, _By) RETURNING "ApprovalRequestUUID" INTO _ApprovalRequestUUID;
+    INSERT INTO "dbo"."ApprovalDecisions" ("ApprovalRequestUUID", "ApprovalWorkflowStageUUID", "ApproverUserUUID", "Status", "Comment", "CreatedBy") VALUES (_ApprovalRequestUUID, _ApprovalWorkflowStageUUID, _UserUUID, 'Approved', 'Smoke decision.', _By);
+    INSERT INTO "dbo"."ApprovalRequestLogs" ("ApprovalRequestUUID", "FromStageUUID", "ToStageUUID", "Comment", "CreatedBy") VALUES (_ApprovalRequestUUID, NULL, _ApprovalWorkflowStageUUID, 'Smoke log.', _By);
 
     -- The UserPoints insert fires calculate_tallies, which is what puts a row
     -- into UserTallies. Inserting into UserTallies directly would hide that.

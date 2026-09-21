@@ -13,16 +13,16 @@ test/
   runner.test.js    discovers and drives the SQL tests
 sql/
   Functions/        one function per file            (22)
-  Tables/           CREATE TABLE only, no triggers   (34)
-  Triggers/         one trigger per file             (70)
-  ForeignKeys/      FK constraints, one file per table (21 files, 44 constraints)
+  Tables/           CREATE TABLE only, no triggers   (45)
+  Triggers/         one trigger per file             (92)
+  ForeignKeys/      FK constraints, one file per table (32 files, 70 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand     (23)
+  Seeds/Dev/        demo data, applied on demand     (34)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (35)
+    Cases/          one file per object under test    (39)
   Drafts/           not built; see "Drafts" below
     Tables/                                          (45)
     Functions/                                       (72)
@@ -51,6 +51,7 @@ their own fixtures. See the "Database" section of the repository README.
 | Function parameter | `_PascalCase` | `_OrganizationUUID` |
 | Trigger | `<Table>_<Purpose>_<Event>` | `Users_ModifiedInfo_Insert` |
 | Unique constraint | `<Table>_<What>_UniqueKey` | `Users_LoginName_UniqueKey` |
+| Check constraint | `<Table>_<What>_Check` | `ApprovalRequests_OneSubject_Check` |
 | Foreign key | `FK_<Table>_<ReferencedTable>` | `FK_UserBadges_Badges` |
 | Foreign key, 2nd to same table | `FK_<Table>_<ReferencedTable>_<Column>` | `FK_SharedBadges_Users_SharedWithUserUUID` |
 | File name | exactly the object name + `.sql` | `Triggers/Users_ModifiedInfo_Insert.sql` |
@@ -310,7 +311,7 @@ reaches into the table directly in the meantime.
 
 ### Tables migrated from the drafts
 
-Fourteen draft tables are live so far, uuid-keyed, org-scoped and audited.
+Twenty-five draft tables are live so far, uuid-keyed, org-scoped and audited.
 The five points tables:
 `PointLevels`, `UserPointLevels`, `PointMultipliers`, `PointRedemptions`,
 `PointTransfers`. The draft versions stay where they are.
@@ -321,6 +322,101 @@ definition tables are global (`Points`, `Badges`, and now `PointLevels` and
 now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
 drops the draft's `PointTypeId`: the level it names already carries the point
 type, so repeating it would let the two disagree.
+
+### Approvals
+
+Six tables: `ApprovalWorkflows`, `ApprovalWorkflowStages`,
+`ApprovalWorkflowPermissions`, `ApprovalRequests`, `ApprovalDecisions`,
+`ApprovalRequestLogs`.
+
+**The drafts' two approval models were not rivals.** `ApprovalProcesses` +
+`ApprovalProcessSteps` (read by 9 objects, never written as tables) is a
+*template*: a named process with ordered steps and an approver each.
+`ApprovalRequests` + `Decisions` + `Logs` + `Stages` (5 tables, 17 objects) is a
+*running instance*. Each was half a design. `ApprovalProcessSteps` looked like a
+rival because it mixed template columns (`Name`, `ApproverId`) with per-request
+ones (`Completed`, `ApprovalStatus`, `ApprovalComments`,
+`CompletionTimestamp`) in a single table; those split across
+`ApprovalWorkflowStages` and `ApprovalDecisions` here. `ApprovalWorkflows` is the
+root the second model never had, which is why its `ApprovalWorkflowStages` was a
+flat parentless list.
+
+**What gets approved is three typed nullable foreign keys, not an untyped id.**
+The draft `ApprovalRequests` carried `TaskId` plus an `ItemId INT` referencing
+nothing. Here it is `TaskUUID`, `PointRedemptionUUID` and `PointTransferUUID`,
+all real foreign keys, with
+`CHECK (num_nonnulls(...) = 1)` so exactly one is set. A fourth approvable thing
+costs a column and a line in the check — cheap, because schema changes are edits
+and there are no migrations. The alternative, a polymorphic
+`SubjectType`/`SubjectUUID` pair, would have been shorter and carried no
+referential integrity at all.
+
+`dbo.UserBadges` is not among the subjects: it has no single-column key to point
+at, only the composite unique. Giving it a surrogate key is the prerequisite if
+badge awards should run through approvals.
+
+**`dbo.BadgeReviews` is now a special case of this.** It predates these tables
+and does the same job for badges — `Status`, `Comment`, `ReviewedAt`, a
+reviewer. It was left alone rather than folded in, so there are two approval
+paths in the schema. Folding it in means the `UserBadges` key above plus
+rewriting its tests and seeds.
+
+**Nothing in here runs a workflow.** Recording a decision does not advance the
+request, no stage order is enforced, and `ApprovalWorkflowPermissions` is
+advisory — `ApprovalDecisions` takes a decision from anybody.
+`TestApprovalDecisions_DoNotAdvanceTheRequest` and
+`TestApprovalDecisions_DoNotEnforceStagePermissions` hold those down. A request
+that has left the stages has a NULL `CurrentStageUUID`; the outcome is in
+`Status`.
+
+**One integrity gap left open.** A decision names a request and a stage
+independently, so it can cite a stage from a workflow the request is not
+running. Closing it means carrying `ApprovalWorkflowUUID` on the decision and
+using a composite foreign key, the way `SurveyAnswers` does below.
+`TestApprovalDecisions_AcceptAStageFromAnotherWorkflow` records the current
+behaviour.
+
+### Surveys
+
+Five tables: `Surveys`, `SurveyQuestions`, `SurveyQuestionOptions`,
+`SurveyParticipants`, `SurveyAnswers`.
+
+**This area is a design, not a migration.** Not one of the drafts' 169 functions
+and procedures references a survey table — the five draft tables have no logic
+behind them at all.
+
+**`SurveyAnswers` replaces the draft's `SurveyResponses`.** The draft stored
+every answer in a `ResponseData jsonb` blob, which contradicted its own
+`SurveyQuestionOptions`: with each answer opaque, nothing ever referenced an
+option row and "how many people chose this option" was unanswerable, which is
+most of what a survey is for. One row per answer instead, carrying either a
+chosen option or free text — `CHECK (num_nonnulls(...) >= 1)`.
+
+**The unique key is `NULLS NOT DISTINCT`**, which is unusual enough to say out
+loud. `(SurveyParticipantUUID, SurveyQuestionUUID, SurveyQuestionOptionUUID)`
+has to allow several rows per question for a multi-choice answer, but only one
+free-text answer per question. Postgres normally treats NULLs as distinct, so a
+plain `UNIQUE` would let a participant leave any number of text answers.
+
+**The option foreign key is composite on purpose.** `SurveyQuestionOptions`
+carries a redundant `UNIQUE (SurveyQuestionOptionUUID, SurveyQuestionUUID)` —
+the first column is already its primary key — so that `SurveyAnswers` can
+reference both columns at once and an answer cannot pair one question with
+another question's option. `MATCH SIMPLE`, the default, skips the check when the
+option is NULL, so free text still works.
+
+**Answers are identified, not anonymous.** `SurveyParticipantUUID` leads back to
+a named user, and `TestSurveyAnswers_AreAttributableToAUser` says so. This is a
+schema decision rather than something to filter later: anonymous responses mean
+keying answers to the survey and recording only completion on
+`SurveyParticipants`, which loses per-participant validation and the ability to
+resume a part-finished survey.
+
+**The draft's `ParticipantId` collision is gone.**
+`SurveyResponses.ParticipantId` referenced `Users(UserId)` while
+`SurveyParticipants.ParticipantId` was that table's own primary key — one name
+for two different things. The participant row and the user it points at are now
+separate columns.
 
 ### Tasks and roadmaps
 

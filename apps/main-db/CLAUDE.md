@@ -115,6 +115,14 @@ installed.
   while already past due.
 - **`dbo.TaskHistory` and `dbo.AssignmentHistory` are not automatic.** Nothing
   writes them — editing a task logs nothing. The caller writes the row.
+- **Nothing runs an approval workflow.** Recording a `dbo.ApprovalDecisions` row
+  does not advance the request, no stage order is enforced, and
+  `dbo.ApprovalWorkflowPermissions` is advisory — a decision from an
+  unpermitted user is accepted. Whatever records one has to check first.
+- **`dbo.SurveyAnswers` has two unusual constraints.** Its unique key is
+  `NULLS NOT DISTINCT` so a participant gets one free-text answer per question
+  but many chosen options, and its option foreign key is composite so an answer
+  cannot cite another question's option. Read the table before changing either.
 - **A `dbo.UserBadges` row is not proof the badge was earned.** `EarnedAt` is
   NULL while it is in progress and `RevokedAt` is set when it is taken back, so
   anything reading the table has to filter on both the way `GetBadges` does.

@@ -12,15 +12,18 @@ DECLARE
 BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
+        ('ApprovalDecisions'), ('ApprovalRequestLogs'), ('ApprovalRequests'),
+        ('ApprovalWorkflowPermissions'), ('ApprovalWorkflowStages'), ('ApprovalWorkflows'),
         ('AssignmentHistory'), ('BadgeAchievements'), ('BadgeCategories'),
         ('BadgeCriteria'), ('BadgeEventCriteria'), ('BadgeEvents'),
         ('BadgeGroupRelationships'), ('BadgeGroups'), ('BadgeReviews'),
         ('BadgeStatistics'), ('Badges'), ('Checklists'), ('Labels'), ('Organizations'),
         ('PointLevels'), ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'),
-        ('Points'), ('Roadmaps'), ('SharedBadges'), ('TaskComments'), ('TaskDependencies'),
-        ('TaskHistory'), ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'),
-        ('UserOrganizations'), ('UserPointLevels'), ('UserPoints'), ('UserTallies'),
-        ('UserTeams'), ('Users')
+        ('Points'), ('Roadmaps'), ('SharedBadges'), ('SurveyAnswers'),
+        ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
+        ('Surveys'), ('TaskComments'), ('TaskDependencies'), ('TaskHistory'),
+        ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
+        ('UserPointLevels'), ('UserPoints'), ('UserTallies'), ('UserTeams'), ('Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (SELECT 1 FROM pg_tables WHERE "schemaname" = 'dbo' AND "tablename" = "Expected"."Name");
 
@@ -30,13 +33,16 @@ BEGIN
     FROM pg_tables
     WHERE "schemaname" = 'dbo'
         AND "tablename" NOT IN (
+            'ApprovalDecisions', 'ApprovalRequestLogs', 'ApprovalRequests',
+            'ApprovalWorkflowPermissions', 'ApprovalWorkflowStages', 'ApprovalWorkflows',
             'AssignmentHistory', 'BadgeAchievements', 'BadgeCategories', 'BadgeCriteria',
             'BadgeEventCriteria', 'BadgeEvents', 'BadgeGroupRelationships', 'BadgeGroups',
             'BadgeReviews', 'BadgeStatistics', 'Badges', 'Checklists', 'Labels',
             'Organizations', 'PointLevels', 'PointMultipliers', 'PointRedemptions',
-            'PointTransfers', 'Points', 'Roadmaps', 'SharedBadges', 'TaskComments',
-            'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks', 'Teams',
-            'UserBadges', 'UserOrganizations', 'UserPointLevels', 'UserPoints',
+            'PointTransfers', 'Points', 'Roadmaps', 'SharedBadges', 'SurveyAnswers',
+            'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
+            'TaskComments', 'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks',
+            'Teams', 'UserBadges', 'UserOrganizations', 'UserPointLevels', 'UserPoints',
             'UserTallies', 'UserTeams', 'Users'
         );
 
@@ -154,7 +160,21 @@ BEGIN
         ('FK_BadgeEventCriteria_Badges'), ('FK_BadgeGroupRelationships_BadgeGroups'),
         ('FK_BadgeGroupRelationships_Badges'), ('FK_BadgeReviews_Badges'),
         ('FK_BadgeReviews_Users'), ('FK_BadgeStatistics_Badges'),
-        ('FK_AssignmentHistory_Tasks'), ('FK_AssignmentHistory_Users_NewUserUUID'),
+        ('FK_ApprovalDecisions_ApprovalRequests'),
+        ('FK_ApprovalDecisions_ApprovalWorkflowStages'), ('FK_ApprovalDecisions_Users'),
+        ('FK_ApprovalRequestLogs_ApprovalRequests'),
+        ('FK_ApprovalRequestLogs_Stages_FromStageUUID'),
+        ('FK_ApprovalRequestLogs_Stages_ToStageUUID'),
+        ('FK_ApprovalRequests_ApprovalWorkflowStages'),
+        ('FK_ApprovalRequests_ApprovalWorkflows'), ('FK_ApprovalRequests_Organizations'),
+        ('FK_ApprovalRequests_PointRedemptions'), ('FK_ApprovalRequests_PointTransfers'),
+        ('FK_ApprovalRequests_Tasks'), ('FK_ApprovalRequests_Users_EscalatedToUserUUID'),
+        ('FK_ApprovalRequests_Users_RequestedByUserUUID'),
+        ('FK_ApprovalWorkflowPermissions_ApprovalWorkflowStages'),
+        ('FK_ApprovalWorkflowPermissions_Users'),
+        ('FK_ApprovalWorkflowStages_ApprovalWorkflows'),
+        ('FK_ApprovalWorkflows_Organizations'), ('FK_AssignmentHistory_Tasks'),
+        ('FK_AssignmentHistory_Users_NewUserUUID'),
         ('FK_AssignmentHistory_Users_PreviousUserUUID'), ('FK_BadgeAchievements_Badges'),
         ('FK_BadgeAchievements_Users'), ('FK_BadgeCriteria_Badges'),
         ('FK_BadgeEventCriteria_BadgeEvents'), ('FK_BadgeEventCriteria_Badges'),
@@ -167,8 +187,13 @@ BEGIN
         ('FK_PointTransfers_Points'), ('FK_PointTransfers_Users_ReceiverUserUUID'),
         ('FK_PointTransfers_Users_SenderUserUUID'), ('FK_Roadmaps_Organizations'),
         ('FK_SharedBadges_Badges'), ('FK_SharedBadges_Users'),
-        ('FK_SharedBadges_Users_SharedWithUserUUID'), ('FK_TaskComments_Tasks'),
-        ('FK_TaskComments_Users'), ('FK_TaskDependencies_Tasks_DependentTaskUUID'),
+        ('FK_SharedBadges_Users_SharedWithUserUUID'),
+        ('FK_SurveyAnswers_SurveyParticipants'),
+        ('FK_SurveyAnswers_SurveyQuestionOptions'), ('FK_SurveyAnswers_SurveyQuestions'),
+        ('FK_SurveyParticipants_Surveys'), ('FK_SurveyParticipants_Users'),
+        ('FK_SurveyQuestionOptions_SurveyQuestions'), ('FK_SurveyQuestions_Surveys'),
+        ('FK_Surveys_Organizations'), ('FK_TaskComments_Tasks'), ('FK_TaskComments_Users'),
+        ('FK_TaskDependencies_Tasks_DependentTaskUUID'),
         ('FK_TaskDependencies_Tasks_PrerequisiteTaskUUID'), ('FK_TaskHistory_Tasks'),
         ('FK_TaskHistory_Users'), ('FK_TaskLabels_Labels'), ('FK_TaskLabels_Tasks'),
         ('FK_Tasks_Organizations'), ('FK_Tasks_Roadmaps'), ('FK_Tasks_Users'),

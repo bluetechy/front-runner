@@ -56,7 +56,19 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('Task.Loose',               'cccccccc-0000-4000-8000-000000000005'),
     ('Task.Cancelled',           'cccccccc-0000-4000-8000-000000000006'),
     ('Label.Urgent',             'dddddddd-0000-4000-8000-000000000001'),
-    ('Label.Chore',              'dddddddd-0000-4000-8000-000000000002');
+    ('Label.Chore',              'dddddddd-0000-4000-8000-000000000002'),
+    ('Workflow.Redemption',      'eeeeeeee-0000-4000-8000-000000000001'),
+    ('Stage.Manager',            'eeeeeeee-0000-4000-8000-000000000002'),
+    ('Stage.Finance',            'eeeeeeee-0000-4000-8000-000000000003'),
+    ('Request.AtFinance',        'eeeeeeee-0000-4000-8000-000000000004'),
+    ('Request.Finished',         'eeeeeeee-0000-4000-8000-000000000005'),
+    ('Survey.Pulse',             'ffffffff-0000-4000-8000-000000000001'),
+    ('Question.Choice',          'ffffffff-0000-4000-8000-000000000002'),
+    ('Question.Text',            'ffffffff-0000-4000-8000-000000000003'),
+    ('Option.Yes',               'ffffffff-0000-4000-8000-000000000004'),
+    ('Option.No',                'ffffffff-0000-4000-8000-000000000005'),
+    ('Participant.Member',       'ffffffff-0000-4000-8000-000000000006'),
+    ('Participant.Owner',        'ffffffff-0000-4000-8000-000000000007');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -195,3 +207,56 @@ INSERT INTO "dbo"."Labels" ("LabelUUID", "OrganizationUUID", "Name", "CreatedBy"
 INSERT INTO "dbo"."TaskLabels" ("TaskUUID", "LabelUUID", "CreatedBy") VALUES
     ("test"."Fixture"('Task.Build'),   "test"."Fixture"('Label.Urgent'), 'fixtures'),
     ("test"."Fixture"('Task.Overdue'), "test"."Fixture"('Label.Urgent'), 'fixtures');
+
+-- A two-stage workflow. Only the owner may decide at Finance, which is what
+-- makes "the permission table is not enforced" testable.
+INSERT INTO "dbo"."ApprovalWorkflows" ("ApprovalWorkflowUUID", "OrganizationUUID", "Name", "Description", "CreatedBy") VALUES
+    ("test"."Fixture"('Workflow.Redemption'), "test"."Fixture"('Organization.Acme'), 'Redemption', 'Approving a point redemption.', 'fixtures');
+
+INSERT INTO "dbo"."ApprovalWorkflowStages" ("ApprovalWorkflowStageUUID", "ApprovalWorkflowUUID", "Name", "SortOrder", "CreatedBy") VALUES
+    ("test"."Fixture"('Stage.Manager'), "test"."Fixture"('Workflow.Redemption'), 'Manager', 1, 'fixtures'),
+    ("test"."Fixture"('Stage.Finance'), "test"."Fixture"('Workflow.Redemption'), 'Finance', 2, 'fixtures');
+
+INSERT INTO "dbo"."ApprovalWorkflowPermissions" ("ApprovalWorkflowStageUUID", "UserUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('Stage.Manager'), "test"."Fixture"('User.Member'), 'fixtures'),
+    ("test"."Fixture"('Stage.Finance'), "test"."Fixture"('User.Owner'),  'fixtures');
+
+-- One request part-way through (past Manager, sitting at Finance) and one that
+-- has left the stages entirely -- a NULL CurrentStageUUID is what finished
+-- looks like. Both approve a point redemption; the subject check allows only
+-- one of the three subject columns per row.
+INSERT INTO "dbo"."ApprovalRequests" ("ApprovalRequestUUID", "OrganizationUUID", "ApprovalWorkflowUUID", "CurrentStageUUID", "RequestedByUserUUID", "RequestText", "Status", "PointRedemptionUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('Request.AtFinance'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Workflow.Redemption'), "test"."Fixture"('Stage.Finance'), "test"."Fixture"('User.Member'), 'Coffee voucher, please.', 'Pending',  "test"."Fixture"('PointRedemption.Pending'),  'fixtures'),
+    ("test"."Fixture"('Request.Finished'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Workflow.Redemption'), NULL,                              "test"."Fixture"('User.Member'), 'Sticker pack, please.',   'Approved', "test"."Fixture"('PointRedemption.Approved'), 'fixtures');
+
+INSERT INTO "dbo"."ApprovalDecisions" ("ApprovalRequestUUID", "ApprovalWorkflowStageUUID", "ApproverUserUUID", "Status", "Comment", "DecidedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Request.AtFinance'), "test"."Fixture"('Stage.Manager'), "test"."Fixture"('User.Member'), 'Approved', 'Fine by me.',  '2024-03-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Request.Finished'),  "test"."Fixture"('Stage.Manager'), "test"."Fixture"('User.Member'), 'Approved', 'Sure.',        '2024-04-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Request.Finished'),  "test"."Fixture"('Stage.Finance'), "test"."Fixture"('User.Owner'),  'Approved', 'Budget fits.', '2024-04-02 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."ApprovalRequestLogs" ("ApprovalRequestUUID", "FromStageUUID", "ToStageUUID", "Comment", "LoggedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Request.AtFinance'), NULL,                              "test"."Fixture"('Stage.Manager'), 'Raised.',   '2024-02-28 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Request.AtFinance'), "test"."Fixture"('Stage.Manager'), "test"."Fixture"('Stage.Finance'), 'Passed on.', '2024-03-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Request.Finished'),  "test"."Fixture"('Stage.Finance'), NULL,                              'Done.',      '2024-04-02 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."Surveys" ("SurveyUUID", "OrganizationUUID", "Name", "Description", "OpensAt", "ClosesAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Survey.Pulse'), "test"."Fixture"('Organization.Acme'), 'Pulse', 'How is it going?', '2024-01-01 00:00:00+00', '2999-01-01 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."SurveyQuestions" ("SurveyQuestionUUID", "SurveyUUID", "QuestionText", "QuestionType", "SortOrder", "IsRequired", "CreatedBy") VALUES
+    ("test"."Fixture"('Question.Choice'), "test"."Fixture"('Survey.Pulse'), 'Would you recommend us?', 'Choice', 1, true,  'fixtures'),
+    ("test"."Fixture"('Question.Text'),   "test"."Fixture"('Survey.Pulse'), 'Anything to add?',        'Text',   2, false, 'fixtures');
+
+INSERT INTO "dbo"."SurveyQuestionOptions" ("SurveyQuestionOptionUUID", "SurveyQuestionUUID", "OptionText", "SortOrder", "CreatedBy") VALUES
+    ("test"."Fixture"('Option.Yes'), "test"."Fixture"('Question.Choice'), 'Yes', 1, 'fixtures'),
+    ("test"."Fixture"('Option.No'),  "test"."Fixture"('Question.Choice'), 'No',  2, 'fixtures');
+
+-- The member finished, the owner was invited and has not.
+INSERT INTO "dbo"."SurveyParticipants" ("SurveyParticipantUUID", "SurveyUUID", "UserUUID", "InvitedAt", "CompletedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Participant.Member'), "test"."Fixture"('Survey.Pulse'), "test"."Fixture"('User.Member'), '2024-01-02 00:00:00+00', '2024-01-05 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Participant.Owner'),  "test"."Fixture"('Survey.Pulse'), "test"."Fixture"('User.Owner'),  '2024-01-02 00:00:00+00', NULL,                     'fixtures');
+
+-- One chosen option and one free-text answer, which is the pair the check
+-- constraint and the NULLS NOT DISTINCT unique key both hinge on.
+INSERT INTO "dbo"."SurveyAnswers" ("SurveyParticipantUUID", "SurveyQuestionUUID", "SurveyQuestionOptionUUID", "AnswerText", "CreatedBy") VALUES
+    ("test"."Fixture"('Participant.Member'), "test"."Fixture"('Question.Choice'), "test"."Fixture"('Option.Yes'), NULL,              'fixtures'),
+    ("test"."Fixture"('Participant.Member'), "test"."Fixture"('Question.Text'),   NULL,                           'Keep it up.',     'fixtures');

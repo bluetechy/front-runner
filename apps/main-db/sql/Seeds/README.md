@@ -54,8 +54,8 @@ children, so the number leads. `01_Organizations.sql` through `05_Points.sql`
 are the parent tables; `06`-`09` are the memberships and balances that point at
 them; `10`-`14` are the points features built on top -- levels, multipliers,
 redemptions and transfers; `15`-`23` are roadmaps, tasks and everything hanging
-off a task. The file number is decimal and the UUID prefix is hex, so the two
-stop lining up after `14`.
+off a task; `24`-`29` are approvals and `30`-`34` are surveys. The file number
+is decimal and the UUID prefix is hex, so the two stop lining up after `14`.
 
 ## Writing a seed file
 
@@ -120,6 +120,17 @@ Each parent table owns a leading nibble, so a UUID is identifiable on sight:
 | `1a000000-...` | `AssignmentHistory` |
 | `1b000000-...` | `Checklists` |
 | `1c000000-...` | `Labels` |
+| `1d000000-...` | `ApprovalWorkflows` |
+| `1e000000-...` | `ApprovalWorkflowStages` |
+| `1f000000-...` | `ApprovalWorkflowPermissions` |
+| `20000000-...` | `ApprovalRequests` |
+| `21000000-...` | `ApprovalDecisions` |
+| `22000000-...` | `ApprovalRequestLogs` |
+| `23000000-...` | `Surveys` |
+| `24000000-...` | `SurveyQuestions` |
+| `25000000-...` | `SurveyQuestionOptions` |
+| `26000000-...` | `SurveyParticipants` |
+| `27000000-...` | `SurveyAnswers` |
 
 `a` through `f` are used up, so the scheme carries on into two-digit prefixes
 counting from `10`. It is still one distinct leading byte per table, which is
