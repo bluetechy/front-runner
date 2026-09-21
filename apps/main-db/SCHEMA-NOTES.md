@@ -10,7 +10,7 @@ bin/
   rebuild.sh        drop the application database and build it again
   seed.sh           load a seed dataset on demand
 test/
-  database.test.js  discovers and drives the SQL tests
+  runner.test.js    discovers and drives the SQL tests
 sql/
   Functions/        one function per file            (22)
   Tables/           CREATE TABLE only, no triggers   (20)

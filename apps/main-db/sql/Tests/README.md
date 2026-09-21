@@ -5,7 +5,7 @@ be up (`make dc3-up-d`); the suite connects over the published Postgres port.
 
 ## How a run works
 
-`apps/main-db/test/database.test.js` drives everything:
+`apps/main-db/test/runner.test.js` drives everything:
 
 1. drops and recreates a scratch database, `dbo_test`
 2. builds the schema into it from the same `sql/Functions`, `sql/Tables`,

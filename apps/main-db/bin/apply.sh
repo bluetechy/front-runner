@@ -6,8 +6,9 @@
 #
 # Applies every object under /sql to the named database in dependency order.
 # It creates nothing but schema: seed data lives in /sql/Seeds and is applied
-# separately by seed.sh, test fixtures by test.sh. The database itself must
-# already exist.
+# separately by seed.sh, and the test suite (../test/runner.test.js, run on
+# the host) applies /sql/Tests to a scratch database of its own. The database
+# itself must already exist.
 #
 set -euo pipefail
 
