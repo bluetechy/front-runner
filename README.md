@@ -4,17 +4,17 @@ A Turborepo monorepo.
 
 ## Layout
 
-  - `apps/main-api` — NestJS/TypeScript GraphQL API
-  - `apps/main-db` — Postgres image and schema
-  - `apps/main-gui` — React frontend
-  - `apps/keycloak-idp` — Keycloak, the identity provider
-  - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
-  - `.env` — configuration shared by every Compose service
+- `apps/main-api` — NestJS/TypeScript GraphQL API
+- `apps/main-db` — Postgres image and schema
+- `apps/main-gui` — React frontend
+- `apps/keycloak-idp` — Keycloak, the identity provider
+- `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
+- `.env` — configuration shared by every Compose service
 
 ## Turborepo
 
-  - `npm install`
-  - `npm run build` / `npm run dev` / `npm run test` / `npm run lint`
+- `npm install`
+- `npm run build` / `npm run dev` / `npm run test` / `npm run lint`
 
 Filter a single app with `npx turbo run build --filter=main-api`.
 
@@ -37,25 +37,25 @@ source changes. See
 
 To startup the service graph:
 
-  - `make dc3-up-d`
+- `make dc3-up-d`
 
 To open a psql shell on the database:
 
-  - `make dc3-psql`
+- `make dc3-psql`
 
 To follow the logs:
 
-  - `make dc3-logs`
+- `make dc3-logs`
 
 To shutdown the service graph:
 
-  - `make dc3-down`
+- `make dc3-down`
 
 To shutdown and also discard the database volume, forcing the schema to be
 rebuilt from `apps/main-db/sql` on the next startup:
 
-  - `make dc3-clean` — this also discards every Keycloak account, since Keycloak
-    keeps its realm in a database on the same volume.
+- `make dc3-clean` — this also discards every Keycloak account, since Keycloak
+  keeps its realm in a database on the same volume.
 
 ## Authentication
 
@@ -64,10 +64,10 @@ signs in at Keycloak directly and sends the access token it gets back, and the
 API verifies it against the realm's public keys — it issues no tokens of its own
 and has no login operation.
 
-  - Admin console — <http://localhost:30003/admin> (`admin` / `admin`)
-  - Realm — `front-runner`, imported on first start from
-    `apps/keycloak-idp/realm`, with an account per seeded user whose password is
-    their username
+- Admin console — <http://localhost:30003/admin> (`admin` / `admin`)
+- Realm — `front-runner`, imported on first start from
+  `apps/keycloak-idp/realm`, with an account per seeded user whose password is
+  their username
 
 An account is yours and belongs to nothing on its own. Organization membership
 works the way it does on GitHub or Cloudflare: an owner invites an email
@@ -79,7 +79,7 @@ GraphQL operations.
 
 On a volume created before Keycloak existed, its database has to be made once:
 
-  - `make db-keycloak`
+- `make db-keycloak`
 
 ## Database
 
@@ -89,30 +89,30 @@ empty, not seeded.
 
 To apply a schema change without discarding the volume or the container:
 
-  - `make db-rebuild` -- drops the database and rebuilds it from
-    `apps/main-db/sql`. Leaves it empty. `sql/` is bind-mounted into the
-    container, so edits apply without a `docker build`.
+- `make db-rebuild` -- drops the database and rebuilds it from
+  `apps/main-db/sql`. Leaves it empty. `sql/` is bind-mounted into the
+  container, so edits apply without a `docker build`.
 
 To load demo data for working against the API and GUI:
 
-  - `make db-seed` -- applies `apps/main-db/sql/Seeds/Dev`. Every row carries a
-    fixed UUID and upserts, so running it twice is the same as running it once,
-    and editing a seed file and re-running refreshes the rows it touches.
-  - `make db-reseed` -- empties every table first, so the result is exactly the
-    dataset and nothing else.
+- `make db-seed` -- applies `apps/main-db/sql/Seeds/Dev`. Every row carries a
+  fixed UUID and upserts, so running it twice is the same as running it once,
+  and editing a seed file and re-running refreshes the rows it touches.
+- `make db-reseed` -- empties every table first, so the result is exactly the
+  dataset and nothing else.
 
-  `apps/main-db/sql/Seeds/README.md` covers how a seed run works and how to add
-  to the dataset.
+`apps/main-db/sql/Seeds/README.md` covers how a seed run works and how to add
+to the dataset.
 
 To run the database tests:
 
-  - `make db-test` -- builds a throwaway `dbo_test` from the same SQL, runs
-    every test in its own rolled-back transaction, and drops it. Your
-    development data is never touched.
-  - `make db-test ARGS="--test-name-pattern=Tallies"` -- run a subset.
-  - `make db-test-watch` -- re-run on every SQL or test change.
-  - `npm run test:ci --workspace main-db` -- same suite with a JUnit report at
-    `apps/main-db/test-results.xml`, for a pipeline.
+- `make db-test` -- builds a throwaway `dbo_test` from the same SQL, runs
+  every test in its own rolled-back transaction, and drops it. Your
+  development data is never touched.
+- `make db-test ARGS="--test-name-pattern=Tallies"` -- run a subset.
+- `make db-test-watch` -- re-run on every SQL or test change.
+- `npm run test:ci --workspace main-db` -- same suite with a JUnit report at
+  `apps/main-db/test-results.xml`, for a pipeline.
 
 The suite connects over the published Postgres port, so the stack has to be up.
 See `apps/main-db/sql/Tests/README.md` for how to write a test, and

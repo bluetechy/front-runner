@@ -13,8 +13,8 @@
     "dev": "turbo run dev",
     "start": "turbo run start",
     "test": "turbo run test",
-    "format": "prettier --write \"*.{yml,yaml}\"",
-    "format:check": "prettier --check \"*.{yml,yaml}\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "npm run format:check && turbo run lint"
   },
   "devDependencies": {

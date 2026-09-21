@@ -1,14 +1,27 @@
-import { Module } from '@nestjs/common';
-import { ConfigurationModule } from './configuration/index.js';
-import { AuthenticationModule } from './authentication/index.js';
-import { ApiGraphqlModule } from './graphql/index.js';
-import { HealthModule } from './health/index.js';
-import { UsersModule } from './users/index.js';
-import { OrganizationsModule } from './organizations/index.js';
-import { TeamsModule } from './teams/index.js';
-import { BadgesModule } from './badges/index.js';
-import { PointsModule } from './points/index.js';
-import { TalliesModule } from './tallies/index.js';
+import { Module } from "@nestjs/common";
+import { ConfigurationModule } from "./configuration/index.js";
+import { AuthenticationModule } from "./authentication/index.js";
+import { ApiGraphqlModule } from "./graphql/index.js";
+import { HealthModule } from "./health/index.js";
+import { UsersModule } from "./users/index.js";
+import { OrganizationsModule } from "./organizations/index.js";
+import { TeamsModule } from "./teams/index.js";
+import { BadgesModule } from "./badges/index.js";
+import { PointsModule } from "./points/index.js";
+import { TalliesModule } from "./tallies/index.js";
 
-@Module({ imports: [ConfigurationModule, AuthenticationModule, ApiGraphqlModule, HealthModule, UsersModule, OrganizationsModule, TeamsModule, BadgesModule, PointsModule, TalliesModule] })
+@Module({
+  imports: [
+    ConfigurationModule,
+    AuthenticationModule,
+    ApiGraphqlModule,
+    HealthModule,
+    UsersModule,
+    OrganizationsModule,
+    TeamsModule,
+    BadgesModule,
+    PointsModule,
+    TalliesModule,
+  ],
+})
 export class AppModule {}

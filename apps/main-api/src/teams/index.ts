@@ -1,1 +1,1 @@
-export { TeamsModule } from './teams.module.js';
+export { TeamsModule } from "./teams.module.js";

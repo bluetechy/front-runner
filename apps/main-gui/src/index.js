@@ -6,8 +6,9 @@ import { Provider } from "react-redux";
 import store from "./stores/index.js";
 import Routes from "./routes.js";
 
-ReactDOM.render((
-	<Provider store={store}>
-		<Routes />
-	</Provider>
-), document.getElementById("root"));
+ReactDOM.render(
+  <Provider store={store}>
+    <Routes />
+  </Provider>,
+  document.getElementById("root"),
+);

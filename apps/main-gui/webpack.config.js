@@ -1,12 +1,12 @@
 module.exports = {
   entry: {
-    app: './src',
+    app: "./src",
   },
   output: {
     path: __dirname,
-    publicPath: '/',
-    filename: '[name].js',
-    chunkFilename: '[id].js',
+    publicPath: "/",
+    filename: "[name].js",
+    chunkFilename: "[id].js",
   },
   devServer: {
     hot: true,
@@ -14,65 +14,66 @@ module.exports = {
     historyApiFallback: true,
   },
   resolve: {
-    modules: ['node_modules', 'lib', 'src', 'vendor'],
+    modules: ["node_modules", "lib", "src", "vendor"],
   },
   module: {
     rules: [
       {
         test: /\.css$/,
-        use: [
-          'style-loader',
-          'css-loader',
-        ],
-      }, {
+        use: ["style-loader", "css-loader"],
+      },
+      {
         test: /\.(jpe?g|png|gif|svg)$/i,
         use: [
           {
-            loader: 'file-loader',
+            loader: "file-loader",
             options: {
-              hash: 'sha512',
-              digest: 'hex',
-              name: '[hash].[ext]',
+              hash: "sha512",
+              digest: "hex",
+              name: "[hash].[ext]",
             },
-          }, {
-            loader: 'image-webpack-loader',
+          },
+          {
+            loader: "image-webpack-loader",
             options: {
               bypassOnDebug: true,
             },
           },
         ],
-      }, {
+      },
+      {
         test: /\.(scss|sass)$/,
-        use: [{
-          loader: 'style-loader',
-        },
-        {
-          loader: 'css-loader',
-          options: {
-            modules: true,
-            importLoaders: 1,
-            localIdentName: '[path]_[name]_[local]_[hash:base64:5]',
+        use: [
+          {
+            loader: "style-loader",
           },
-        },
-        {
-          loader: 'sass-loader',
-          options: {
-            includePaths: ['/app/vendor', '/app/src'],
-            indentedSyntax: true,
+          {
+            loader: "css-loader",
+            options: {
+              modules: true,
+              importLoaders: 1,
+              localIdentName: "[path]_[name]_[local]_[hash:base64:5]",
+            },
           },
-        }],
+          {
+            loader: "sass-loader",
+            options: {
+              includePaths: ["/app/vendor", "/app/src"],
+              indentedSyntax: true,
+            },
+          },
+        ],
       },
       {
         test: /\.(js|jsx)$/,
         exclude: /(node_modules|bower_components)/,
-        loader: 'babel-loader',
+        loader: "babel-loader",
         query: {
-          presets: ['es2015', 'stage-0', 'react'],
-          plugins: ['transform-runtime', 'transform-decorators-legacy'],
+          presets: ["es2015", "stage-0", "react"],
+          plugins: ["transform-runtime", "transform-decorators-legacy"],
         },
       },
     ],
   },
-  plugins: [
-  ],
+  plugins: [],
 };

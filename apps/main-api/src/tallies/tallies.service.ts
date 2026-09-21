@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/index.js';
-import type { PageArgs } from '../graphql/index.js';
-import { Tally } from './tallies.model.js';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../database/index.js";
+import type { PageArgs } from "../graphql/index.js";
+import { Tally } from "./tallies.model.js";
 @Injectable()
 export class TalliesService {
   constructor(private readonly db: DatabaseService) {}

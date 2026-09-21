@@ -1,12 +1,22 @@
-import { Inject, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
+  createRemoteJWKSet,
+  jwtVerify,
+  type JWTPayload,
+  type JWTVerifyGetKey,
+} from "jose";
 
 // The realm's public keys, resolved per token so that Keycloak can rotate
 // them without a restart. Injected rather than built in the constructor so the
 // tests can hand over a key set of their own and verify real signatures
 // without a network.
-export const KEYCLOAK_KEY_SET = Symbol('KEYCLOAK_KEY_SET');
+export const KEYCLOAK_KEY_SET = Symbol("KEYCLOAK_KEY_SET");
 
 export const keycloakKeySetProvider = {
   provide: KEYCLOAK_KEY_SET,
@@ -16,11 +26,14 @@ export const keycloakKeySetProvider = {
   // inside the network, so the address that signs the token is not the address
   // the signing keys are fetched from.
   useFactory: (config: ConfigService): JWTVerifyGetKey =>
-    createRemoteJWKSet(new URL(config.getOrThrow<string>('KEYCLOAK_JWKS_URL')), {
-      timeoutDuration: 5000,
-      cooldownDuration: 30000,
-      cacheMaxAge: 600000,
-    }),
+    createRemoteJWKSet(
+      new URL(config.getOrThrow<string>("KEYCLOAK_JWKS_URL")),
+      {
+        timeoutDuration: 5000,
+        cooldownDuration: 30000,
+        cacheMaxAge: 600000,
+      },
+    ),
 };
 
 // What a verified access token tells us about the person holding it. The
@@ -46,9 +59,12 @@ export class KeycloakService {
   private readonly issuer: string;
   private readonly audience: string;
 
-  constructor(config: ConfigService, @Inject(KEYCLOAK_KEY_SET) private readonly keys: JWTVerifyGetKey) {
-    this.issuer = config.getOrThrow<string>('KEYCLOAK_ISSUER_URL');
-    this.audience = config.getOrThrow<string>('KEYCLOAK_AUDIENCE');
+  constructor(
+    config: ConfigService,
+    @Inject(KEYCLOAK_KEY_SET) private readonly keys: JWTVerifyGetKey,
+  ) {
+    this.issuer = config.getOrThrow<string>("KEYCLOAK_ISSUER_URL");
+    this.audience = config.getOrThrow<string>("KEYCLOAK_AUDIENCE");
   }
 
   async verify(token: string): Promise<VerifiedIdentity> {
@@ -57,17 +73,19 @@ export class KeycloakService {
       ({ payload } = await jwtVerify(token, this.keys, {
         issuer: this.issuer,
         audience: this.audience,
-        algorithms: ['RS256', 'RS384', 'RS512', 'PS256', 'ES256', 'ES384'],
-        requiredClaims: ['exp', 'sub'],
+        algorithms: ["RS256", "RS384", "RS512", "PS256", "ES256", "ES384"],
+        requiredClaims: ["exp", "sub"],
       }));
     } catch (error) {
       // A key server that cannot be reached is an outage, not a bad token, and
       // answering 401 to it would tell every signed-in user their session died.
       const code = (error as { code?: unknown }).code;
-      if (typeof code !== 'string' || code === 'ERR_JWKS_TIMEOUT') {
-        throw new ServiceUnavailableException('The identity provider is unavailable');
+      if (typeof code !== "string" || code === "ERR_JWKS_TIMEOUT") {
+        throw new ServiceUnavailableException(
+          "The identity provider is unavailable",
+        );
       }
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException("Invalid or expired token");
     }
     return this.identity(payload);
   }
@@ -77,21 +95,28 @@ export class KeycloakService {
     // signed by the same keys and carry the same subject, so without this an ID
     // token -- which the browser also holds, and which is not an authorization
     // to call anything -- would pass every other check here.
-    if (payload.typ !== 'Bearer') throw new UnauthorizedException('An access token is required');
+    if (payload.typ !== "Bearer")
+      throw new UnauthorizedException("An access token is required");
 
     const subjectId = this.text(payload.sub, SUBJECT_LIMIT);
     const loginName = this.text(payload.preferred_username, LOGIN_NAME_LIMIT);
-    if (!subjectId || !loginName) throw new UnauthorizedException('Invalid token claims');
+    if (!subjectId || !loginName)
+      throw new UnauthorizedException("Invalid token claims");
 
-    const email = this.text(payload.email, EMAIL_LIMIT) ?? '';
-    const name = this.text(payload.name, NAME_LIMIT, true)
-      ?? this.text([payload.given_name, payload.family_name].filter(Boolean).join(' '), NAME_LIMIT, true);
+    const email = this.text(payload.email, EMAIL_LIMIT) ?? "";
+    const name =
+      this.text(payload.name, NAME_LIMIT, true) ??
+      this.text(
+        [payload.given_name, payload.family_name].filter(Boolean).join(" "),
+        NAME_LIMIT,
+        true,
+      );
 
     return { subjectId, loginName, name, email };
   }
 
   private text(value: unknown, limit: number, truncate = false): string | null {
-    if (typeof value !== 'string') return null;
+    if (typeof value !== "string") return null;
     const trimmed = value.trim();
     if (!trimmed) return null;
     if (trimmed.length <= limit) return trimmed;

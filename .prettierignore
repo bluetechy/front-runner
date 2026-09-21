@@ -1,6 +1,12 @@
-# Prettier is deliberately scoped to the repo-root YAML (docker-compose-*.yml).
-# The JS/TS/SCSS sources predate it and running it over them would rewrite ~130
-# files in one unreviewable diff. Remove entries here as each tree adopts it.
-/apps
-/packages
-node_modules
+# Third-party code, kept byte-identical to upstream.
+apps/main-gui/vendor/
+
+# Generated or tool-owned. Prettier only reads the root .gitignore, so build
+# output declared in a nested one (apps/main-api/.gitignore) must be repeated.
+package-lock.json
+node_modules/
+dist/
+build/
+coverage/
+.test-dist/
+.turbo/

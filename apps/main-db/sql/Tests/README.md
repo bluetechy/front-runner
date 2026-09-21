@@ -39,7 +39,7 @@ not for the functions inside it.
 
 The object can be a table. `Cases/UserBadges.sql` covers what that table's
 columns mean — a NULL `EarnedAt` is a badge still in progress — because no
-function exposes them yet. Structural facts true of *every* table stay in
+function exposes them yet. Structural facts true of _every_ table stay in
 `Cases/Schema.sql`.
 
 When the object is one of the three snake_case trigger functions, the file keeps
@@ -63,14 +63,14 @@ $$ LANGUAGE plpgsql;
 
 A test that returns passed; a test that raises failed. Available assertions:
 
-| Helper | Use |
-|---|---|
-| `AssertEquals(actual, expected, message)` | any two comparable values; NULL equals NULL |
-| `AssertTrue(actual, message)` | NULL counts as a failure |
-| `AssertFalse(actual, message)` | NULL counts as a failure |
-| `AssertRowCount(query, expected, message)` | query passed as text, no trailing semicolon |
+| Helper                                               | Use                                                  |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| `AssertEquals(actual, expected, message)`            | any two comparable values; NULL equals NULL          |
+| `AssertTrue(actual, message)`                        | NULL counts as a failure                             |
+| `AssertFalse(actual, message)`                       | NULL counts as a failure                             |
+| `AssertRowCount(query, expected, message)`           | query passed as text, no trailing semicolon          |
 | `AssertRaises(statement, message, expected_message)` | asserts the statement fails; third argument optional |
-| `Fail(message)` | fail outright |
+| `Fail(message)`                                      | fail outright                                        |
 
 Reference fixture rows by name with `test."Fixture"('User.Member')` rather than
 writing UUID literals; an unknown key raises instead of silently returning NULL.
@@ -84,7 +84,7 @@ Two gotchas worth knowing:
   for those cases.
 - **`now()` is fixed for the whole transaction.** A row inserted and updated
   inside one test has an `UpdatedAt` identical to its `CreatedAt`. To test that
-  an update moves `UpdatedAt` forward, update a *fixture* row -- those were
+  an update moves `UpdatedAt` forward, update a _fixture_ row -- those were
   written in an earlier transaction.
 
 ## Tests named `_KnownIssue`

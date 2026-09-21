@@ -32,19 +32,19 @@ restart the container.
 
 It defines:
 
-  - **`main-gui`** — the browser client. Public, no secret, authorization code
-    with PKCE (S256) only. Redirect URIs cover `localhost` on 80, 3000 and 5173.
-  - **`main-api`** — an audience, not a login. Every flow is disabled; it exists
-    so that tokens can be addressed to the API, and `main-gui` carries an
-    audience mapper that puts it in the access token's `aud`. Without that
-    mapper Keycloak stamps `aud: account` and the API rejects every token.
-  - **A development account per seeded user**, with the password equal to the
-    username. The usernames match `apps/main-db/sql/Seeds/Dev/02_Users.sql`, so
-    `dbo.ProvisionUser` claims the seeded row on first sign-in instead of
-    creating a second account beside it.
-  - **`newhire`**, who has no application account at all. They hold the pending
-    invitation in `45_OrganizationInvitations.sql`, so signing in as them and
-    accepting it exercises the whole join flow from nothing.
+- **`main-gui`** — the browser client. Public, no secret, authorization code
+  with PKCE (S256) only. Redirect URIs cover `localhost` on 80, 3000 and 5173.
+- **`main-api`** — an audience, not a login. Every flow is disabled; it exists
+  so that tokens can be addressed to the API, and `main-gui` carries an
+  audience mapper that puts it in the access token's `aud`. Without that
+  mapper Keycloak stamps `aud: account` and the API rejects every token.
+- **A development account per seeded user**, with the password equal to the
+  username. The usernames match `apps/main-db/sql/Seeds/Dev/02_Users.sql`, so
+  `dbo.ProvisionUser` claims the seeded row on first sign-in instead of
+  creating a second account beside it.
+- **`newhire`**, who has no application account at all. They hold the pending
+  invitation in `45_OrganizationInvitations.sql`, so signing in as them and
+  accepting it exercises the whole join flow from nothing.
 
 Self-registration is on, which is the point of the model: anyone can make an
 account, and that account belongs to no organization until somebody invites it
@@ -59,10 +59,10 @@ the realm file.
 
 ## Addresses
 
-  - Admin console — <http://localhost:30003/admin> (`admin` / `admin`)
-  - Account console — <http://localhost:30003/realms/front-runner/account>
-  - OpenID configuration —
-    <http://localhost:30003/realms/front-runner/.well-known/openid-configuration>
+- Admin console — <http://localhost:30003/admin> (`admin` / `admin`)
+- Account console — <http://localhost:30003/realms/front-runner/account>
+- OpenID configuration —
+  <http://localhost:30003/realms/front-runner/.well-known/openid-configuration>
 
 Inside the Compose network it is `http://keycloak-idp:8080`. That split matters:
 the token's issuer is the published address the browser used, while `main-api`

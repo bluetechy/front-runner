@@ -1,8 +1,14 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { validateEnvironment } from './environment.js';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { validateEnvironment } from "./environment.js";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, validate: validateEnvironment })],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      ignoreEnvFile: true,
+      validate: validateEnvironment,
+    }),
+  ],
 })
 export class ConfigurationModule {}

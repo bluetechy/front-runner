@@ -39,25 +39,25 @@ their own fixtures. See the "Database" section of the repository README.
 
 ## Naming convention
 
-| Thing | Convention | Example |
-|---|---|---|
-| Schema | `dbo`, always quoted | `"dbo"."Users"` |
-| Table | PascalCase, plural | `UserOrganizations` |
-| Column | PascalCase, quoted | `"CreatedBy"` |
-| Primary key | `<SingularTable>UUID` | `"OrganizationUUID"` |
-| Audit columns | on every table | `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy` |
-| Business function | PascalCase verb phrase | `"dbo"."GetOrganizations"` |
-| Trigger function | snake_case | `"dbo"."update_modified_info"` |
-| Function parameter | `_PascalCase` | `_OrganizationUUID` |
-| Trigger | `<Table>_<Purpose>_<Event>` | `Users_ModifiedInfo_Insert` |
-| Unique constraint | `<Table>_<What>_UniqueKey` | `Users_LoginName_UniqueKey` |
-| Check constraint | `<Table>_<What>_Check` | `ApprovalRequests_OneSubject_Check` |
-| Foreign key | `FK_<Table>_<ReferencedTable>` | `FK_UserBadges_Badges` |
-| Foreign key, 2nd to same table | `FK_<Table>_<ReferencedTable>_<Column>` | `FK_SharedBadges_Users_SharedWithUserUUID` |
-| File name | exactly the object name + `.sql` | `Triggers/Users_ModifiedInfo_Insert.sql` |
-| Test function | `test."Test<Object>_<Behaviour>"` | `test."TestGetUser_ReturnsTheMatchingUser"` |
-| Test helper | PascalCase verb phrase in the `test` schema | `test."AssertRowCount"` |
-| Seed file | `<NN>_<Table>.sql`, numbered in dependency order | `Seeds/Dev/06_UserOrganizations.sql` |
+| Thing                          | Convention                                       | Example                                            |
+| ------------------------------ | ------------------------------------------------ | -------------------------------------------------- |
+| Schema                         | `dbo`, always quoted                             | `"dbo"."Users"`                                    |
+| Table                          | PascalCase, plural                               | `UserOrganizations`                                |
+| Column                         | PascalCase, quoted                               | `"CreatedBy"`                                      |
+| Primary key                    | `<SingularTable>UUID`                            | `"OrganizationUUID"`                               |
+| Audit columns                  | on every table                                   | `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy` |
+| Business function              | PascalCase verb phrase                           | `"dbo"."GetOrganizations"`                         |
+| Trigger function               | snake_case                                       | `"dbo"."update_modified_info"`                     |
+| Function parameter             | `_PascalCase`                                    | `_OrganizationUUID`                                |
+| Trigger                        | `<Table>_<Purpose>_<Event>`                      | `Users_ModifiedInfo_Insert`                        |
+| Unique constraint              | `<Table>_<What>_UniqueKey`                       | `Users_LoginName_UniqueKey`                        |
+| Check constraint               | `<Table>_<What>_Check`                           | `ApprovalRequests_OneSubject_Check`                |
+| Foreign key                    | `FK_<Table>_<ReferencedTable>`                   | `FK_UserBadges_Badges`                             |
+| Foreign key, 2nd to same table | `FK_<Table>_<ReferencedTable>_<Column>`          | `FK_SharedBadges_Users_SharedWithUserUUID`         |
+| File name                      | exactly the object name + `.sql`                 | `Triggers/Users_ModifiedInfo_Insert.sql`           |
+| Test function                  | `test."Test<Object>_<Behaviour>"`                | `test."TestGetUser_ReturnsTheMatchingUser"`        |
+| Test helper                    | PascalCase verb phrase in the `test` schema      | `test."AssertRowCount"`                            |
+| Seed file                      | `<NN>_<Table>.sql`, numbered in dependency order | `Seeds/Dev/06_UserOrganizations.sql`               |
 
 ### Nuances
 
@@ -98,11 +98,11 @@ is still unquoted — see below.
 
 **Parameters lead with an underscore.** `_OrganizationUUID`, not `OrganizationUUID`,
 so a parameter can never collide with the PascalCase column of the same name. The
-related trap that this does *not* solve — `RETURNS TABLE` output columns shadowing
+related trap that this does _not_ solve — `RETURNS TABLE` output columns shadowing
 table columns — is in `CLAUDE.md`.
 
 `PointTransfers` bends the "2nd to same table" rule: it has two foreign keys to
-`Users` and *both* carry the column suffix. The rule leaves the first one
+`Users` and _both_ carry the column suffix. The rule leaves the first one
 unsuffixed on the assumption that it is the plain `"UserUUID"`, and neither
 `"SenderUserUUID"` nor `"ReceiverUserUUID"` is — an unsuffixed
 `FK_PointTransfers_Users` would not say which end it constrained.
@@ -145,7 +145,7 @@ These alter behaviour. Revert any you disagree with.
    insert into `UserPoints` overwrote every tally row in the table with that one
    user's balance.
 8. `LeaveOrganization`: `DELETE FROM "dbo"."UserOrganizations" WHERE ... AND
-   "UserTeams"."UserUUID" = _UserUUID` — filtered on a table not in the statement.
+"UserTeams"."UserUUID" = _UserUUID` — filtered on a table not in the statement.
    Changed to `"UserOrganizations"."UserUUID"`.
 9. `JoinOrganization`: returned `_IsOwner`, a variable that was never declared.
    Replaced with a subquery against `UserOrganizations`. (The function itself is
@@ -162,9 +162,9 @@ These alter behaviour. Revert any you disagree with.
     makes those names plpgsql variables, and both then used the same names as
     bare column references — `ON CONFLICT ("UserUUID", "OrganizationUUID")`,
     and in `JoinTeam` also `WHERE "UserUUID" = _UserUUID AND "TeamUUID" =
-    _TeamUUID`. Every call raised `column reference "..." is ambiguous`. The
+_TeamUUID`. Every call raised `column reference "..." is ambiguous`. The
     `ON CONFLICT` inference lists became `ON CONFLICT ON CONSTRAINT
-    "UserOrganizations_UUIDs_UniqueKey"` / `"UserTeams_UUIDs_UniqueKey"`, and
+"UserOrganizations_UUIDs_UniqueKey"` / `"UserTeams_UUIDs_UniqueKey"`, and
     the `UPDATE` predicate is now table-qualified. Behaviour is otherwise
     unchanged. Found by the test suite.
 12. `Security/Permissions.sql` took its database name and application user from
@@ -201,7 +201,7 @@ These alter behaviour. Revert any you disagree with.
   following `UPDATE` lets them set `IsManager`. Teams are still the old model: the
   organization side went to invitations and consent, and the team side did not.
 - **`LeaveTeam` takes no authorisation check** either, unlike `LeaveOrganization`.
-- **`GetTeams` returns one row per team *membership*, not per team.** It joins
+- **`GetTeams` returns one row per team _membership_, not per team.** It joins
   `UserTeams` without filtering or de-duplicating, so a team with three members
   comes back three times. The `IsManager` column is already computed by a
   correlated subquery, so the join earns nothing — a `DISTINCT`, or dropping the
@@ -272,7 +272,7 @@ share `dbo.IsLastOwnerOfOrganization` rather than carrying a copy of the rule.
 
 **Two functions deliberately bypass the `Is*OfOrganization` helpers.**
 `dbo.GetOrganization` and `dbo.SetOrganizationEnabled` read `dbo.UserOrganizations`
-directly, because those helpers also require the organization to be *enabled* —
+directly, because those helpers also require the organization to be _enabled_ —
 and an owner restoring an organization they archived is exactly the case that
 has to work. A check that dies with the thing it checks is a door that locks
 from the inside. `dbo.GetOrganizations` grew an `_IncludeDisabled` parameter for
@@ -294,14 +294,14 @@ stays green and the defect stays visible and documented. Every one carries a
 comment describing what correct would look like, and a failure message telling
 you to replace the test rather than to fix the code.
 
-| Test | Issue |
-|---|---|
-| `TestGetUsers_IgnoresIsAdmin_KnownIssue` | `GetUsers` authorises on the literal login `'admin'`, not on `Users."IsAdmin"` |
-| `TestGetTeams_DuplicatesTeamsPerMember_KnownIssue` | `GetTeams` emits one row per membership rather than per team |
-| `TestJoinTeam_AllowsAnyCaller_KnownIssue` | `JoinTeam` performs no authorisation check |
-| `TestJoinTeam_CreatesUnreachableMembershipsForOutsiders_KnownIssue` | `JoinTeam` creates team memberships the read functions cannot see |
-| `TestLeaveTeam_AllowsAnyCaller_KnownIssue` | `LeaveTeam` performs no authorisation check |
-| `TestUpdateModifiedInfo_LeavesUpdatedByToTheCaller` | `update_modified_info` maintains `UpdatedAt` but not `UpdatedBy`; a caller who forgets it leaves the previous author's name on the row |
+| Test                                                                | Issue                                                                                                                                  |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `TestGetUsers_IgnoresIsAdmin_KnownIssue`                            | `GetUsers` authorises on the literal login `'admin'`, not on `Users."IsAdmin"`                                                         |
+| `TestGetTeams_DuplicatesTeamsPerMember_KnownIssue`                  | `GetTeams` emits one row per membership rather than per team                                                                           |
+| `TestJoinTeam_AllowsAnyCaller_KnownIssue`                           | `JoinTeam` performs no authorisation check                                                                                             |
+| `TestJoinTeam_CreatesUnreachableMembershipsForOutsiders_KnownIssue` | `JoinTeam` creates team memberships the read functions cannot see                                                                      |
+| `TestLeaveTeam_AllowsAnyCaller_KnownIssue`                          | `LeaveTeam` performs no authorisation check                                                                                            |
+| `TestUpdateModifiedInfo_LeavesUpdatedByToTheCaller`                 | `update_modified_info` maintains `UpdatedAt` but not `UpdatedBy`; a caller who forgets it leaves the previous author's name on the row |
 
 If one of these starts failing, the underlying bug was probably fixed — read the
 comment above the test before changing anything.
@@ -327,10 +327,10 @@ history is where the deleted originals live.
 
 What is left, and what finishing it means:
 
-| | Count | What "merged" looks like |
-|---|---|---|
-| `Functions/` + `StoredProcedures/` | 2 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
-| `Unbuilt.sql` | 118 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
+|                                    | Count          | What "merged" looks like                                                                                                                                                                                                   |
+| ---------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Functions/` + `StoredProcedures/` | 2              | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
+| `Unbuilt.sql`                      | 118 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge                                                                                             |
 
 The two are `GetApprovalStepsForUser` and `MergeUserAccounts`. They are the only
 files left whose content cannot be reconstructed from the live schema, which is
@@ -351,27 +351,27 @@ and the workflow features built on top of them. It is not a second application's
 schema. What differs is convention, not domain: `serial` integer keys instead of
 uuid, no audit columns, no `OrganizationUUID` anywhere, unquoted and unschema'd
 identifiers, and references to a `Users(UserId)` table that this repo does not have
-(the live one is `"dbo"."Users"."UserUUID"`). So the two do not *interoperate* as
+(the live one is `"dbo"."Users"."UserUUID"`). So the two do not _interoperate_ as
 written, but the drafts are the design this schema grew out of and the backlog it
 has not caught up with yet — read them as a feature inventory, not as dead code.
 
 **Draft tables already superseded, and by what.** These files are gone; this is
 the register of where each one ended up:
 
-| Draft | Live equivalent |
-|---|---|
-| `Badges`, `BadgeAchievements`, `BadgeCriteria`, `BadgeCategories`, `BadgeEvents`, `BadgeEventCriteria`, `BadgeGroups`, `BadgeGroupRelationships`, `BadgeReviews`, `BadgeStatistics`, `SharedBadges` | the matching `dbo.Badge*` tables |
-| `UserBadges` | `dbo.UserBadges` — columns folded in, see below |
-| `PointLevels`, `UserPointLevels`, `PointMultipliers`, `PointRedemptions`, `PointTransfers` | the matching `dbo.Point*` tables |
-| `Roadmaps`, `Tasks`, `TaskDependencies`, `TaskComments`, `TaskHistory`, `AssignmentHistory`, `Checklists`, `Labels` | the matching `dbo` tables, plus `dbo.TaskLabels` which had no draft |
-| `ApprovalWorkflowStages`, `ApprovalRequests`, `ApprovalDecisions`, `ApprovalWorkflowPermissions` | the matching `dbo.Approval*` tables, under `dbo.ApprovalWorkflows` |
-| `ApprovalProcessLogs` | `dbo.ApprovalRequestLogs` |
-| `Surveys`, `SurveyQuestions`, `SurveyQuestionOptions`, `SurveyParticipants` | the matching `dbo.Survey*` tables |
-| `SurveyResponses` | `dbo.SurveyAnswers` |
-| `PointTypes` | `dbo.Points` |
-| `PointTransactions` | `dbo.UserPoints` |
-| `PointUsageLogs` | `dbo.UserPoints` |
-| `UserPointTotals` | `dbo.UserTallies` |
+| Draft                                                                                                                                                                                               | Live equivalent                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `Badges`, `BadgeAchievements`, `BadgeCriteria`, `BadgeCategories`, `BadgeEvents`, `BadgeEventCriteria`, `BadgeGroups`, `BadgeGroupRelationships`, `BadgeReviews`, `BadgeStatistics`, `SharedBadges` | the matching `dbo.Badge*` tables                                    |
+| `UserBadges`                                                                                                                                                                                        | `dbo.UserBadges` — columns folded in, see below                     |
+| `PointLevels`, `UserPointLevels`, `PointMultipliers`, `PointRedemptions`, `PointTransfers`                                                                                                          | the matching `dbo.Point*` tables                                    |
+| `Roadmaps`, `Tasks`, `TaskDependencies`, `TaskComments`, `TaskHistory`, `AssignmentHistory`, `Checklists`, `Labels`                                                                                 | the matching `dbo` tables, plus `dbo.TaskLabels` which had no draft |
+| `ApprovalWorkflowStages`, `ApprovalRequests`, `ApprovalDecisions`, `ApprovalWorkflowPermissions`                                                                                                    | the matching `dbo.Approval*` tables, under `dbo.ApprovalWorkflows`  |
+| `ApprovalProcessLogs`                                                                                                                                                                               | `dbo.ApprovalRequestLogs`                                           |
+| `Surveys`, `SurveyQuestions`, `SurveyQuestionOptions`, `SurveyParticipants`                                                                                                                         | the matching `dbo.Survey*` tables                                   |
+| `SurveyResponses`                                                                                                                                                                                   | `dbo.SurveyAnswers`                                                 |
+| `PointTypes`                                                                                                                                                                                        | `dbo.Points`                                                        |
+| `PointTransactions`                                                                                                                                                                                 | `dbo.UserPoints`                                                    |
+| `PointUsageLogs`                                                                                                                                                                                    | `dbo.UserPoints`                                                    |
+| `UserPointTotals`                                                                                                                                                                                   | `dbo.UserTallies`                                                   |
 
 The 11 badge tables were commented out in the original file, which lines up exactly
 with the live `dbo.Badge*` tables — they were already migrated before any of this
@@ -384,12 +384,12 @@ the draft's, which strips the prefix that repeats the table name
 (`TransactionDetails` -> `"Details"` on `UserPoints`); `"EarnedDescription"` keeps
 its qualifier because a bare `"Description"` on `UserBadges` reads as the badge's.
 
-| Table | Columns | From |
-|---|---|---|
-| `dbo.UserBadges` | `EarnedAt`, `EarnedDescription`, `ProgressGoal`, `ProgressCurrent`, `RevokedAt` | `Drafts/Tables/UserBadges.sql` |
-| `dbo.UserPoints` | `Reason`, `Details` | `PointTransactions.TransactionReason`, `.TransactionDetails` |
-| `dbo.Points` | `ExpirationDuration`, `ResetCondition` | `PointTypes` |
-| `dbo.UserTallies` | `DailyLimit`, `SpendLimit` | `UserPointTotals` |
+| Table             | Columns                                                                         | From                                                         |
+| ----------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `dbo.UserBadges`  | `EarnedAt`, `EarnedDescription`, `ProgressGoal`, `ProgressCurrent`, `RevokedAt` | `Drafts/Tables/UserBadges.sql`                               |
+| `dbo.UserPoints`  | `Reason`, `Details`                                                             | `PointTransactions.TransactionReason`, `.TransactionDetails` |
+| `dbo.Points`      | `ExpirationDuration`, `ResetCondition`                                          | `PointTypes`                                                 |
+| `dbo.UserTallies` | `DailyLimit`, `SpendLimit`                                                      | `UserPointTotals`                                            |
 
 Three things about them are not obvious:
 
@@ -437,16 +437,16 @@ Seventeen badge drafts became six functions plus one extension. `dbo.GetBadges`
 already existed and already did what `GetUserBadges` did, so it grew arguments
 rather than a sibling.
 
-| Live function | Replaces |
-|---|---|
-| `GetBadges` *(extended)* | `GetUserBadges`, `GetRecentlyEarnedBadges`, `GetUserRareBadges` |
-| `GetBadgeHolders` | `GetUsersWithBadge`, `GetBadgeOwners` |
-| `GetBadgeProgress` | `GetBadgeProgress`, `GetUserBadgeProgressSummary`, `GetNextPotentialBadges`, `SuggestBadgesForUser` |
-| `GetBadgeGroups` | `GetBadgeGroups`, `GetBadgeGroupProgress` |
-| `GetBadgeStatistics` | `BadgeCompletionAnalytics`, `BadgeSharingAnalytics` |
-| `GetExpiredBadges` | `CheckExpiredBadges` |
-| `AwardBadgeToUser` | `AwardBadgeToUser` |
-| `CreateBadgeGroup` | `CreateBadgeGroup` |
+| Live function            | Replaces                                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `GetBadges` _(extended)_ | `GetUserBadges`, `GetRecentlyEarnedBadges`, `GetUserRareBadges`                                     |
+| `GetBadgeHolders`        | `GetUsersWithBadge`, `GetBadgeOwners`                                                               |
+| `GetBadgeProgress`       | `GetBadgeProgress`, `GetUserBadgeProgressSummary`, `GetNextPotentialBadges`, `SuggestBadgesForUser` |
+| `GetBadgeGroups`         | `GetBadgeGroups`, `GetBadgeGroupProgress`                                                           |
+| `GetBadgeStatistics`     | `BadgeCompletionAnalytics`, `BadgeSharingAnalytics`                                                 |
+| `GetExpiredBadges`       | `CheckExpiredBadges`                                                                                |
+| `AwardBadgeToUser`       | `AwardBadgeToUser`                                                                                  |
+| `CreateBadgeGroup`       | `CreateBadgeGroup`                                                                                  |
 
 **`GetUsersWithBadge` and `GetBadgeOwners` were byte-identical** — an exact
 duplicate pair that the earlier passes over `Drafts/` did not catch. Both are
@@ -468,8 +468,8 @@ in-progress, and `TestGetBadgeStatistics_AreNotDoubledByASecondCriteria` guards
 the double-count.
 
 **`AwardBadgeToUser` would have awarded nothing.** It inserted a bare
-`UserBadges` row, which in this schema means a NULL `EarnedAt` — a badge *in
-progress*, invisible to every reader. It now sets `EarnedAt`, completes a badge
+`UserBadges` row, which in this schema means a NULL `EarnedAt` — a badge _in
+progress_, invisible to every reader. It now sets `EarnedAt`, completes a badge
 already being worked towards rather than colliding on the unique key, and lifts
 a previous revocation.
 
@@ -487,29 +487,29 @@ Thirteen point-writing drafts became seven functions. The live schema has no
 stored procedures — every object under `sql/Functions/` is a function, and
 these are too.
 
-| Live function | Replaces |
-|---|---|
-| `AddUserPoints` | `AddPointsToUser`, `SpendPoints`, `RevokePointsFromUser` |
-| `ReverseUserPoints` | `ReversePointTransaction` |
-| `GetPointMultiplier` | `ApplyPointMultiplier` |
-| `RequestPointTransfer` | `TransferPoints`, `BulkTransferPoints` |
-| `SettlePointTransfer` | `ConfirmPointTransfer`, `ApprovePointTransferRequest` |
-| `RequestPointRedemption` | `RedeemPoints`, `RedeemPointsForReward` |
-| `SettlePointRedemption` | — the settlement half of the same |
+| Live function            | Replaces                                                 |
+| ------------------------ | -------------------------------------------------------- |
+| `AddUserPoints`          | `AddPointsToUser`, `SpendPoints`, `RevokePointsFromUser` |
+| `ReverseUserPoints`      | `ReversePointTransaction`                                |
+| `GetPointMultiplier`     | `ApplyPointMultiplier`                                   |
+| `RequestPointTransfer`   | `TransferPoints`, `BulkTransferPoints`                   |
+| `SettlePointTransfer`    | `ConfirmPointTransfer`, `ApprovePointTransferRequest`    |
+| `RequestPointRedemption` | `RedeemPoints`, `RedeemPointsForReward`                  |
+| `SettlePointRedemption`  | — the settlement half of the same                        |
 
 **This is where "nothing moves a balance" finally closes.** `SettlePointTransfer`
 writes the matching pair of `UserPoints` rows and `SettlePointRedemption` writes
 the negative one; `calculate_tallies` carries both into the tallies.
 
 **The drafts maintained the balance by hand, twice.** Every one of them wrote a
-row to the ledger *and* a row to the running total. In this schema only the
+row to the ledger _and_ a row to the running total. In this schema only the
 ledger row is written and `calculate_tallies` derives the rest, because two
 hand-maintained copies of a balance is how they drift apart. `ConfirmPointTransfer`
 was the worst case: it updated both totals and touched no ledger at all, so the
 balance and its history disagreed from then on.
 
 **Request and settle are separate, which fixes a real bug.** `RedeemPoints`
-checked affordability, deducted the points, *and* filed the redemption as
+checked affordability, deducted the points, _and_ filed the redemption as
 `Pending` — so a redemption awaiting approval had already been paid for, and
 rejecting it returned nothing. The check stays at request time; the deduction
 happens at settlement, and rejection costs nothing.
@@ -545,15 +545,15 @@ of carry-over is already `UserPoints."ExpiresAt"`.
 Eighteen point-reading drafts became seven functions. The collapse was the
 point: most of them were one query with a different `WHERE` clause.
 
-| Live function | Replaces |
-|---|---|
-| `GetPointHistory` | `GetUserPointTransactions`, `GetPointActivityHistory`, `GetPointEarningsHistory`, `GetPointTransactionsByType`, `AuditPointTransactions`, `CheckExpiringPoints` |
-| `GetPointTotals` | `CalculateUserDailyPoints`, `CalculateUserWeeklyPoints`, `CalculateUserMonthlyPoints`, `GetTotalPointsEarned` |
-| `GetPointLeaderboard` | `GetPointLeaderboard`, `GetPointLeaderboardForGroup` |
-| `GetPointStatistics` | `GetPointUsageStatistics` |
-| `GetPointRedemptions` | `GetPointRedemptionHistory` |
-| `GetPointTransfers` | `GetPointTransferHistory` |
-| `CheckPointTransferLimit` | `CheckPointTransferLimits` |
+| Live function             | Replaces                                                                                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GetPointHistory`         | `GetUserPointTransactions`, `GetPointActivityHistory`, `GetPointEarningsHistory`, `GetPointTransactionsByType`, `AuditPointTransactions`, `CheckExpiringPoints` |
+| `GetPointTotals`          | `CalculateUserDailyPoints`, `CalculateUserWeeklyPoints`, `CalculateUserMonthlyPoints`, `GetTotalPointsEarned`                                                   |
+| `GetPointLeaderboard`     | `GetPointLeaderboard`, `GetPointLeaderboardForGroup`                                                                                                            |
+| `GetPointStatistics`      | `GetPointUsageStatistics`                                                                                                                                       |
+| `GetPointRedemptions`     | `GetPointRedemptionHistory`                                                                                                                                     |
+| `GetPointTransfers`       | `GetPointTransferHistory`                                                                                                                                       |
+| `CheckPointTransferLimit` | `CheckPointTransferLimits`                                                                                                                                      |
 
 **Every one of them now authorises.** The drafts had none at all —
 `GetUserPointTransactions(UserId)` handed any caller any user's ledger. All
@@ -583,7 +583,7 @@ than overload them the two columns came with the function. NULL means no cap,
 and only `Completed` transfers count against them.
 
 The draft also matched the calendar month with `EXTRACT(MONTH FROM ...)`, which
-matches that month in *every* year. The live one uses `date_trunc('month', now())`.
+matches that month in _every_ year. The live one uses `date_trunc('month', now())`.
 
 ### The platform tables
 
@@ -615,12 +615,12 @@ a badge, an approval, a point transfer — is not one.
 **The schema now has four unconnected authorization mechanisms** and no live
 function consults more than one of them:
 
-| Mechanism | Read by |
-|---|---|
+| Mechanism                                                                 | Read by            |
+| ------------------------------------------------------------------------- | ------------------ |
 | `Users."IsAdmin"`, `UserOrganizations."IsOwner"`, `UserTeams."IsManager"` | the live functions |
-| `dbo.ApprovalWorkflowPermissions` | nothing |
-| `dbo.AccessControlLists` | nothing |
-| `dbo.Roles` + `dbo.UserRoles` | nothing |
+| `dbo.ApprovalWorkflowPermissions`                                         | nothing            |
+| `dbo.AccessControlLists`                                                  | nothing            |
+| `dbo.Roles` + `dbo.UserRoles`                                             | nothing            |
 
 `TestAccessControlLists_AreNotConsultedByAnything` holds that down: the
 fixtures give an outsider a Read grant on a task and he still belongs to
@@ -635,9 +635,9 @@ Six tables: `ApprovalWorkflows`, `ApprovalWorkflowStages`,
 
 **The drafts' two approval models were not rivals.** `ApprovalProcesses` +
 `ApprovalProcessSteps` (read by 9 objects, never written as tables) is a
-*template*: a named process with ordered steps and an approver each.
+_template_: a named process with ordered steps and an approver each.
 `ApprovalRequests` + `Decisions` + `Logs` + `Stages` (5 tables, 17 objects) is a
-*running instance*. Each was half a design. `ApprovalProcessSteps` looked like a
+_running instance_. Each was half a design. `ApprovalProcessSteps` looked like a
 rival because it mixed template columns (`Name`, `ApproverId`) with per-request
 ones (`Completed`, `ApprovalStatus`, `ApprovalComments`,
 `CompletionTimestamp`) in a single table; those split across
@@ -767,7 +767,7 @@ plpgsql; it wrote the `RoadmapWorkflowTasks` that never existed; and
 `WHERE TaskId = TaskId` compared the parameter to itself, so it matched every
 row in the table and would have stamped one order number onto all of them. The
 live one is `unnest(...) WITH ORDINALITY` in a single statement — the array
-*is* the order — scoped to an organization, refusing a duplicate task or one
+_is_ the order — scoped to an organization, refusing a duplicate task or one
 from elsewhere rather than half-applying the move.
 `TestReorderTasks_PutsTasksInTheOrderGiven` is the regression test for the
 shadowed parameter: three tasks, three different numbers.
@@ -837,12 +837,12 @@ that reference a table which does not exist.
 
 Each pair is one implemented version plus one empty stub with the same job:
 
-| Implemented | Stub covering the same ground |
-|---|---|
-| `TransferPoints` | `TransferPointsToUser` |
-| `RedeemPointsForReward` | `ClaimRewardWithPoints` |
-| `ApplyPointMultiplier` | `ActivatePointMultiplier` |
-| `AddPointsToUser` | `AdjustUserPoints` |
+| Implemented                              | Stub covering the same ground                   |
+| ---------------------------------------- | ----------------------------------------------- |
+| `TransferPoints`                         | `TransferPointsToUser`                          |
+| `RedeemPointsForReward`                  | `ClaimRewardWithPoints`                         |
+| `ApplyPointMultiplier`                   | `ActivatePointMultiplier`                       |
+| `AddPointsToUser`                        | `AdjustUserPoints`                              |
 | `RevokeBadgeFromUser` (takes a `Reason`) | `RemoveUserBadge` (identical DELETE, no reason) |
 
 Three empty stubs all describe automatic badge assignment: `AssignBadgesAutomatically`,

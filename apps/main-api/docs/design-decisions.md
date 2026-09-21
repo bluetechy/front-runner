@@ -119,23 +119,23 @@ rather than the day somebody remembers to decorate it. Two endpoints opt out
 with a `@Public()`, and introspection is exempt because it resolves no field at
 all; that is the whole list.
 
-| Unauthenticated | Why |
-| --- | --- |
-| `GET /health/live` | The orchestrator has no token and must be able to ask whether the process is alive. It reports nothing but that. |
-| `GET /health/ready` | Same caller, same reason. It answers 200 or 503 from a `SELECT 1` and returns no row, no schema detail and no error text. |
-| GraphQL introspection | The schema shape, not the data. Enabled outside production and off when `NODE_ENV=production`, so a deployment publishes no field list. Field *resolution* is guarded regardless — an introspection query cannot read a record. |
+| Unauthenticated       | Why                                                                                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health/live`    | The orchestrator has no token and must be able to ask whether the process is alive. It reports nothing but that.                                                                                                                |
+| `GET /health/ready`   | Same caller, same reason. It answers 200 or 503 from a `SELECT 1` and returns no row, no schema detail and no error text.                                                                                                       |
+| GraphQL introspection | The schema shape, not the data. Enabled outside production and off when `NODE_ENV=production`, so a deployment publishes no field list. Field _resolution_ is guarded regardless — an introspection query cannot read a record. |
 
 Nothing in the GraphQL schema is public. Every query and mutation is about a
 particular person's organizations, invitations, teams, points or badges, and
 there is no anonymous view — no public leaderboard, no organization directory —
 for which an exemption would be worth its cost. A refused call is refused
-*before* the database is touched, so an unauthenticated request never reaches a
+_before_ the database is touched, so an unauthenticated request never reaches a
 query, and `app.test.ts` enumerates the built schema rather than a hand-kept
 list: adding a root field that answers without a token fails the suite.
 
 **Authorization for teams lives in the API; everywhere else it lives in SQL.**
-These are two layers: the guard establishes *who is calling*, and something
-below it decides *what they may do*. For organizations and invitations that
+These are two layers: the guard establishes _who is calling_, and something
+below it decides _what they may do_. For organizations and invitations that
 decision is inside the SQL function, which raises a refusal the API maps to 403
 — so the rule holds no matter who calls, including a second service or a psql
 session. For teams it is in `TeamsService.access()` instead: `joinTeam` and

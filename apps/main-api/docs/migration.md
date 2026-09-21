@@ -4,30 +4,30 @@ This is an intentional breaking API change. The legacy React app has not been
 migrated in this change. Retired `/v1/<feature>` URLs return 404; all GraphQL
 operations now use `POST /graphql`.
 
-| Old URL and field | New field | Arguments |
-| --- | --- | --- |
-| `/v1/users` `get` | `me` | none |
-| `/v1/users` `list` | `users` | `limit`, `offset` |
-| `/v1/users` `login(Auth: {Value})` | **removed** — sign in at Keycloak | see below |
-| `/v1/organizations` `list` | `organizations` | `limit`, `offset` |
-| `/v1/organizations` `add` | `addOrganization` | `name` |
-| `/v1/organizations` `join` | **removed** — `inviteToOrganization` + `acceptInvitation` | see below |
-| `/v1/organizations` `leave` | `leaveOrganization` | `organizationId`, `userId` |
-| — | `organization` | `organizationId` |
-| — | `organizationMembers` | `organizationId`, `limit`, `offset` |
-| — | `setOrganizationRole` | `organizationId`, `userId`, `isOwner` |
-| — | `renameOrganization` | `organizationId`, `name` |
-| — | `setOrganizationEnabled` | `organizationId`, `isEnabled` |
-| — | `invitations` | `limit`, `offset` |
-| — | `organizationInvitations` | `organizationId`, `limit`, `offset` |
-| — | `inviteToOrganization` | `organizationId`, `email`, `isOwner` |
-| — | `acceptInvitation` / `declineInvitation` / `revokeInvitation` | `invitationId` |
-| `/v1/teams` `list` | `teams` | `organizationId`, `limit`, `offset` |
-| `/v1/teams` `add` | `addTeam` | `organizationId`, `name` |
-| `/v1/teams` `join` / `leave` | `joinTeam` / `leaveTeam` | `teamId`, `userId` |
-| `/v1/badges` `list` | `badges` | `organizationId`, `limit`, `offset` |
-| `/v1/points` `list` | `points` | `organizationId`, `limit`, `offset` |
-| `/v1/tallies` `list` | `tallies` | `organizationId`, `limit`, `offset` |
+| Old URL and field                  | New field                                                     | Arguments                             |
+| ---------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `/v1/users` `get`                  | `me`                                                          | none                                  |
+| `/v1/users` `list`                 | `users`                                                       | `limit`, `offset`                     |
+| `/v1/users` `login(Auth: {Value})` | **removed** — sign in at Keycloak                             | see below                             |
+| `/v1/organizations` `list`         | `organizations`                                               | `limit`, `offset`                     |
+| `/v1/organizations` `add`          | `addOrganization`                                             | `name`                                |
+| `/v1/organizations` `join`         | **removed** — `inviteToOrganization` + `acceptInvitation`     | see below                             |
+| `/v1/organizations` `leave`        | `leaveOrganization`                                           | `organizationId`, `userId`            |
+| —                                  | `organization`                                                | `organizationId`                      |
+| —                                  | `organizationMembers`                                         | `organizationId`, `limit`, `offset`   |
+| —                                  | `setOrganizationRole`                                         | `organizationId`, `userId`, `isOwner` |
+| —                                  | `renameOrganization`                                          | `organizationId`, `name`              |
+| —                                  | `setOrganizationEnabled`                                      | `organizationId`, `isEnabled`         |
+| —                                  | `invitations`                                                 | `limit`, `offset`                     |
+| —                                  | `organizationInvitations`                                     | `organizationId`, `limit`, `offset`   |
+| —                                  | `inviteToOrganization`                                        | `organizationId`, `email`, `isOwner`  |
+| —                                  | `acceptInvitation` / `declineInvitation` / `revokeInvitation` | `invitationId`                        |
+| `/v1/teams` `list`                 | `teams`                                                       | `organizationId`, `limit`, `offset`   |
+| `/v1/teams` `add`                  | `addTeam`                                                     | `organizationId`, `name`              |
+| `/v1/teams` `join` / `leave`       | `joinTeam` / `leaveTeam`                                      | `teamId`, `userId`                    |
+| `/v1/badges` `list`                | `badges`                                                      | `organizationId`, `limit`, `offset`   |
+| `/v1/points` `list`                | `points`                                                      | `organizationId`, `limit`, `offset`   |
+| `/v1/tallies` `list`               | `tallies`                                                     | `organizationId`, `limit`, `offset`   |
 
 ## Signing in
 
@@ -65,7 +65,11 @@ organization without asking, and membership now requires consent:
 
 ```graphql
 mutation Invite($organizationId: String!, $email: String!) {
-  inviteToOrganization(organizationId: $organizationId, email: $email, isOwner: false) {
+  inviteToOrganization(
+    organizationId: $organizationId
+    email: $email
+    isOwner: false
+  ) {
     InvitationUUID
     Status
     ExpiresAt
@@ -73,11 +77,20 @@ mutation Invite($organizationId: String!, $email: String!) {
 }
 
 query Waiting {
-  invitations { InvitationUUID OrganizationName IsOwner ExpiresAt InvitedByLoginName }
+  invitations {
+    InvitationUUID
+    OrganizationName
+    IsOwner
+    ExpiresAt
+    InvitedByLoginName
+  }
 }
 
 mutation Accept($invitationId: String!) {
-  acceptInvitation(invitationId: $invitationId) { OrganizationUUID Status }
+  acceptInvitation(invitationId: $invitationId) {
+    OrganizationUUID
+    Status
+  }
 }
 ```
 
@@ -95,12 +108,21 @@ which of them own it. Any member can read it; an outsider gets `FORBIDDEN`.
 ```graphql
 query Members($organizationId: String!) {
   organizationMembers(organizationId: $organizationId) {
-    UserUUID LoginName Name Email IsOwner JoinedAt
+    UserUUID
+    LoginName
+    Name
+    Email
+    IsOwner
+    JoinedAt
   }
 }
 
 mutation Promote($organizationId: String!, $userId: String!) {
-  setOrganizationRole(organizationId: $organizationId, userId: $userId, isOwner: true) {
+  setOrganizationRole(
+    organizationId: $organizationId
+    userId: $userId
+    isOwner: true
+  ) {
     LoginName
     IsOwner
   }
@@ -135,10 +157,19 @@ mutation Archive($organizationId: String!) {
 # An archived organization is out of the default list. Its owner finds it again
 # with includeArchived, or by id -- both of which still work once it is archived.
 query Archived {
-  organizations(includeArchived: true) { OrganizationUUID Name IsEnabled }
+  organizations(includeArchived: true) {
+    OrganizationUUID
+    Name
+    IsEnabled
+  }
 }
 query One($organizationId: String!) {
-  organization(organizationId: $organizationId) { Name OwnerCount IsOwner IsEnabled }
+  organization(organizationId: $organizationId) {
+    Name
+    OwnerCount
+    IsOwner
+    IsEnabled
+  }
 }
 ```
 
@@ -149,16 +180,34 @@ from.
 
 ```graphql
 query Dashboard($organizationId: String!) {
-  me { UserUUID Name }
-  organizations(limit: 20) { OrganizationUUID Name IsOwner }
-  teams(organizationId: $organizationId, limit: 20) { TeamUUID Name }
+  me {
+    UserUUID
+    Name
+  }
+  organizations(limit: 20) {
+    OrganizationUUID
+    Name
+    IsOwner
+  }
+  teams(organizationId: $organizationId, limit: 20) {
+    TeamUUID
+    Name
+  }
   points(organizationId: $organizationId, limit: 20) {
-    PointUUID Amount ExpiresAt
+    PointUUID
+    Amount
+    ExpiresAt
   }
   badges(organizationId: $organizationId, limit: 20) {
-    BadgeUUID Name EarnedAt
+    BadgeUUID
+    Name
+    EarnedAt
   }
-  tallies(organizationId: $organizationId, limit: 10) { UserUUID Name Amount }
+  tallies(organizationId: $organizationId, limit: 10) {
+    UserUUID
+    Name
+    Amount
+  }
 }
 ```
 

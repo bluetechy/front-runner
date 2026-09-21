@@ -1,4 +1,4 @@
-import { Field, ObjectType, ID, GraphQLISODateTime } from '@nestjs/graphql';
+import { Field, ObjectType, ID, GraphQLISODateTime } from "@nestjs/graphql";
 
 // An offer of membership, from either side of it: an owner reading what their
 // organization has issued, or a user reading what is waiting for them. The

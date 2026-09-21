@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/index.js';
-import type { PageArgs } from '../graphql/index.js';
-import { Point } from './points.model.js';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../database/index.js";
+import type { PageArgs } from "../graphql/index.js";
+import { Point } from "./points.model.js";
 @Injectable()
 export class PointsService {
   constructor(private readonly db: DatabaseService) {}

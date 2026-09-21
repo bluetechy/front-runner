@@ -1,1 +1,1 @@
-export { PointsModule } from './points.module.js';
+export { PointsModule } from "./points.module.js";

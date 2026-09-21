@@ -1,1 +1,1 @@
-export { TalliesModule } from './tallies.module.js';
+export { TalliesModule } from "./tallies.module.js";

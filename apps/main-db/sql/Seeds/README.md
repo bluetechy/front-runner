@@ -20,11 +20,11 @@ fresh database has no rows in it until you ask for some.
    `ON_ERROR_STOP=1`
 
 That is the whole mechanism. There is no manifest and no ordering table: the
-numeric prefix on the file name *is* the order.
+numeric prefix on the file name _is_ the order.
 
-| Command | Effect |
-|---|---|
-| `make db-seed` | upsert the dataset over whatever is already there |
+| Command          | Effect                                                                 |
+| ---------------- | ---------------------------------------------------------------------- |
+| `make db-seed`   | upsert the dataset over whatever is already there                      |
 | `make db-reseed` | truncate every `dbo` table first, so the result is exactly the dataset |
 
 `db-reseed` empties tables the dataset does not write to as well. It is a reset
@@ -92,7 +92,7 @@ every file follows them:
   distinguishable from application writes with
   `WHERE "CreatedBy" = 'seed'`.
 
-Open with a comment saying what the rows are *for*. The dataset exists to give
+Open with a comment saying what the rows are _for_. The dataset exists to give
 the read paths something interesting to return -- a disabled organization, a
 user who belongs to nothing, an expired point row -- and the next person needs
 to know which rows carry that weight before they edit one.
@@ -101,47 +101,47 @@ to know which rows carry that weight before they edit one.
 
 Each parent table owns a leading nibble, so a UUID is identifiable on sight:
 
-| Prefix | Table |
-|---|---|
-| `a0000000-...` | `Organizations` |
-| `b0000000-...` | `Users` |
-| `c0000000-...` | `Teams` |
-| `d0000000-...` | `Badges` |
-| `e0000000-...` | `Points` |
-| `f0000000-...` | `UserPoints` |
-| `10000000-...` | `PointLevels` |
-| `11000000-...` | `PointMultipliers` |
-| `12000000-...` | `UserPointLevels` |
-| `13000000-...` | `PointRedemptions` |
-| `14000000-...` | `PointTransfers` |
-| `15000000-...` | `Roadmaps` |
-| `16000000-...` | `Tasks` |
-| `17000000-...` | `TaskDependencies` |
-| `18000000-...` | `TaskComments` |
-| `19000000-...` | `TaskHistory` |
-| `1a000000-...` | `AssignmentHistory` |
-| `1b000000-...` | `Checklists` |
-| `1c000000-...` | `Labels` |
-| `1d000000-...` | `ApprovalWorkflows` |
-| `1e000000-...` | `ApprovalWorkflowStages` |
+| Prefix         | Table                         |
+| -------------- | ----------------------------- |
+| `a0000000-...` | `Organizations`               |
+| `b0000000-...` | `Users`                       |
+| `c0000000-...` | `Teams`                       |
+| `d0000000-...` | `Badges`                      |
+| `e0000000-...` | `Points`                      |
+| `f0000000-...` | `UserPoints`                  |
+| `10000000-...` | `PointLevels`                 |
+| `11000000-...` | `PointMultipliers`            |
+| `12000000-...` | `UserPointLevels`             |
+| `13000000-...` | `PointRedemptions`            |
+| `14000000-...` | `PointTransfers`              |
+| `15000000-...` | `Roadmaps`                    |
+| `16000000-...` | `Tasks`                       |
+| `17000000-...` | `TaskDependencies`            |
+| `18000000-...` | `TaskComments`                |
+| `19000000-...` | `TaskHistory`                 |
+| `1a000000-...` | `AssignmentHistory`           |
+| `1b000000-...` | `Checklists`                  |
+| `1c000000-...` | `Labels`                      |
+| `1d000000-...` | `ApprovalWorkflows`           |
+| `1e000000-...` | `ApprovalWorkflowStages`      |
 | `1f000000-...` | `ApprovalWorkflowPermissions` |
-| `20000000-...` | `ApprovalRequests` |
-| `21000000-...` | `ApprovalDecisions` |
-| `22000000-...` | `ApprovalRequestLogs` |
-| `23000000-...` | `Surveys` |
-| `24000000-...` | `SurveyQuestions` |
-| `25000000-...` | `SurveyQuestionOptions` |
-| `26000000-...` | `SurveyParticipants` |
-| `27000000-...` | `SurveyAnswers` |
-| `28000000-...` | `Roles` |
-| `29000000-...` | `AccessControlLists` |
-| `2a000000-...` | `Attachments` |
-| `2b000000-...` | `Notifications` |
-| `2c000000-...` | `EventLog` |
-| `2d000000-...` | `BadgeCriteria` |
-| `2e000000-...` | `BadgeGroups` |
-| `2f000000-...` | `BadgeGroupRelationships` |
-| `30000000-...` | `SharedBadges` |
+| `20000000-...` | `ApprovalRequests`            |
+| `21000000-...` | `ApprovalDecisions`           |
+| `22000000-...` | `ApprovalRequestLogs`         |
+| `23000000-...` | `Surveys`                     |
+| `24000000-...` | `SurveyQuestions`             |
+| `25000000-...` | `SurveyQuestionOptions`       |
+| `26000000-...` | `SurveyParticipants`          |
+| `27000000-...` | `SurveyAnswers`               |
+| `28000000-...` | `Roles`                       |
+| `29000000-...` | `AccessControlLists`          |
+| `2a000000-...` | `Attachments`                 |
+| `2b000000-...` | `Notifications`               |
+| `2c000000-...` | `EventLog`                    |
+| `2d000000-...` | `BadgeCriteria`               |
+| `2e000000-...` | `BadgeGroups`                 |
+| `2f000000-...` | `BadgeGroupRelationships`     |
+| `30000000-...` | `SharedBadges`                |
 
 `a` through `f` are used up, so the scheme carries on into two-digit prefixes
 counting from `10`. It is still one distinct leading byte per table, which is
@@ -157,12 +157,12 @@ than like something hand-typed.
 
 They look similar and they are not interchangeable:
 
-| | `Seeds/` | `Tests/Fixtures/` |
-|---|---|---|
-| Lives in | the application database | the throwaway `dbo_test` |
-| Applied by | `make db-seed`, on demand | every `make db-test` run, automatically |
-| Exists for | working against the API and GUI by hand | assertions |
-| Edit freely? | yes | no -- tests assert on the counts |
+|              | `Seeds/`                                | `Tests/Fixtures/`                       |
+| ------------ | --------------------------------------- | --------------------------------------- |
+| Lives in     | the application database                | the throwaway `dbo_test`                |
+| Applied by   | `make db-seed`, on demand               | every `make db-test` run, automatically |
+| Exists for   | working against the API and GUI by hand | assertions                              |
+| Edit freely? | yes                                     | no -- tests assert on the counts        |
 
 A test must never depend on a seed row, and `make db-test` never loads one. See
 `../Tests/README.md`.

@@ -15,15 +15,15 @@ Not a follow-up, not "later" — the suite is the only thing standing between a
 schema edit and a silent runtime failure, and several functions in here shipped
 broken for exactly that reason.
 
-| What you changed | What else to touch |
-|---|---|
-| `sql/Functions/<Name>.sql` | `sql/Tests/Cases/<Name>.sql` — add cases for the new behaviour, update the ones the change invalidates |
-| Added a function | the above, plus the list in `TestSchema_ExpectedFunctionsExist` (`sql/Tests/Cases/Schema.sql`) |
-| Added a table | the list in `TestSchema_ExpectedTablesExist`, an insert in `sql/Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
-| Added a foreign key | the list in `TestSchema_ExpectedForeignKeysExist` |
-| `sql/Triggers/` or a trigger function | `sql/Tests/Cases/<trigger_function>.sql` (`calculate_tallies`, `insert_modified_info`, `update_modified_info`) |
-| Added a column | a case proving what it means, and the list in `TestSchema_DraftColumnsExist` if nothing reads it yet |
-| Deleted or renamed anything | every `sql/Tests/Cases/` file and `Schema.sql` list that names it |
+| What you changed                      | What else to touch                                                                                                                                                    |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sql/Functions/<Name>.sql`            | `sql/Tests/Cases/<Name>.sql` — add cases for the new behaviour, update the ones the change invalidates                                                                |
+| Added a function                      | the above, plus the list in `TestSchema_ExpectedFunctionsExist` (`sql/Tests/Cases/Schema.sql`)                                                                        |
+| Added a table                         | the list in `TestSchema_ExpectedTablesExist`, an insert in `sql/Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
+| Added a foreign key                   | the list in `TestSchema_ExpectedForeignKeysExist`                                                                                                                     |
+| `sql/Triggers/` or a trigger function | `sql/Tests/Cases/<trigger_function>.sql` (`calculate_tallies`, `insert_modified_info`, `update_modified_info`)                                                        |
+| Added a column                        | a case proving what it means, and the list in `TestSchema_DraftColumnsExist` if nothing reads it yet                                                                  |
+| Deleted or renamed anything           | every `sql/Tests/Cases/` file and `Schema.sql` list that names it                                                                                                     |
 
 The structural tests in `sql/Tests/Cases/Schema.sql` hold hardcoded lists of
 tables, functions, foreign keys and draft-sourced columns on purpose: adding
@@ -40,7 +40,7 @@ make db-test ARGS="--test-name-pattern=Foo"   # a subset
 The Compose stack has to be up (`make dc3-up-d`). Tests build their own
 throwaway `dbo_test`, so they never touch the development database. Schema
 edits reach the running container through a bind mount, so there is no rebuild
-step — but they do not reach the *application* database until `make db-rebuild`.
+step — but they do not reach the _application_ database until `make db-rebuild`.
 
 ## There are no migrations
 
@@ -62,7 +62,7 @@ leads with an ordering number (`06_UserOrganizations.sql`) because rows have to
 load parents before children.
 
 A case file's object can be a table, not just a function: `Cases/UserBadges.sql`
-holds what that table's columns *mean* (a NULL `EarnedAt` is a badge in progress),
+holds what that table's columns _mean_ (a NULL `EarnedAt` is a badge in progress),
 while facts true of every table — audit columns, triggers, the table list — stay
 in `Cases/Schema.sql`. Give a table its own case file when it carries state worth
 explaining; don't add one that only restates `Schema.sql`.
@@ -98,11 +98,11 @@ installed.
 - **Output columns shadow table columns.** A function declared
   `RETURNS TABLE("TeamUUID" uuid, ...)` makes `"TeamUUID"` a plpgsql variable,
   so a bare `WHERE "TeamUUID" = ...` or `ON CONFLICT ("TeamUUID")` raises
-  *column reference is ambiguous* on every call. Table-qualify the predicate;
+  _column reference is ambiguous_ on every call. Table-qualify the predicate;
   name the constraint in `ON CONFLICT`.
 - **`now()` and `CURRENT_TIMESTAMP` are fixed for the whole transaction.** A row
   inserted and updated inside one test has `UpdatedAt = CreatedAt`. To prove an
-  update moves `UpdatedAt` forward, update a *fixture* row.
+  update moves `UpdatedAt` forward, update a _fixture_ row.
 - **`IsMemberOfTeam` and `IsManagerOfTeam` also require organization
   membership.** They can't confirm that a user with no organization was added to
   a team; read `dbo.UserTeams` directly for that.

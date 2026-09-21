@@ -12,16 +12,16 @@ import SignIn from "./SignIn/SignIn.js";
 import SignUp from "./SignUp/SignUp.js";
 
 export default {
-	Dashboard,
-	DNSRecords,
-	DNSZones,
-	Domains,
-	Home,
-	Integrations,
-	Organizations,
-	Plans,
-	Platforms,
-	Policies,
-	SignIn,
-	SignUp,
+  Dashboard,
+  DNSRecords,
+  DNSZones,
+  Domains,
+  Home,
+  Integrations,
+  Organizations,
+  Plans,
+  Platforms,
+  Policies,
+  SignIn,
+  SignUp,
 };
