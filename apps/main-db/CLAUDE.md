@@ -5,21 +5,26 @@ Postgres schema, seed data and tests. Applies to everything under
 
 ## Changing SQL means changing tests
 
-**Any change under `sql/` requires the test suite to be updated in the same
-change.** Not a follow-up, not "later" — the suite is the only thing standing
-between a schema edit and a silent runtime failure, and several functions in
-here shipped broken for exactly that reason.
+**Any change to a schema object requires the test suite to be updated in the
+same change.** Schema objects are the files under `sql/Functions`, `sql/Tables`,
+`sql/ForeignKeys`, `sql/Triggers` and `sql/Security` — the directories
+`bin/apply.sh` builds from. `sql/Tests` and `sql/Seeds` sit under `sql/` too but
+are not schema objects, so editing them does not trigger this rule.
+
+Not a follow-up, not "later" — the suite is the only thing standing between a
+schema edit and a silent runtime failure, and several functions in here shipped
+broken for exactly that reason.
 
 | What you changed | What else to touch |
 |---|---|
 | `sql/Functions/<Name>.sql` | `sql/Tests/Cases/<Name>.sql` — add cases for the new behaviour, update the ones the change invalidates |
-| Added a function | the above, plus the list in `TestSchema_ExpectedFunctionsExist` (`Tests/Cases/Schema.sql`) |
-| Added a table | the list in `TestSchema_ExpectedTablesExist`, an insert in `Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
+| Added a function | the above, plus the list in `TestSchema_ExpectedFunctionsExist` (`sql/Tests/Cases/Schema.sql`) |
+| Added a table | the list in `TestSchema_ExpectedTablesExist`, an insert in `sql/Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
 | Added a foreign key | the list in `TestSchema_ExpectedForeignKeysExist` |
-| `sql/Triggers/` or a trigger function | `Tests/Cases/<trigger_function>.sql` (`calculate_tallies`, `insert_modified_info`, `update_modified_info`) |
-| Deleted or renamed anything | every `Tests/Cases/` file and `Schema.sql` list that names it |
+| `sql/Triggers/` or a trigger function | `sql/Tests/Cases/<trigger_function>.sql` (`calculate_tallies`, `insert_modified_info`, `update_modified_info`) |
+| Deleted or renamed anything | every `sql/Tests/Cases/` file and `Schema.sql` list that names it |
 
-The structural tests in `Tests/Cases/Schema.sql` hold hardcoded lists of tables,
+The structural tests in `sql/Tests/Cases/Schema.sql` hold hardcoded lists of tables,
 functions and foreign keys on purpose: adding something without listing it fails
 the suite, which is the reminder. Don't delete an entry to make the suite pass —
 add the new one.
