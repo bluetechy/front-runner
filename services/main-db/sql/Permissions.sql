@@ -1,0 +1,16 @@
+--
+-- Connection
+--
+
+\connect dbo
+
+--
+-- Setup Permissions
+--
+
+GRANT ALL ON DATABASE dbo TO root;
+GRANT ALL ON SCHEMA dbo TO root;
+GRANT ALL ON ALL TABLES IN SCHEMA dbo TO root;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA dbo TO root;
+GRANT ALL ON ALL PROCEDURES IN SCHEMA dbo TO root;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA dbo TO root;

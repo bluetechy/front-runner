@@ -1,0 +1,55 @@
+version: "3"
+services:
+    main-api:
+        build:
+            context: ../main-api
+            dockerfile: Dockerfile
+        command: [ "/bin/bash", "-c", "nodemon -L /var/www/app/index.js" ]
+        environment:
+            - ENVIRONMENT=dev
+            - JWT_SECRET_KEY=your-secret-key
+            - POSTGRES_ADDRESS=main-db
+            - POSTGRES_DATABASE=dbo
+            - POSTGRES_PASSWORD=root
+            - POSTGRES_PORT=5432
+            - POSTGRES_USER=root
+            - REDIS_ADDRESS=main-cache
+            - REDIS_PORT=6379
+        networks:
+            - service-mesh
+        ports:
+            - 30000:3000
+        restart: always
+        volumes:
+            - "../main-api/src:/var/www/app"
+    main-cache:
+        image: redis
+        networks:
+            - service-mesh
+        ports:
+            - 30001:6379
+        restart: always
+    main-db:
+        build:
+            context: ../main-db
+            dockerfile: Dockerfile
+        networks:
+            - service-mesh
+        ports:
+            - 30002:5432
+        restart: always
+#    main-gui:
+#        build:
+#            context: ../main-gui
+#            dockerfile: Dockerfile
+#            target: stage2
+#        networks:
+#            - service-mesh
+#        ports:
+#            - 80:3000
+#        restart: always
+#        stdin_open: true
+#        volumes:
+#            - "../main-gui/src:/app/src"
+networks:
+    service-mesh: {}
