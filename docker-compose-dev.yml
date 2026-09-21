@@ -1,24 +1,15 @@
-version: "3"
 services:
 #    main-api:
 #        build:
 #            context: ./apps/main-api
 #            dockerfile: Dockerfile
 #        command: [ "/bin/bash", "-c", "nodemon -L /var/www/app/index.js" ]
-#        environment:
-#            - ENVIRONMENT=dev
-#            - JWT_SECRET_KEY=your-secret-key
-#            - POSTGRES_ADDRESS=main-db
-#            - POSTGRES_DATABASE=dbo
-#            - POSTGRES_PASSWORD=root
-#            - POSTGRES_PORT=5432
-#            - POSTGRES_USER=root
-#            - REDIS_ADDRESS=main-kvs
-#            - REDIS_PORT=6379
+#        env_file:
+#            - .env
 #        networks:
 #            - service-mesh
 #        ports:
-#            - 30000:3000
+#            - ${API_PUBLISHED_PORT}:${API_PORT}
 #        restart: always
 #        volumes:
 #            - "./apps/main-api/src:/var/www/app"
@@ -26,30 +17,44 @@ services:
         build:
             context: ./apps/main-db
             dockerfile: Dockerfile
+        env_file:
+            - .env
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${APP_DB_NAME}" ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 60s
         networks:
             - service-mesh
         ports:
-            - 30002:5432
+            - ${POSTGRES_PUBLISHED_PORT}:${POSTGRES_PORT}
         restart: always
+        volumes:
+            - main-db-data:/var/lib/postgresql
 #    main-gui:
 #        build:
 #            context: ./apps/main-gui
 #            dockerfile: Dockerfile
 #            target: stage2
+#        env_file:
+#            - .env
 #        networks:
 #            - service-mesh
 #        ports:
-#            - 80:3000
+#            - ${GUI_PUBLISHED_PORT}:${GUI_PORT}
 #        restart: always
 #        stdin_open: true
 #        volumes:
 #            - "./apps/main-gui/src:/app/src"
     main-kvs:
-        image: redis
+        image: redis:8.10.1
         networks:
             - service-mesh
         ports:
-            - 30001:6379
+            - ${REDIS_PUBLISHED_PORT}:${REDIS_PORT}
         restart: always
 networks:
     service-mesh: {}
+volumes:
+    main-db-data: {}
