@@ -53,7 +53,9 @@ a file name is not exactly an object name: rows have to load parents before
 children, so the number leads. `01_Organizations.sql` through `05_Points.sql`
 are the parent tables; `06`-`09` are the memberships and balances that point at
 them; `10`-`14` are the points features built on top -- levels, multipliers,
-redemptions and transfers.
+redemptions and transfers; `15`-`23` are roadmaps, tasks and everything hanging
+off a task. The file number is decimal and the UUID prefix is hex, so the two
+stop lining up after `14`.
 
 ## Writing a seed file
 
@@ -110,6 +112,14 @@ Each parent table owns a leading nibble, so a UUID is identifiable on sight:
 | `12000000-...` | `UserPointLevels` |
 | `13000000-...` | `PointRedemptions` |
 | `14000000-...` | `PointTransfers` |
+| `15000000-...` | `Roadmaps` |
+| `16000000-...` | `Tasks` |
+| `17000000-...` | `TaskDependencies` |
+| `18000000-...` | `TaskComments` |
+| `19000000-...` | `TaskHistory` |
+| `1a000000-...` | `AssignmentHistory` |
+| `1b000000-...` | `Checklists` |
+| `1c000000-...` | `Labels` |
 
 `a` through `f` are used up, so the scheme carries on into two-digit prefixes
 counting from `10`. It is still one distinct leading byte per table, which is

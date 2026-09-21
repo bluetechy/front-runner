@@ -19,6 +19,9 @@ DECLARE
     _BadgeEventUUID uuid;
     _BadgeGroupUUID uuid;
     _PointLevelUUID uuid;
+    _RoadmapUUID uuid;
+    _TaskUUID uuid;
+    _LabelUUID uuid;
 BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
@@ -30,6 +33,8 @@ BEGIN
     INSERT INTO "dbo"."BadgeGroups" ("Name", "Description", "CreatedBy") VALUES ('Smoke Group', 'Smoke test group.', _By) RETURNING "BadgeGroupUUID" INTO _BadgeGroupUUID;
     INSERT INTO "dbo"."PointLevels" ("PointUUID", "Name", "Description", "MinimumAmount", "CreatedBy") VALUES (_PointUUID, 'Smoke Level', 'Smoke test level.', 1.0000, _By) RETURNING "PointLevelUUID" INTO _PointLevelUUID;
     INSERT INTO "dbo"."PointMultipliers" ("Name", "Description", "Factor", "CreatedBy") VALUES ('Smoke Multiplier', 'Smoke test multiplier.', 2.0000, _By);
+    INSERT INTO "dbo"."Roadmaps" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Roadmap', 'Smoke test roadmap.', _By) RETURNING "RoadmapUUID" INTO _RoadmapUUID;
+    INSERT INTO "dbo"."Labels" ("OrganizationUUID", "Name", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Label', _By) RETURNING "LabelUUID" INTO _LabelUUID;
 
     INSERT INTO "dbo"."BadgeCriteria" ("BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES (_BadgeUUID, 'Smoke criteria.', 'Activity', 1, _By);
     INSERT INTO "dbo"."BadgeEventCriteria" ("BadgeEventUUID", "BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES (_BadgeEventUUID, _BadgeUUID, 'Smoke event criteria.', 'Achievement', 1, _By);
@@ -45,6 +50,16 @@ BEGIN
     INSERT INTO "dbo"."UserPointLevels" ("UserUUID", "OrganizationUUID", "PointLevelUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointLevelUUID, _By);
     INSERT INTO "dbo"."PointRedemptions" ("UserUUID", "OrganizationUUID", "PointUUID", "Amount", "Description", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointUUID, 1.0000, 'Smoke redemption.', _By);
     INSERT INTO "dbo"."PointTransfers" ("OrganizationUUID", "PointUUID", "SenderUserUUID", "ReceiverUserUUID", "Amount", "Description", "CreatedBy") VALUES (_OrganizationUUID, _PointUUID, _UserUUID, "test"."Fixture"('User.Member'), 1.0000, 'Smoke transfer.', _By);
+
+    -- TaskDependencies needs two tasks, but every table here has to gain
+    -- exactly one row, so the other end is a fixture task.
+    INSERT INTO "dbo"."Tasks" ("OrganizationUUID", "RoadmapUUID", "Name", "Description", "AssignedUserUUID", "CreatedBy") VALUES (_OrganizationUUID, _RoadmapUUID, 'Smoke Task', 'Smoke test task.', _UserUUID, _By) RETURNING "TaskUUID" INTO _TaskUUID;
+    INSERT INTO "dbo"."TaskDependencies" ("DependentTaskUUID", "PrerequisiteTaskUUID", "CreatedBy") VALUES (_TaskUUID, "test"."Fixture"('Task.Design'), _By);
+    INSERT INTO "dbo"."TaskComments" ("TaskUUID", "UserUUID", "Comment", "CreatedBy") VALUES (_TaskUUID, _UserUUID, 'Smoke comment.', _By);
+    INSERT INTO "dbo"."TaskHistory" ("TaskUUID", "UserUUID", "ChangeType", "OldValue", "NewValue", "CreatedBy") VALUES (_TaskUUID, _UserUUID, 'Status', 'Pending', 'InProgress', _By);
+    INSERT INTO "dbo"."TaskLabels" ("TaskUUID", "LabelUUID", "CreatedBy") VALUES (_TaskUUID, _LabelUUID, _By);
+    INSERT INTO "dbo"."AssignmentHistory" ("TaskUUID", "PreviousUserUUID", "NewUserUUID", "CreatedBy") VALUES (_TaskUUID, NULL, _UserUUID, _By);
+    INSERT INTO "dbo"."Checklists" ("TaskUUID", "Description", "CreatedBy") VALUES (_TaskUUID, 'Smoke checklist item.', _By);
 
     -- The UserPoints insert fires calculate_tallies, which is what puts a row
     -- into UserTallies. Inserting into UserTallies directly would hide that.

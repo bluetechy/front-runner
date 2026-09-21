@@ -12,12 +12,15 @@ DECLARE
 BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
-        ('BadgeAchievements'), ('BadgeCategories'), ('BadgeCriteria'), ('BadgeEventCriteria'),
-        ('BadgeEvents'), ('BadgeGroupRelationships'), ('BadgeGroups'), ('BadgeReviews'),
-        ('Badges'), ('BadgeStatistics'), ('Organizations'), ('PointLevels'),
-        ('PointMultipliers'), ('PointRedemptions'), ('Points'), ('PointTransfers'),
-        ('SharedBadges'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
-        ('UserPointLevels'), ('UserPoints'), ('Users'), ('UserTallies'), ('UserTeams')
+        ('AssignmentHistory'), ('BadgeAchievements'), ('BadgeCategories'),
+        ('BadgeCriteria'), ('BadgeEventCriteria'), ('BadgeEvents'),
+        ('BadgeGroupRelationships'), ('BadgeGroups'), ('BadgeReviews'),
+        ('BadgeStatistics'), ('Badges'), ('Checklists'), ('Labels'), ('Organizations'),
+        ('PointLevels'), ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'),
+        ('Points'), ('Roadmaps'), ('SharedBadges'), ('TaskComments'), ('TaskDependencies'),
+        ('TaskHistory'), ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'),
+        ('UserOrganizations'), ('UserPointLevels'), ('UserPoints'), ('UserTallies'),
+        ('UserTeams'), ('Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (SELECT 1 FROM pg_tables WHERE "schemaname" = 'dbo' AND "tablename" = "Expected"."Name");
 
@@ -27,12 +30,14 @@ BEGIN
     FROM pg_tables
     WHERE "schemaname" = 'dbo'
         AND "tablename" NOT IN (
-            'BadgeAchievements', 'BadgeCategories', 'BadgeCriteria', 'BadgeEventCriteria',
-            'BadgeEvents', 'BadgeGroupRelationships', 'BadgeGroups', 'BadgeReviews',
-            'Badges', 'BadgeStatistics', 'Organizations', 'PointLevels',
-            'PointMultipliers', 'PointRedemptions', 'Points', 'PointTransfers',
-            'SharedBadges', 'Teams', 'UserBadges', 'UserOrganizations',
-            'UserPointLevels', 'UserPoints', 'Users', 'UserTallies', 'UserTeams'
+            'AssignmentHistory', 'BadgeAchievements', 'BadgeCategories', 'BadgeCriteria',
+            'BadgeEventCriteria', 'BadgeEvents', 'BadgeGroupRelationships', 'BadgeGroups',
+            'BadgeReviews', 'BadgeStatistics', 'Badges', 'Checklists', 'Labels',
+            'Organizations', 'PointLevels', 'PointMultipliers', 'PointRedemptions',
+            'PointTransfers', 'Points', 'Roadmaps', 'SharedBadges', 'TaskComments',
+            'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks', 'Teams',
+            'UserBadges', 'UserOrganizations', 'UserPointLevels', 'UserPoints',
+            'UserTallies', 'UserTeams', 'Users'
         );
 
     PERFORM "test"."AssertEquals"(_Unexpected, NULL::text, 'tables in dbo that this test does not know about -- add them here and to test.InsertOneRowIntoEveryTable');
@@ -149,14 +154,25 @@ BEGIN
         ('FK_BadgeEventCriteria_Badges'), ('FK_BadgeGroupRelationships_BadgeGroups'),
         ('FK_BadgeGroupRelationships_Badges'), ('FK_BadgeReviews_Badges'),
         ('FK_BadgeReviews_Users'), ('FK_BadgeStatistics_Badges'),
-        ('FK_PointLevels_Points'), ('FK_PointRedemptions_Organizations'),
-        ('FK_PointRedemptions_Points'), ('FK_PointRedemptions_Users'),
-        ('FK_PointTransfers_Organizations'), ('FK_PointTransfers_Points'),
-        ('FK_PointTransfers_Users_ReceiverUserUUID'),
-        ('FK_PointTransfers_Users_SenderUserUUID'),
+        ('FK_AssignmentHistory_Tasks'), ('FK_AssignmentHistory_Users_NewUserUUID'),
+        ('FK_AssignmentHistory_Users_PreviousUserUUID'), ('FK_BadgeAchievements_Badges'),
+        ('FK_BadgeAchievements_Users'), ('FK_BadgeCriteria_Badges'),
+        ('FK_BadgeEventCriteria_BadgeEvents'), ('FK_BadgeEventCriteria_Badges'),
+        ('FK_BadgeGroupRelationships_BadgeGroups'), ('FK_BadgeGroupRelationships_Badges'),
+        ('FK_BadgeReviews_Badges'), ('FK_BadgeReviews_Users'),
+        ('FK_BadgeStatistics_Badges'), ('FK_Checklists_Tasks'),
+        ('FK_Labels_Organizations'), ('FK_PointLevels_Points'),
+        ('FK_PointRedemptions_Organizations'), ('FK_PointRedemptions_Points'),
+        ('FK_PointRedemptions_Users'), ('FK_PointTransfers_Organizations'),
+        ('FK_PointTransfers_Points'), ('FK_PointTransfers_Users_ReceiverUserUUID'),
+        ('FK_PointTransfers_Users_SenderUserUUID'), ('FK_Roadmaps_Organizations'),
         ('FK_SharedBadges_Badges'), ('FK_SharedBadges_Users'),
-        ('FK_SharedBadges_Users_SharedWithUserUUID'), ('FK_UserBadges_Badges'),
-        ('FK_UserBadges_Organizations'), ('FK_UserBadges_Users'),
+        ('FK_SharedBadges_Users_SharedWithUserUUID'), ('FK_TaskComments_Tasks'),
+        ('FK_TaskComments_Users'), ('FK_TaskDependencies_Tasks_DependentTaskUUID'),
+        ('FK_TaskDependencies_Tasks_PrerequisiteTaskUUID'), ('FK_TaskHistory_Tasks'),
+        ('FK_TaskHistory_Users'), ('FK_TaskLabels_Labels'), ('FK_TaskLabels_Tasks'),
+        ('FK_Tasks_Organizations'), ('FK_Tasks_Roadmaps'), ('FK_Tasks_Users'),
+        ('FK_UserBadges_Badges'), ('FK_UserBadges_Organizations'), ('FK_UserBadges_Users'),
         ('FK_UserPointLevels_Organizations'), ('FK_UserPointLevels_PointLevels'),
         ('FK_UserPointLevels_Users')
     ) AS "Expected" ("Name")

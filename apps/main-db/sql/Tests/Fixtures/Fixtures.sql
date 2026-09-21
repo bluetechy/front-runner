@@ -46,7 +46,17 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('PointRedemption.Pending',  '99999999-0000-4000-8000-000000000001'),
     ('PointRedemption.Approved', '99999999-0000-4000-8000-000000000002'),
     ('PointTransfer.Pending',    'aaaaaaaa-0000-4000-8000-000000000001'),
-    ('PointTransfer.Completed',  'aaaaaaaa-0000-4000-8000-000000000002');
+    ('PointTransfer.Completed',  'aaaaaaaa-0000-4000-8000-000000000002'),
+    ('Roadmap.Launch',           'bbbbbbbb-0000-4000-8000-000000000001'),
+    ('Roadmap.Archived',         'bbbbbbbb-0000-4000-8000-000000000002'),
+    ('Task.Design',              'cccccccc-0000-4000-8000-000000000001'),
+    ('Task.Build',               'cccccccc-0000-4000-8000-000000000002'),
+    ('Task.Overdue',             'cccccccc-0000-4000-8000-000000000003'),
+    ('Task.Done',                'cccccccc-0000-4000-8000-000000000004'),
+    ('Task.Loose',               'cccccccc-0000-4000-8000-000000000005'),
+    ('Task.Cancelled',           'cccccccc-0000-4000-8000-000000000006'),
+    ('Label.Urgent',             'dddddddd-0000-4000-8000-000000000001'),
+    ('Label.Chore',              'dddddddd-0000-4000-8000-000000000002');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -138,3 +148,50 @@ INSERT INTO "dbo"."PointRedemptions" ("PointRedemptionUUID", "UserUUID", "Organi
 INSERT INTO "dbo"."PointTransfers" ("PointTransferUUID", "OrganizationUUID", "PointUUID", "SenderUserUUID", "ReceiverUserUUID", "Amount", "Description", "Status", "TransferredAt", "CreatedBy") VALUES
     ("test"."Fixture"('PointTransfer.Pending'),   "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), "test"."Fixture"('User.Member'), "test"."Fixture"('User.Owner'),  1.5000, 'Thanks for the help.', 'Pending',   NULL,                     'fixtures'),
     ("test"."Fixture"('PointTransfer.Completed'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), "test"."Fixture"('User.Owner'),  "test"."Fixture"('User.Member'), 2.5000, 'Settled already.',     'Completed', '2024-05-01 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."Roadmaps" ("RoadmapUUID", "OrganizationUUID", "Name", "Description", "IsEnabled", "CreatedBy") VALUES
+    ("test"."Fixture"('Roadmap.Launch'),   "test"."Fixture"('Organization.Acme'), 'Launch',   'The live roadmap.', true,  'fixtures'),
+    ("test"."Fixture"('Roadmap.Archived'), "test"."Fixture"('Organization.Acme'), 'Archived', 'Shut down.',        false, 'fixtures');
+
+-- One of everything the task reads branch on: a plain pending task, one in
+-- progress, one overdue, one completed, one cancelled while already past its
+-- due date, and one with no roadmap at all -- which is why Tasks carries
+-- OrganizationUUID itself rather than reaching it through Roadmaps.
+-- Task.Build depends on Task.Design.
+--
+-- Task.Cancelled is the one that catches a lazy overdue filter: it is past due
+-- and not Completed, so "DueDate < now AND Status <> 'Completed'" reports it.
+INSERT INTO "dbo"."Tasks" ("TaskUUID", "OrganizationUUID", "RoadmapUUID", "Name", "Description", "Category", "Priority", "Status", "SortOrder", "DueDate", "AssignedUserUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Design'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Roadmap.Launch'), 'Design',  'Draw it up.',    'Design', 2, 'Completed',  1, '2024-01-01', "test"."Fixture"('User.Member'), 'fixtures'),
+    ("test"."Fixture"('Task.Build'),   "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Roadmap.Launch'), 'Build',   'Write it.',      'Build',  3, 'InProgress', 2, '2999-01-01', "test"."Fixture"('User.Member'), 'fixtures'),
+    ("test"."Fixture"('Task.Overdue'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Roadmap.Launch'), 'Ship',    'Late already.',  'Build',  1, 'Pending',    3, '2020-01-01', "test"."Fixture"('User.Owner'),  'fixtures'),
+    ("test"."Fixture"('Task.Done'),    "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Roadmap.Launch'), 'Retro',   'Finished late.', 'Admin',  0, 'Completed',  4, '2020-06-01', NULL,                            'fixtures'),
+    ("test"."Fixture"('Task.Loose'),   "test"."Fixture"('Organization.Acme'), NULL,                               'Standalone', 'No roadmap.', NULL,     0, 'Pending',    0, NULL,         NULL,                            'fixtures'),
+    ("test"."Fixture"('Task.Cancelled'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Roadmap.Launch'), 'Dropped', 'Called off, already late.', NULL, 0, 'Cancelled', 5, '2020-03-01', NULL,                         'fixtures');
+
+INSERT INTO "dbo"."TaskDependencies" ("DependentTaskUUID", "PrerequisiteTaskUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'), "test"."Fixture"('Task.Design'), 'fixtures');
+
+INSERT INTO "dbo"."TaskComments" ("TaskUUID", "UserUUID", "Comment", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'), "test"."Fixture"('User.Member'), 'Started on this.', 'fixtures');
+
+-- The UserUUID is NULL on the second row: not every change has a person behind it.
+INSERT INTO "dbo"."TaskHistory" ("TaskUUID", "UserUUID", "ChangeType", "OldValue", "NewValue", "ChangedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'), "test"."Fixture"('User.Member'), 'Status',  'Pending', 'InProgress', '2024-02-01 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Task.Build'), NULL,                            'DueDate', NULL,      '2999-01-01', '2024-02-02 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."AssignmentHistory" ("TaskUUID", "PreviousUserUUID", "NewUserUUID", "AssignedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'), NULL,                           "test"."Fixture"('User.Member'), '2024-01-15 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Task.Done'),  "test"."Fixture"('User.Owner'), NULL,                            '2024-07-01 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."Checklists" ("TaskUUID", "Description", "IsCompleted", "SortOrder", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'), 'Write the schema.', true,  1, 'fixtures'),
+    ("test"."Fixture"('Task.Build'), 'Write the tests.',  false, 2, 'fixtures');
+
+INSERT INTO "dbo"."Labels" ("LabelUUID", "OrganizationUUID", "Name", "CreatedBy") VALUES
+    ("test"."Fixture"('Label.Urgent'), "test"."Fixture"('Organization.Acme'), 'Urgent', 'fixtures'),
+    ("test"."Fixture"('Label.Chore'),  "test"."Fixture"('Organization.Acme'), 'Chore',  'fixtures');
+
+INSERT INTO "dbo"."TaskLabels" ("TaskUUID", "LabelUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'),   "test"."Fixture"('Label.Urgent'), 'fixtures'),
+    ("test"."Fixture"('Task.Overdue'), "test"."Fixture"('Label.Urgent'), 'fixtures');

@@ -13,16 +13,16 @@ test/
   runner.test.js    discovers and drives the SQL tests
 sql/
   Functions/        one function per file            (22)
-  Tables/           CREATE TABLE only, no triggers   (25)
-  Triggers/         one trigger per file             (52)
-  ForeignKeys/      FK constraints, one file per table (12 files, 27 constraints)
+  Tables/           CREATE TABLE only, no triggers   (34)
+  Triggers/         one trigger per file             (70)
+  ForeignKeys/      FK constraints, one file per table (21 files, 44 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand     (14)
+  Seeds/Dev/        demo data, applied on demand     (23)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (29)
+    Cases/          one file per object under test    (35)
   Drafts/           not built; see "Drafts" below
     Tables/                                          (45)
     Functions/                                       (72)
@@ -310,7 +310,8 @@ reaches into the table directly in the meantime.
 
 ### Tables migrated from the drafts
 
-Five of the points tables are live, uuid-keyed, org-scoped and audited:
+Fourteen draft tables are live so far, uuid-keyed, org-scoped and audited.
+The five points tables:
 `PointLevels`, `UserPointLevels`, `PointMultipliers`, `PointRedemptions`,
 `PointTransfers`. The draft versions stay where they are.
 
@@ -320,6 +321,60 @@ definition tables are global (`Points`, `Badges`, and now `PointLevels` and
 now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
 drops the draft's `PointTypeId`: the level it names already carries the point
 type, so repeating it would let the two disagree.
+
+### Tasks and roadmaps
+
+Nine tables: `Roadmaps`, `Tasks`, `TaskDependencies`, `TaskComments`,
+`TaskHistory`, `AssignmentHistory`, `Checklists`, `Labels`, `TaskLabels`.
+
+**The drafts held two incompatible task models and neither was complete.**
+`Drafts/Tables/Tasks.sql` has `Title`, `Status`, `AssignedUserId`, `RoadmapId`.
+Every draft function and procedure instead reads a `RoadmapWorkflowTasks` that
+was never drafted as a table, with `Name`, a `Completed` boolean, `AssignedTo`
+and `TaskOrder`. `Priority` and `Category` appear in neither, though
+`GetTasksByPriority` and `GetTasksByCategory` filter on them. `dbo.Tasks` is the
+union: `Name` and `SortOrder` from the second, `Status` from the first because
+it says everything `Completed` did and more — and because `BadgeReviews`,
+`PointRedemptions` and `PointTransfers` already use a `Status` varchar —
+plus `Priority` and `Category` from the stubs.
+
+**`Status` does not translate to `Completed` cleanly, and the difference bites.**
+`GetOverdueTasks` read `DueDate < CURRENT_DATE AND Completed = false`. Carried
+over as `Status <> 'Completed'` that reports cancelled tasks as overdue, because
+`'Cancelled'` is also not `'Completed'`. Overdue is
+`Status NOT IN ('Completed', 'Cancelled')`. Both the fixtures and
+`Seeds/Dev/16_Tasks.sql` carry a task cancelled while already past due, and
+`TestTasks_DoNotCountCancelledTasksAsOverdue` runs the naive filter alongside the
+correct one so the difference is visible rather than theoretical.
+
+**`Tasks."DependencyId"` was dropped.** The draft had `Tasks` pointing at
+`TaskDependencies` while `TaskDependencies` pointed back at `Tasks` twice —
+circular, and it allowed a task exactly one dependency. `dbo.TaskDependencies`
+is now the whole relation. Nothing rejects a cycle or a self-dependency; that
+belongs to whatever advances a task's status, and there are tests saying so.
+
+**`dbo.TaskLabels` is not from the drafts.** `Drafts/Tables/Labels.sql` defines
+labels and nothing that wears one — no draft table, function or procedure
+references it. Migrating `Labels` alone would have added an inert table, so the
+join that makes it mean something came with it. It is the only object in this
+schema with no draft behind it.
+
+**`Tasks` carries `OrganizationUUID` itself** rather than reaching it through
+`Roadmaps`, because `RoadmapUUID` is nullable — a task does not have to belong
+to a roadmap. The child tables (`TaskComments`, `Checklists`, `TaskHistory`,
+`AssignmentHistory`, `TaskLabels`) derive their scope through `TaskUUID`, the
+way `UserTeams` derives through `TeamUUID`.
+
+**The draft's `ON DELETE CASCADE` on `Tasks.RoadmapId` was dropped.** Nothing
+else in this schema uses one, so deleting a roadmap that still has tasks now
+raises instead of silently taking them with it.
+
+**`TaskHistory` and `AssignmentHistory` are not written by anything.** No trigger
+fills them the way `calculate_tallies` fills `UserTallies`, so editing a task
+logs nothing — the caller has to write the row.
+`TestTaskHistory_IsNotWrittenByUpdatingATask` pins that down. They are also
+distinct from the audit columns: `CreatedBy`/`UpdatedBy` say who last touched a
+row, these say what changed.
 
 **`PointUsageLogs` was deliberately not migrated.** It is a second ledger with
 the same shape as `PointTransactions` — user, signed amount, reason, JSON

@@ -1,0 +1,13 @@
+--
+-- A short chain and a fan-in: the API and the GUI both wait on the schema, and
+-- the release waits on both of them. Nothing enforces or checks any of this --
+-- see SCHEMA-NOTES.md.
+--
+
+INSERT INTO "dbo"."TaskDependencies" ("TaskDependencyUUID", "DependentTaskUUID", "PrerequisiteTaskUUID", "CreatedBy") VALUES
+    ('17000000-0000-4000-8000-000000000001', '16000000-0000-4000-8000-000000000002', '16000000-0000-4000-8000-000000000001', 'seed'),
+    ('17000000-0000-4000-8000-000000000002', '16000000-0000-4000-8000-000000000003', '16000000-0000-4000-8000-000000000001', 'seed'),
+    ('17000000-0000-4000-8000-000000000003', '16000000-0000-4000-8000-000000000004', '16000000-0000-4000-8000-000000000002', 'seed'),
+    ('17000000-0000-4000-8000-000000000004', '16000000-0000-4000-8000-000000000004', '16000000-0000-4000-8000-000000000003', 'seed')
+ON CONFLICT ON CONSTRAINT "TaskDependencies_UUIDs_UniqueKey" DO UPDATE SET
+    "UpdatedBy" = 'seed';

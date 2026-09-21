@@ -108,6 +108,13 @@ installed.
   a team; read `dbo.UserTeams` directly for that.
 - **Adding a fixture row changes counts other tests assert.** `Fixtures.sql` is
   shared by everything; grep for the counts before adding a user or a team.
+- **An overdue task is not just "not Completed".** `dbo.Tasks."Status"` has two
+  terminal values, so overdue is `Status NOT IN ('Completed', 'Cancelled')`.
+  The drafts' boolean did not have this problem and the translation looks
+  obvious; it isn't. Both the fixtures and the seed carry a task cancelled
+  while already past due.
+- **`dbo.TaskHistory` and `dbo.AssignmentHistory` are not automatic.** Nothing
+  writes them — editing a task logs nothing. The caller writes the row.
 - **A `dbo.UserBadges` row is not proof the badge was earned.** `EarnedAt` is
   NULL while it is in progress and `RevokedAt` is set when it is taken back, so
   anything reading the table has to filter on both the way `GetBadges` does.
