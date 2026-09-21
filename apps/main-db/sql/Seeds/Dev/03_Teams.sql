@@ -1,5 +1,5 @@
 --
--- Nine teams in Unicity International, two in Bluetechy Labs, and one disabled
+-- Nine teams in Northwind Trading, two in Bluetechy Labs, and one disabled
 -- team so GetTeams has something to filter out.
 --
 

@@ -1,5 +1,5 @@
 --
--- Membership. matthewm owns Unicity International, jdoe owns Bluetechy Labs,
+-- Membership. matthewm owns Northwind Trading, jdoe owns Bluetechy Labs,
 -- and pkowalski belongs to neither so there is an outsider to test against.
 --
 

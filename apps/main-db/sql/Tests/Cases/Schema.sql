@@ -12,18 +12,20 @@ DECLARE
 BEGIN
     SELECT string_agg("Expected"."Name", ', ' ORDER BY "Expected"."Name") INTO _Missing
     FROM (VALUES
-        ('ApprovalDecisions'), ('ApprovalRequestLogs'), ('ApprovalRequests'),
-        ('ApprovalWorkflowPermissions'), ('ApprovalWorkflowStages'), ('ApprovalWorkflows'),
-        ('AssignmentHistory'), ('BadgeAchievements'), ('BadgeCategories'),
-        ('BadgeCriteria'), ('BadgeEventCriteria'), ('BadgeEvents'),
-        ('BadgeGroupRelationships'), ('BadgeGroups'), ('BadgeReviews'),
-        ('BadgeStatistics'), ('Badges'), ('Checklists'), ('Labels'), ('Organizations'),
-        ('PointLevels'), ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'),
-        ('Points'), ('Roadmaps'), ('SharedBadges'), ('SurveyAnswers'),
+        ('AccessControlLists'), ('ApprovalDecisions'), ('ApprovalRequestLogs'),
+        ('ApprovalRequests'), ('ApprovalWorkflowPermissions'), ('ApprovalWorkflowStages'),
+        ('ApprovalWorkflows'), ('AssignmentHistory'), ('Attachments'),
+        ('BadgeAchievements'), ('BadgeCategories'), ('BadgeCriteria'),
+        ('BadgeEventCriteria'), ('BadgeEvents'), ('BadgeGroupRelationships'),
+        ('BadgeGroups'), ('BadgeReviews'), ('BadgeStatistics'), ('Badges'), ('Checklists'),
+        ('EventLog'), ('Labels'), ('Notifications'), ('Organizations'), ('PointLevels'),
+        ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'), ('Points'),
+        ('Roadmaps'), ('Roles'), ('SharedBadges'), ('SurveyAnswers'),
         ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
         ('Surveys'), ('TaskComments'), ('TaskDependencies'), ('TaskHistory'),
         ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
-        ('UserPointLevels'), ('UserPoints'), ('UserTallies'), ('UserTeams'), ('Users')
+        ('UserPointLevels'), ('UserPoints'), ('UserRoles'), ('UserTallies'), ('UserTeams'),
+        ('Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (SELECT 1 FROM pg_tables WHERE "schemaname" = 'dbo' AND "tablename" = "Expected"."Name");
 
@@ -33,17 +35,18 @@ BEGIN
     FROM pg_tables
     WHERE "schemaname" = 'dbo'
         AND "tablename" NOT IN (
-            'ApprovalDecisions', 'ApprovalRequestLogs', 'ApprovalRequests',
-            'ApprovalWorkflowPermissions', 'ApprovalWorkflowStages', 'ApprovalWorkflows',
-            'AssignmentHistory', 'BadgeAchievements', 'BadgeCategories', 'BadgeCriteria',
-            'BadgeEventCriteria', 'BadgeEvents', 'BadgeGroupRelationships', 'BadgeGroups',
-            'BadgeReviews', 'BadgeStatistics', 'Badges', 'Checklists', 'Labels',
-            'Organizations', 'PointLevels', 'PointMultipliers', 'PointRedemptions',
-            'PointTransfers', 'Points', 'Roadmaps', 'SharedBadges', 'SurveyAnswers',
+            'AccessControlLists', 'ApprovalDecisions', 'ApprovalRequestLogs',
+            'ApprovalRequests', 'ApprovalWorkflowPermissions', 'ApprovalWorkflowStages',
+            'ApprovalWorkflows', 'AssignmentHistory', 'Attachments', 'BadgeAchievements',
+            'BadgeCategories', 'BadgeCriteria', 'BadgeEventCriteria', 'BadgeEvents',
+            'BadgeGroupRelationships', 'BadgeGroups', 'BadgeReviews', 'BadgeStatistics',
+            'Badges', 'Checklists', 'EventLog', 'Labels', 'Notifications', 'Organizations',
+            'PointLevels', 'PointMultipliers', 'PointRedemptions', 'PointTransfers',
+            'Points', 'Roadmaps', 'Roles', 'SharedBadges', 'SurveyAnswers',
             'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
             'TaskComments', 'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks',
             'Teams', 'UserBadges', 'UserOrganizations', 'UserPointLevels', 'UserPoints',
-            'UserTallies', 'UserTeams', 'Users'
+            'UserRoles', 'UserTallies', 'UserTeams', 'Users'
         );
 
     PERFORM "test"."AssertEquals"(_Unexpected, NULL::text, 'tables in dbo that this test does not know about -- add them here and to test.InsertOneRowIntoEveryTable');
@@ -160,6 +163,7 @@ BEGIN
         ('FK_BadgeEventCriteria_Badges'), ('FK_BadgeGroupRelationships_BadgeGroups'),
         ('FK_BadgeGroupRelationships_Badges'), ('FK_BadgeReviews_Badges'),
         ('FK_BadgeReviews_Users'), ('FK_BadgeStatistics_Badges'),
+        ('FK_AccessControlLists_Tasks'), ('FK_AccessControlLists_Users'),
         ('FK_ApprovalDecisions_ApprovalRequests'),
         ('FK_ApprovalDecisions_ApprovalWorkflowStages'), ('FK_ApprovalDecisions_Users'),
         ('FK_ApprovalRequestLogs_ApprovalRequests'),
@@ -175,18 +179,21 @@ BEGIN
         ('FK_ApprovalWorkflowStages_ApprovalWorkflows'),
         ('FK_ApprovalWorkflows_Organizations'), ('FK_AssignmentHistory_Tasks'),
         ('FK_AssignmentHistory_Users_NewUserUUID'),
-        ('FK_AssignmentHistory_Users_PreviousUserUUID'), ('FK_BadgeAchievements_Badges'),
+        ('FK_AssignmentHistory_Users_PreviousUserUUID'), ('FK_Attachments_TaskComments'),
+        ('FK_Attachments_Tasks'), ('FK_BadgeAchievements_Badges'),
         ('FK_BadgeAchievements_Users'), ('FK_BadgeCriteria_Badges'),
         ('FK_BadgeEventCriteria_BadgeEvents'), ('FK_BadgeEventCriteria_Badges'),
         ('FK_BadgeGroupRelationships_BadgeGroups'), ('FK_BadgeGroupRelationships_Badges'),
         ('FK_BadgeReviews_Badges'), ('FK_BadgeReviews_Users'),
         ('FK_BadgeStatistics_Badges'), ('FK_Checklists_Tasks'),
-        ('FK_Labels_Organizations'), ('FK_PointLevels_Points'),
+        ('FK_EventLog_Organizations'), ('FK_EventLog_Users'), ('FK_Labels_Organizations'),
+        ('FK_Notifications_Organizations'), ('FK_Notifications_Tasks'),
+        ('FK_Notifications_Users'), ('FK_PointLevels_Points'),
         ('FK_PointRedemptions_Organizations'), ('FK_PointRedemptions_Points'),
         ('FK_PointRedemptions_Users'), ('FK_PointTransfers_Organizations'),
         ('FK_PointTransfers_Points'), ('FK_PointTransfers_Users_ReceiverUserUUID'),
         ('FK_PointTransfers_Users_SenderUserUUID'), ('FK_Roadmaps_Organizations'),
-        ('FK_SharedBadges_Badges'), ('FK_SharedBadges_Users'),
+        ('FK_Roles_Organizations'), ('FK_SharedBadges_Badges'), ('FK_SharedBadges_Users'),
         ('FK_SharedBadges_Users_SharedWithUserUUID'),
         ('FK_SurveyAnswers_SurveyParticipants'),
         ('FK_SurveyAnswers_SurveyQuestionOptions'), ('FK_SurveyAnswers_SurveyQuestions'),
@@ -199,7 +206,7 @@ BEGIN
         ('FK_Tasks_Organizations'), ('FK_Tasks_Roadmaps'), ('FK_Tasks_Users'),
         ('FK_UserBadges_Badges'), ('FK_UserBadges_Organizations'), ('FK_UserBadges_Users'),
         ('FK_UserPointLevels_Organizations'), ('FK_UserPointLevels_PointLevels'),
-        ('FK_UserPointLevels_Users')
+        ('FK_UserPointLevels_Users'), ('FK_UserRoles_Roles'), ('FK_UserRoles_Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
         SELECT 1 FROM pg_constraint

@@ -68,7 +68,11 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('Option.Yes',               'ffffffff-0000-4000-8000-000000000004'),
     ('Option.No',                'ffffffff-0000-4000-8000-000000000005'),
     ('Participant.Member',       'ffffffff-0000-4000-8000-000000000006'),
-    ('Participant.Owner',        'ffffffff-0000-4000-8000-000000000007');
+    ('Participant.Owner',        'ffffffff-0000-4000-8000-000000000007'),
+    ('Role.Lead',                '12121212-0000-4000-8000-000000000001'),
+    ('Role.Reviewer',            '12121212-0000-4000-8000-000000000002'),
+    ('Notification.Unread',      '13131313-0000-4000-8000-000000000001'),
+    ('Notification.Read',        '13131313-0000-4000-8000-000000000002');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -260,3 +264,32 @@ INSERT INTO "dbo"."SurveyParticipants" ("SurveyParticipantUUID", "SurveyUUID", "
 INSERT INTO "dbo"."SurveyAnswers" ("SurveyParticipantUUID", "SurveyQuestionUUID", "SurveyQuestionOptionUUID", "AnswerText", "CreatedBy") VALUES
     ("test"."Fixture"('Participant.Member'), "test"."Fixture"('Question.Choice'), "test"."Fixture"('Option.Yes'), NULL,              'fixtures'),
     ("test"."Fixture"('Participant.Member'), "test"."Fixture"('Question.Text'),   NULL,                           'Keep it up.',     'fixtures');
+
+INSERT INTO "dbo"."Roles" ("RoleUUID", "OrganizationUUID", "Name", "Description", "CreatedBy") VALUES
+    ("test"."Fixture"('Role.Lead'),     "test"."Fixture"('Organization.Acme'), 'Lead',     'Runs the team.',  'fixtures'),
+    ("test"."Fixture"('Role.Reviewer'), "test"."Fixture"('Organization.Acme'), 'Reviewer', 'Reviews work.',   'fixtures');
+
+-- The member holds both roles; nothing in the schema reads them.
+INSERT INTO "dbo"."UserRoles" ("UserUUID", "RoleUUID", "CreatedBy") VALUES
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Role.Lead'),     'fixtures'),
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Role.Reviewer'), 'fixtures');
+
+-- One unread and one read, which is the only question this table answers.
+INSERT INTO "dbo"."Notifications" ("NotificationUUID", "UserUUID", "OrganizationUUID", "TaskUUID", "NotificationType", "Message", "ReadAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Notification.Unread'), "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Task.Build'), 'Assigned', 'You have a new task.', NULL,                     'fixtures'),
+    ("test"."Fixture"('Notification.Read'),   "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), NULL,                           'Welcome',  'Welcome aboard.',      '2024-01-03 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."AccessControlLists" ("UserUUID", "TaskUUID", "PermissionType", "CreatedBy") VALUES
+    ("test"."Fixture"('User.Member'),   "test"."Fixture"('Task.Build'), 'Write', 'fixtures'),
+    ("test"."Fixture"('User.Outsider'), "test"."Fixture"('Task.Build'), 'Read',  'fixtures');
+
+-- One on a task, one on a comment. Never both, never neither.
+INSERT INTO "dbo"."Attachments" ("TaskUUID", "TaskCommentUUID", "FileName", "FilePath", "CreatedBy") VALUES
+    ("test"."Fixture"('Task.Build'), NULL, 'spec.pdf', '/files/spec.pdf', 'fixtures'),
+    (NULL, (SELECT "TaskCommentUUID" FROM "dbo"."TaskComments" WHERE "TaskUUID" = "test"."Fixture"('Task.Build')), 'screenshot.png', '/files/screenshot.png', 'fixtures');
+
+-- Two feed rows and one audit row, which is what IsUserVisible separates.
+INSERT INTO "dbo"."EventLog" ("OrganizationUUID", "UserUUID", "EventType", "Description", "IsUserVisible", "OccurredAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), 'TaskAssigned',  'Marcus picked up Build.', true,  '2024-01-15 00:00:00+00', 'fixtures'),
+    ("test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), 'BadgeEarned',   'Marcus earned Rookie.',   true,  '2024-01-01 00:00:00+00', 'fixtures'),
+    (NULL,                                  NULL,                            'SchemaApplied', 'Nightly rebuild.',        false, '2024-01-20 00:00:00+00', 'fixtures');

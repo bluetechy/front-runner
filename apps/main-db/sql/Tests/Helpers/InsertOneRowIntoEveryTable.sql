@@ -30,6 +30,8 @@ DECLARE
     _SurveyQuestionUUID uuid;
     _SurveyQuestionOptionUUID uuid;
     _SurveyParticipantUUID uuid;
+    _RoleUUID uuid;
+    _TaskCommentUUID uuid;
 BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
@@ -43,6 +45,9 @@ BEGIN
     INSERT INTO "dbo"."PointMultipliers" ("Name", "Description", "Factor", "CreatedBy") VALUES ('Smoke Multiplier', 'Smoke test multiplier.', 2.0000, _By);
     INSERT INTO "dbo"."Roadmaps" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Roadmap', 'Smoke test roadmap.', _By) RETURNING "RoadmapUUID" INTO _RoadmapUUID;
     INSERT INTO "dbo"."Labels" ("OrganizationUUID", "Name", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Label', _By) RETURNING "LabelUUID" INTO _LabelUUID;
+    INSERT INTO "dbo"."Roles" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Role', 'Smoke test role.', _By) RETURNING "RoleUUID" INTO _RoleUUID;
+    INSERT INTO "dbo"."UserRoles" ("UserUUID", "RoleUUID", "CreatedBy") VALUES (_UserUUID, _RoleUUID, _By);
+    INSERT INTO "dbo"."EventLog" ("OrganizationUUID", "UserUUID", "EventType", "Description", "CreatedBy") VALUES (_OrganizationUUID, _UserUUID, 'Smoke', 'Smoke test event.', _By);
     INSERT INTO "dbo"."ApprovalWorkflows" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Workflow', 'Smoke test workflow.', _By) RETURNING "ApprovalWorkflowUUID" INTO _ApprovalWorkflowUUID;
     INSERT INTO "dbo"."ApprovalWorkflowStages" ("ApprovalWorkflowUUID", "Name", "CreatedBy") VALUES (_ApprovalWorkflowUUID, 'Smoke Stage', _By) RETURNING "ApprovalWorkflowStageUUID" INTO _ApprovalWorkflowStageUUID;
     INSERT INTO "dbo"."ApprovalWorkflowPermissions" ("ApprovalWorkflowStageUUID", "UserUUID", "CreatedBy") VALUES (_ApprovalWorkflowStageUUID, _UserUUID, _By);
@@ -71,11 +76,15 @@ BEGIN
     -- exactly one row, so the other end is a fixture task.
     INSERT INTO "dbo"."Tasks" ("OrganizationUUID", "RoadmapUUID", "Name", "Description", "AssignedUserUUID", "CreatedBy") VALUES (_OrganizationUUID, _RoadmapUUID, 'Smoke Task', 'Smoke test task.', _UserUUID, _By) RETURNING "TaskUUID" INTO _TaskUUID;
     INSERT INTO "dbo"."TaskDependencies" ("DependentTaskUUID", "PrerequisiteTaskUUID", "CreatedBy") VALUES (_TaskUUID, "test"."Fixture"('Task.Design'), _By);
-    INSERT INTO "dbo"."TaskComments" ("TaskUUID", "UserUUID", "Comment", "CreatedBy") VALUES (_TaskUUID, _UserUUID, 'Smoke comment.', _By);
+    INSERT INTO "dbo"."TaskComments" ("TaskUUID", "UserUUID", "Comment", "CreatedBy") VALUES (_TaskUUID, _UserUUID, 'Smoke comment.', _By) RETURNING "TaskCommentUUID" INTO _TaskCommentUUID;
     INSERT INTO "dbo"."TaskHistory" ("TaskUUID", "UserUUID", "ChangeType", "OldValue", "NewValue", "CreatedBy") VALUES (_TaskUUID, _UserUUID, 'Status', 'Pending', 'InProgress', _By);
     INSERT INTO "dbo"."TaskLabels" ("TaskUUID", "LabelUUID", "CreatedBy") VALUES (_TaskUUID, _LabelUUID, _By);
     INSERT INTO "dbo"."AssignmentHistory" ("TaskUUID", "PreviousUserUUID", "NewUserUUID", "CreatedBy") VALUES (_TaskUUID, NULL, _UserUUID, _By);
     INSERT INTO "dbo"."Checklists" ("TaskUUID", "Description", "CreatedBy") VALUES (_TaskUUID, 'Smoke checklist item.', _By);
+    INSERT INTO "dbo"."AccessControlLists" ("UserUUID", "TaskUUID", "PermissionType", "CreatedBy") VALUES (_UserUUID, _TaskUUID, 'Read', _By);
+    INSERT INTO "dbo"."Notifications" ("UserUUID", "OrganizationUUID", "TaskUUID", "NotificationType", "Message", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _TaskUUID, 'Assigned', 'Smoke notification.', _By);
+    -- Exactly one owner, so this one hangs off the comment and not the task.
+    INSERT INTO "dbo"."Attachments" ("TaskCommentUUID", "FileName", "FilePath", "CreatedBy") VALUES (_TaskCommentUUID, 'smoke.txt', '/tmp/smoke.txt', _By);
 
     -- The request approves the redemption above. Exactly one subject column
     -- may be set, so the other two stay NULL.

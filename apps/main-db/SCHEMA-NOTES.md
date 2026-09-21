@@ -13,18 +13,17 @@ test/
   runner.test.js    discovers and drives the SQL tests
 sql/
   Functions/        one function per file            (22)
-  Tables/           CREATE TABLE only, no triggers   (45)
-  Triggers/         one trigger per file             (92)
-  ForeignKeys/      FK constraints, one file per table (32 files, 70 constraints)
+  Tables/           CREATE TABLE only, no triggers   (51)
+  Triggers/         one trigger per file            (104)
+  ForeignKeys/      FK constraints, one file per table (38 files, 82 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand     (34)
+  Seeds/Dev/        demo data, applied on demand     (40)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (39)
+    Cases/          one file per object under test    (43)
   Drafts/           not built; see "Drafts" below
-    Tables/           still to migrate                (6)
     Functions/        real logic, to rewrite         (34)
     StoredProcedures/ real logic, to rewrite         (18)
     Unbuilt.sql       117 signatures, nothing written
@@ -244,6 +243,9 @@ required to have all four, so a new table without them fails the suite.
 `sql/Drafts/` is what is left of the former `Tables-ChatGPT.sql` and
 `Functions-ChatGPT.sql`. Nothing in it is applied by `init.sh`.
 
+**`Drafts/Tables/` is empty and gone — every draft table has been migrated.**
+What is left is logic.
+
 **The folder is being merged into the live schema and is meant to reach zero.**
 It is a backlog, not an archive: migrating something deletes its draft. That
 rule arrived late — the first four migrations documented what they superseded
@@ -255,7 +257,6 @@ What is left, and what finishing it means:
 
 | | Count | What "merged" looks like |
 |---|---|---|
-| `Tables/` | 6 | `AccessControlLists`, `ActivityFeed`, `Attachments`, `EventLog`, `Notifications`, `UserRoles` — the same table migration as the previous five rounds |
 | `Functions/` + `StoredProcedures/` | 52 | rewritten as `sql/Functions/*.sql`: uuid keys, quoted identifiers, `_Parameter` names, and the organization-membership check every live read function carries. Not a translation — the drafts have no authorization at all |
 | `Unbuilt.sql` | 117 signatures | nothing to migrate. These are operations nobody ever wrote, so they empty out as features get built, not as part of this merge |
 
@@ -358,6 +359,48 @@ definition tables are global (`Points`, `Badges`, and now `PointLevels` and
 now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
 drops the draft's `PointTypeId`: the level it names already carries the point
 type, so repeating it would let the two disagree.
+
+### The platform tables
+
+Six drafts in, six tables out, but not one for one.
+
+**`UserRoles` defined roles and assigned none.** The draft table of that name
+held `RoleId`, `RoleName`, `Description` and nothing linking a user to one —
+the same gap `Labels` had. It became `dbo.Roles`, and `dbo.UserRoles` is the
+assignment that makes it mean something.
+
+**`ActivityFeed` and `EventLog` were one table written twice.** Same shape,
+same append-only purpose, differing only in whether the row carried a type —
+and with two of them there is no rule for which one anything writes to, which
+is the argument that sank `PointUsageLogs`. They are `dbo.EventLog`.
+`IsUserVisible` is what lets one table serve both readers: flagged rows are
+somebody's activity feed, the rest is the audit trail. That column is the one
+thing neither draft had.
+
+**Three columns were added that no draft carried**, each because the table
+cannot answer its own question without them: `Notifications."ReadAt"` (nothing
+else distinguishes seen from unseen), `EventLog."IsUserVisible"` (above), and
+`Attachments`' check that exactly one of `TaskUUID`/`TaskCommentUUID` is set —
+the draft left both nullable and said nothing.
+
+`Notifications."TaskUUID"` is nullable now. The draft assumed every
+notification was about a task, and most of what this schema would notify on —
+a badge, an approval, a point transfer — is not one.
+
+**The schema now has four unconnected authorization mechanisms** and no live
+function consults more than one of them:
+
+| Mechanism | Read by |
+|---|---|
+| `Users."IsAdmin"`, `UserOrganizations."IsOwner"`, `UserTeams."IsManager"` | the live functions |
+| `dbo.ApprovalWorkflowPermissions` | nothing |
+| `dbo.AccessControlLists` | nothing |
+| `dbo.Roles` + `dbo.UserRoles` | nothing |
+
+`TestAccessControlLists_AreNotConsultedByAnything` holds that down: the
+fixtures give an outsider a Read grant on a task and he still belongs to
+nothing. Picking one of these and deleting the others is a real decision
+waiting to be made.
 
 ### Approvals
 
