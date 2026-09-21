@@ -66,6 +66,26 @@ and how a run works. `sql/Seeds/README.md` has how seeding works and the rules
 that keep a seed file re-runnable. Read the relevant one before a non-trivial
 change rather than inferring the convention from a single file.
 
+### Bash inside the container, JavaScript on the host
+
+`bin/*.sh` and `init.sh` run **inside** the `main-db` container — the Dockerfile
+copies them to `/opt/main-db/bin`, Compose bind-mounts them there, and the
+Makefile reaches them with `docker compose exec`. That image is `postgres:18.6`:
+it has `psql` and a shell and nothing else, so operator scripts are bash and
+talk to the database through `psql`.
+
+`test/runner.test.js` runs **on the host** and connects over the published
+port. It is JavaScript because it is a workspace member — `npm test` at the
+root and `turbo run test` pick it up next to main-api and main-gui — and
+because `node --test` is what supplies `--test-name-pattern`, `--watch` and the
+JUnit reporter that `make db-test`, `make db-test-watch` and `npm run test:ci`
+are built on. A bash suite would mean hand-rolling all three.
+
+So: a new operator script goes in `bin/` as bash; new host-side tooling goes in
+the workspace as JavaScript. Don't put host-side tooling in `bin/` — the
+Dockerfile copies that whole directory into the image, where node is not
+installed.
+
 ## Traps that have already caused bugs here
 
 - **Output columns shadow table columns.** A function declared
