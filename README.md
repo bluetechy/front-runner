@@ -4,7 +4,7 @@ A Turborepo monorepo.
 
 ## Layout
 
-  - `apps/main-api` — GraphQL/Express API
+  - `apps/main-api` — NestJS/TypeScript GraphQL API
   - `apps/main-db` — Postgres image and schema
   - `apps/main-gui` — React frontend
   - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
@@ -28,8 +28,10 @@ development defaults and are not used anywhere else.
 
 ## Service graph
 
-Run these from the repository root. `main-api` and `main-gui` are commented out
-in `docker-compose-dev.yml`; only `main-db` and `main-kvs` start today.
+Run these from the repository root. `main-api`, `main-db`, and `main-kvs` are
+enabled in `docker-compose-dev.yml`; `main-gui` remains commented out. The API
+uses Node 24 and reloads when its mounted TypeScript source changes. See
+[API setup, design decisions, and migration](apps/main-api/docs/README.md).
 
 To startup the service graph:
 

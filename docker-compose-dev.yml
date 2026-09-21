@@ -1,18 +1,32 @@
 services:
-#    main-api:
-#        build:
-#            context: ./apps/main-api
-#            dockerfile: Dockerfile
-#        command: [ "/bin/bash", "-c", "nodemon -L /var/www/app/index.js" ]
-#        env_file:
-#            - .env
-#        networks:
-#            - service-mesh
-#        ports:
-#            - ${API_PUBLISHED_PORT}:${API_PORT}
-#        restart: always
-#        volumes:
-#            - "./apps/main-api/src:/var/www/app"
+    main-api:
+        build:
+            context: .
+            dockerfile: apps/main-api/Dockerfile
+            target: development
+        env_file:
+            - .env
+        environment:
+            NODE_ENV: development
+            POSTGRES_ADDRESS: main-db
+            POSTGRES_PORT: 5432
+            POSTGRES_DATABASE: ${APP_DB_NAME}
+            POSTGRES_USER: ${APP_DB_USER}
+            POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
+            CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
+            HYDRA_BASE_URL: ${HYDRA_BASE_URL:-https://hydraqa.unicity.net/v5a-test}
+            HYDRA_NAMESPACE: ${HYDRA_NAMESPACE:-https://hydraqa.unicity.net/v5a-test/employees}
+        depends_on:
+            main-db:
+                condition: service_healthy
+        networks:
+            - service-mesh
+        ports:
+            - "${API_PUBLISHED_PORT}:${API_PORT}"
+        restart: unless-stopped
+        init: true
+        volumes:
+            - "./apps/main-api/src:/app/apps/main-api/src:ro"
     main-db:
         build:
             context: ./apps/main-db
