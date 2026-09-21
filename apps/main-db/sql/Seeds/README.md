@@ -52,7 +52,8 @@ File names are `<NN>_<Table>.sql`. This is the one place in the repository where
 a file name is not exactly an object name: rows have to load parents before
 children, so the number leads. `01_Organizations.sql` through `05_Points.sql`
 are the parent tables; `06`-`09` are the memberships and balances that point at
-them.
+them; `10`-`14` are the points features built on top -- levels, multipliers,
+redemptions and transfers.
 
 ## Writing a seed file
 
@@ -104,6 +105,16 @@ Each parent table owns a leading nibble, so a UUID is identifiable on sight:
 | `d0000000-...` | `Badges` |
 | `e0000000-...` | `Points` |
 | `f0000000-...` | `UserPoints` |
+| `10000000-...` | `PointLevels` |
+| `11000000-...` | `PointMultipliers` |
+| `12000000-...` | `UserPointLevels` |
+| `13000000-...` | `PointRedemptions` |
+| `14000000-...` | `PointTransfers` |
+
+`a` through `f` are used up, so the scheme carries on into two-digit prefixes
+counting from `10`. It is still one distinct leading byte per table, which is
+the part that matters -- a UUID in a psql result is identifiable without
+looking up which table it came from.
 
 Join tables have no key of their own -- they carry the parents' UUIDs. Keep the
 scheme going when you add a table. The `-4000-8000-` in the middle is the v4

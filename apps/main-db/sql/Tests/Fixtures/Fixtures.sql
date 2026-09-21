@@ -37,7 +37,16 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('UserPoint.MemberExpired',  '66666666-0000-4000-8000-000000000002'),
     ('UserPoint.MemberFuture',   '66666666-0000-4000-8000-000000000003'),
     ('UserPoint.MemberGems',     '66666666-0000-4000-8000-000000000004'),
-    ('UserPoint.OwnerActive',    '66666666-0000-4000-8000-000000000005');
+    ('UserPoint.OwnerActive',    '66666666-0000-4000-8000-000000000005'),
+    ('PointLevel.Bronze',        '77777777-0000-4000-8000-000000000001'),
+    ('PointLevel.Silver',        '77777777-0000-4000-8000-000000000002'),
+    ('PointLevel.Retired',       '77777777-0000-4000-8000-000000000003'),
+    ('PointMultiplier.Active',   '88888888-0000-4000-8000-000000000001'),
+    ('PointMultiplier.Lapsed',   '88888888-0000-4000-8000-000000000002'),
+    ('PointRedemption.Pending',  '99999999-0000-4000-8000-000000000001'),
+    ('PointRedemption.Approved', '99999999-0000-4000-8000-000000000002'),
+    ('PointTransfer.Pending',    'aaaaaaaa-0000-4000-8000-000000000001'),
+    ('PointTransfer.Completed',  'aaaaaaaa-0000-4000-8000-000000000002');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -103,3 +112,29 @@ INSERT INTO "dbo"."UserPoints" ("UserPointUUID", "UserUUID", "OrganizationUUID",
     ("test"."Fixture"('UserPoint.MemberFuture'),  "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Not yet due',  NULL,     NULL,                            2.5000, '2999-01-01 00:00:00+00', 'fixtures'),
     ("test"."Fixture"('UserPoint.MemberGems'),    "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Gems'),   'Gems',         NULL,     NULL,                            3.0000, NULL,                     'fixtures'),
     ("test"."Fixture"('UserPoint.OwnerActive'),   "test"."Fixture"('User.Owner'),  "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 'Active',       NULL,     NULL,                            7.0000, NULL,                     'fixtures');
+
+-- Bronze sits below the member's Points tally of 12.5 and Silver above it, so
+-- a level reader has one level reached and one not. Retired is disabled.
+INSERT INTO "dbo"."PointLevels" ("PointLevelUUID", "PointUUID", "Name", "Description", "MinimumAmount", "IsEnabled", "CreatedBy") VALUES
+    ("test"."Fixture"('PointLevel.Bronze'),  "test"."Fixture"('Point.Points'), 'Bronze',  'Entry level.',   10.0000, true,  'fixtures'),
+    ("test"."Fixture"('PointLevel.Silver'),  "test"."Fixture"('Point.Points'), 'Silver',  'Next level up.', 50.0000, true,  'fixtures'),
+    ("test"."Fixture"('PointLevel.Retired'), "test"."Fixture"('Point.Points'), 'Retired', 'Withdrawn.',    999.0000, false, 'fixtures');
+
+-- One multiplier in its window and one that closed in 2020.
+INSERT INTO "dbo"."PointMultipliers" ("PointMultiplierUUID", "Name", "Description", "Factor", "StartsAt", "EndsAt", "IsEnabled", "CreatedBy") VALUES
+    ("test"."Fixture"('PointMultiplier.Active'), 'Double Points', 'Everything counts twice.', 2.0000, '2020-01-01 00:00:00+00', '2999-01-01 00:00:00+00', true, 'fixtures'),
+    ("test"."Fixture"('PointMultiplier.Lapsed'), 'Launch Week',   'Long over.',               3.0000, '2019-01-01 00:00:00+00', '2020-01-01 00:00:00+00', true, 'fixtures');
+
+-- The member has reached Bronze and not Silver.
+INSERT INTO "dbo"."UserPointLevels" ("UserUUID", "OrganizationUUID", "PointLevelUUID", "ReachedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('PointLevel.Bronze'), '2024-01-01 00:00:00+00', 'fixtures');
+
+-- Neither redemption has moved any points: settling one means writing a
+-- negative dbo.UserPoints row, and nothing here does that.
+INSERT INTO "dbo"."PointRedemptions" ("PointRedemptionUUID", "UserUUID", "OrganizationUUID", "PointUUID", "Amount", "Description", "Status", "RedeemedAt", "CreatedBy") VALUES
+    ("test"."Fixture"('PointRedemption.Pending'),  "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 2.0000, 'Coffee voucher.', 'Pending',  NULL,                     'fixtures'),
+    ("test"."Fixture"('PointRedemption.Approved'), "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), 1.0000, 'Sticker pack.',   'Approved', '2024-06-01 00:00:00+00', 'fixtures');
+
+INSERT INTO "dbo"."PointTransfers" ("PointTransferUUID", "OrganizationUUID", "PointUUID", "SenderUserUUID", "ReceiverUserUUID", "Amount", "Description", "Status", "TransferredAt", "CreatedBy") VALUES
+    ("test"."Fixture"('PointTransfer.Pending'),   "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), "test"."Fixture"('User.Member'), "test"."Fixture"('User.Owner'),  1.5000, 'Thanks for the help.', 'Pending',   NULL,                     'fixtures'),
+    ("test"."Fixture"('PointTransfer.Completed'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Point.Points'), "test"."Fixture"('User.Owner'),  "test"."Fixture"('User.Member'), 2.5000, 'Settled already.',     'Completed', '2024-05-01 00:00:00+00', 'fixtures');

@@ -18,6 +18,7 @@ DECLARE
     _BadgeCategoryUUID uuid;
     _BadgeEventUUID uuid;
     _BadgeGroupUUID uuid;
+    _PointLevelUUID uuid;
 BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
@@ -27,6 +28,8 @@ BEGIN
     INSERT INTO "dbo"."Badges" ("Name", "Description", "BadgeCategoryUUID", "OwnerUUID", "CreatedBy") VALUES ('Smoke Badge', 'Smoke test badge.', _BadgeCategoryUUID, _UserUUID, _By) RETURNING "BadgeUUID" INTO _BadgeUUID;
     INSERT INTO "dbo"."BadgeEvents" ("Name", "Description", "CreatedBy") VALUES ('Smoke Event', 'Smoke test event.', _By) RETURNING "BadgeEventUUID" INTO _BadgeEventUUID;
     INSERT INTO "dbo"."BadgeGroups" ("Name", "Description", "CreatedBy") VALUES ('Smoke Group', 'Smoke test group.', _By) RETURNING "BadgeGroupUUID" INTO _BadgeGroupUUID;
+    INSERT INTO "dbo"."PointLevels" ("PointUUID", "Name", "Description", "MinimumAmount", "CreatedBy") VALUES (_PointUUID, 'Smoke Level', 'Smoke test level.', 1.0000, _By) RETURNING "PointLevelUUID" INTO _PointLevelUUID;
+    INSERT INTO "dbo"."PointMultipliers" ("Name", "Description", "Factor", "CreatedBy") VALUES ('Smoke Multiplier', 'Smoke test multiplier.', 2.0000, _By);
 
     INSERT INTO "dbo"."BadgeCriteria" ("BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES (_BadgeUUID, 'Smoke criteria.', 'Activity', 1, _By);
     INSERT INTO "dbo"."BadgeEventCriteria" ("BadgeEventUUID", "BadgeUUID", "Description", "BadgeType", "Value", "CreatedBy") VALUES (_BadgeEventUUID, _BadgeUUID, 'Smoke event criteria.', 'Achievement', 1, _By);
@@ -39,6 +42,9 @@ BEGIN
     INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _By);
     INSERT INTO "dbo"."UserTeams" ("UserUUID", "TeamUUID", "CreatedBy") VALUES (_UserUUID, _TeamUUID, _By);
     INSERT INTO "dbo"."UserBadges" ("UserUUID", "OrganizationUUID", "BadgeUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _BadgeUUID, _By);
+    INSERT INTO "dbo"."UserPointLevels" ("UserUUID", "OrganizationUUID", "PointLevelUUID", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointLevelUUID, _By);
+    INSERT INTO "dbo"."PointRedemptions" ("UserUUID", "OrganizationUUID", "PointUUID", "Amount", "Description", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointUUID, 1.0000, 'Smoke redemption.', _By);
+    INSERT INTO "dbo"."PointTransfers" ("OrganizationUUID", "PointUUID", "SenderUserUUID", "ReceiverUserUUID", "Amount", "Description", "CreatedBy") VALUES (_OrganizationUUID, _PointUUID, _UserUUID, "test"."Fixture"('User.Member'), 1.0000, 'Smoke transfer.', _By);
 
     -- The UserPoints insert fires calculate_tallies, which is what puts a row
     -- into UserTallies. Inserting into UserTallies directly would hide that.

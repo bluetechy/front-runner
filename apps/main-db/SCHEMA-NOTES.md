@@ -13,16 +13,16 @@ test/
   runner.test.js    discovers and drives the SQL tests
 sql/
   Functions/        one function per file            (22)
-  Tables/           CREATE TABLE only, no triggers   (20)
-  Triggers/         one trigger per file             (42)
-  ForeignKeys/      FK constraints, one file per table (8 files, 16 constraints)
+  Tables/           CREATE TABLE only, no triggers   (25)
+  Triggers/         one trigger per file             (52)
+  ForeignKeys/      FK constraints, one file per table (12 files, 27 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand      (9)
+  Seeds/Dev/        demo data, applied on demand     (14)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (8)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (23)
+    Cases/          one file per object under test    (29)
   Drafts/           not built; see "Drafts" below
     Tables/                                          (45)
     Functions/                                       (72)
@@ -98,6 +98,12 @@ is still unquoted — see below.
 so a parameter can never collide with the PascalCase column of the same name. The
 related trap that this does *not* solve — `RETURNS TABLE` output columns shadowing
 table columns — is in `CLAUDE.md`.
+
+`PointTransfers` bends the "2nd to same table" rule: it has two foreign keys to
+`Users` and *both* carry the column suffix. The rule leaves the first one
+unsuffixed on the assumption that it is the plain `"UserUUID"`, and neither
+`"SenderUserUUID"` nor `"ReceiverUserUUID"` is — an unsuffixed
+`FK_PointTransfers_Users` would not say which end it constrained.
 
 `sql/Drafts/` was converted to the same convention: every table, column, function,
 procedure and parameter is now PascalCase, and each file is named after its object.
@@ -255,6 +261,7 @@ has not caught up with yet — read them as a feature inventory, not as dead cod
 | `UserBadges` | `dbo.UserBadges` — columns folded in, see below |
 | `PointTypes` | `dbo.Points` |
 | `PointTransactions` | `dbo.UserPoints` |
+| `PointUsageLogs` | `dbo.UserPoints` |
 | `UserPointTotals` | `dbo.UserTallies` |
 
 The 11 badge tables were commented out in the original file, which lines up exactly
@@ -300,6 +307,42 @@ what it will silently clear.
 `Drafts/Functions/GetBadgeProgress.sql` and `GetUserBadgeProgressSummary.sql` are the
 readers they were drafted for; neither is migrated. `Tests/Cases/UserBadges.sql`
 reaches into the table directly in the meantime.
+
+### Tables migrated from the drafts
+
+Five of the points tables are live, uuid-keyed, org-scoped and audited:
+`PointLevels`, `UserPointLevels`, `PointMultipliers`, `PointRedemptions`,
+`PointTransfers`. The draft versions stay where they are.
+
+Which half of a pair gets `OrganizationUUID` follows what was already here:
+definition tables are global (`Points`, `Badges`, and now `PointLevels` and
+`PointMultipliers`), per-user tables are scoped (`UserPoints`, `UserBadges`, and
+now `UserPointLevels`, `PointRedemptions`, `PointTransfers`). `UserPointLevels`
+drops the draft's `PointTypeId`: the level it names already carries the point
+type, so repeating it would let the two disagree.
+
+**`PointUsageLogs` was deliberately not migrated.** It is a second ledger with
+the same shape as `PointTransactions` — user, signed amount, reason, JSON
+details, timestamp — and `dbo.UserPoints` is already that table, with `Reason`
+and `Details` folded in above. Creating it would have given the schema two
+ledgers and no rule for which one a balance comes from. The drafts read
+`PointUsageLogs` in 20 files and `PointTransactions` in 3; both should be read
+as `dbo.UserPoints` when those functions are migrated.
+
+**None of the five moves a balance.** `PointRedemptions` and `PointTransfers`
+are records of intent and approval — a row marked `Completed` has still not
+changed anyone's tally, because `calculate_tallies` sums `dbo.UserPoints` and
+nothing else. Settling a redemption means writing a negative `UserPoints` row;
+settling a transfer means writing the matching pair. Neither is implemented, and
+the tests in `Tests/Cases/PointRedemptions.sql` and `PointTransfers.sql` pin the
+current behaviour so the gap is visible rather than assumed closed.
+`PointMultipliers` is the same kind of gap: the factor is stored, and whatever
+awards points has to apply it before the amount is written.
+
+`UserPointLevels` is history, not a derived view. A level reached stays reached
+when the balance falls back — `Seeds/Dev/12_UserPointLevels.sql` carries one row
+in exactly that state on purpose, and a reader that rebuilds levels from the
+current tally would wrongly drop it.
 
 ### Duplicates resolved
 
