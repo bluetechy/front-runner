@@ -24,9 +24,10 @@ sql/
     Fixtures/       the world every test starts from  (1)
     Cases/          one file per object under test    (39)
   Drafts/           not built; see "Drafts" below
-    Tables/                                          (45)
-    Functions/                                       (72)
-    StoredProcedures/                                (97)
+    Tables/           still to migrate                (6)
+    Functions/        real bodies, still to migrate  (61)
+    StoredProcedures/ real bodies, still to migrate  (60)
+    Stubs.sql         48 signatures with no bodies
 ```
 
 `bin/apply.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security`.
@@ -240,10 +241,33 @@ required to have all four, so a new table without them fails the suite.
 
 ## Drafts
 
-`sql/Drafts/` is the decomposed content of the former `Tables-ChatGPT.sql` and
-`Functions-ChatGPT.sql`. Nothing in it is applied by `init.sh` and nothing was
-deleted for referencing a missing table — those are flagged with a
-`-- MISSING REFS:` header in the file instead.
+`sql/Drafts/` is what is left of the former `Tables-ChatGPT.sql` and
+`Functions-ChatGPT.sql`. Nothing in it is applied by `init.sh`.
+
+**It is a backlog, not an archive. Migrating something deletes its draft.**
+That rule arrived late — the first four migrations documented what they
+superseded and left the files sitting there, so `Drafts/Tables/` reached 87%
+dead weight before anyone noticed. The register below is what the mappings
+became; git history is where the deleted originals live. Keep the rule going:
+if a draft's job is done, it goes.
+
+What is left, and why each part earns its place:
+
+| | Count | Why it is still here |
+|---|---|---|
+| `Tables/` | 6 | the platform tables, not yet designed: `AccessControlLists`, `ActivityFeed`, `Attachments`, `EventLog`, `Notifications`, `UserRoles` |
+| `Functions/` + `StoredProcedures/` | 121 | real bodies. None will run as written, but the logic is the last thing in here that cannot be reconstructed from the live schema |
+| `Stubs.sql` | 48 signatures | names, parameters and return shapes for operations nobody has written. Were 48 files saying nothing each |
+
+**Every table the remaining logic needs now exists.** That was not true before
+the migrations — draft bodies referenced seven tables that had never been
+drafted at all (`ApprovalProcesses`, `ApprovalProcessSteps`,
+`PointTransferRequests`, `BadgeGroupAssociations`, `UserPointTransferLimits`,
+`RoadmapWorkflow`, `RoadmapWorkflowTasks`). All of them have a home now, so the
+functions are no longer blocked on missing tables; they are blocked on being
+rewritten to the live conventions. `BadgeSharingAnalytics` is the one exception,
+reading a `UserSharedBadges` that never existed anywhere — `dbo.SharedBadges` is
+what it means.
 
 It is **the same product, drafted earlier** — organizations, teams, badges, points,
 and the workflow features built on top of them. It is not a second application's
@@ -254,20 +278,27 @@ identifiers, and references to a `Users(UserId)` table that this repo does not h
 written, but the drafts are the design this schema grew out of and the backlog it
 has not caught up with yet — read them as a feature inventory, not as dead code.
 
-**Overlaps with the live schema** — flagged with `-- OVERLAP:` in each file:
+**Draft tables already superseded, and by what.** These files are gone; this is
+the register of where each one ended up:
 
 | Draft | Live equivalent |
 |---|---|
 | `Badges`, `BadgeAchievements`, `BadgeCriteria`, `BadgeCategories`, `BadgeEvents`, `BadgeEventCriteria`, `BadgeGroups`, `BadgeGroupRelationships`, `BadgeReviews`, `BadgeStatistics`, `SharedBadges` | the matching `dbo.Badge*` tables |
 | `UserBadges` | `dbo.UserBadges` — columns folded in, see below |
+| `PointLevels`, `UserPointLevels`, `PointMultipliers`, `PointRedemptions`, `PointTransfers` | the matching `dbo.Point*` tables |
+| `Roadmaps`, `Tasks`, `TaskDependencies`, `TaskComments`, `TaskHistory`, `AssignmentHistory`, `Checklists`, `Labels` | the matching `dbo` tables, plus `dbo.TaskLabels` which had no draft |
+| `ApprovalWorkflowStages`, `ApprovalRequests`, `ApprovalDecisions`, `ApprovalWorkflowPermissions` | the matching `dbo.Approval*` tables, under `dbo.ApprovalWorkflows` |
+| `ApprovalProcessLogs` | `dbo.ApprovalRequestLogs` |
+| `Surveys`, `SurveyQuestions`, `SurveyQuestionOptions`, `SurveyParticipants` | the matching `dbo.Survey*` tables |
+| `SurveyResponses` | `dbo.SurveyAnswers` |
 | `PointTypes` | `dbo.Points` |
 | `PointTransactions` | `dbo.UserPoints` |
 | `PointUsageLogs` | `dbo.UserPoints` |
 | `UserPointTotals` | `dbo.UserTallies` |
 
 The 11 badge tables were commented out in the original file, which lines up exactly
-with the live `dbo.Badge*` tables — they look migrated already. They are kept as
-drafts rather than deleted.
+with the live `dbo.Badge*` tables — they were already migrated before any of this
+started. Their drafts have been deleted along with the other 28.
 
 ### Columns folded in from the drafts
 
