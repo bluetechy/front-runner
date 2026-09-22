@@ -127,6 +127,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
         to="/dashboard"
         direction="row"
         sx={{
+          flexShrink: 0,
           alignItems: "center",
           justifyContent: "center",
           gap: 1.25,
@@ -152,7 +153,9 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
 
       {/* Whoever is signed in. The picture is their initials until there is
        * somewhere to get a photograph from -- the token carries none. */}
-      <Stack sx={{ alignItems: "center", paddingInline: "1.5rem" }}>
+      <Stack
+        sx={{ flexShrink: 0, alignItems: "center", paddingInline: "1.5rem" }}
+      >
         <Avatar
           sx={{
             width: 68,
@@ -189,13 +192,35 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
 
       <Divider
         sx={{
+          flexShrink: 0,
           mt: 2,
           marginInline: "1.4rem",
           borderColor: (theme) => theme.palette.brand.railEdge,
         }}
       />
 
-      <Box component="nav" aria-label="Application" sx={{ paddingBottom: 2 }}>
+      {/* Only the nav scrolls. The logo and whoever is signed in are above
+       * it and stay where they are, however many groups this grows to. */}
+      <Box
+        component="nav"
+        aria-label="Application"
+        sx={{
+          flex: 1,
+          /* Without this a flex child refuses to shrink below its content,
+           * and the rail scrolls as a whole instead of the nav inside it. */
+          minHeight: 0,
+          overflowY: "auto",
+          paddingBottom: 2,
+          scrollbarWidth: "thin",
+          scrollbarColor: (theme) =>
+            `${theme.palette.brand.railEdge} transparent`,
+          "&::-webkit-scrollbar": { width: 6 },
+          "&::-webkit-scrollbar-thumb": {
+            borderRadius: 999,
+            backgroundColor: (theme) => theme.palette.brand.railEdge,
+          },
+        }}
+      >
         {navGroups.map((group) => (
           <List
             key={group.label}
@@ -281,15 +306,16 @@ export function AppSidebar({
   onClose: () => void;
 }) {
   /* One set of paper styles for both drawers: the accent itself, square at
-   * the edge it is fixed to, and no border where the field would show. The
-   * rail scrolls rather than clipping when three groups and a profile do not
-   * fit a short window. */
+   * the edge it is fixed to, and no border where the field would show. A
+   * column, because the nav below the profile is the part that scrolls. */
   const paper: SxProps<Theme> = {
     width: RAIL_WIDTH,
     border: "none",
     backgroundImage: (theme) => theme.palette.brand.rail,
     color: "common.white",
-    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
   };
 
   return (

@@ -53,7 +53,9 @@ below that, opened by the hamburger in the top bar. Both drawers draw the same
 paper, so the rail is one thing described once.
 
 Down it: the logo, then whoever is signed in — their initials, their name and
-what they are here as — then the nav in three named groups.
+what they are here as — then the nav in three named groups. **Only the nav
+scrolls.** The block above it is fixed, so a short window or a longer list of
+groups scrolls the items and leaves the logo and the profile where they are.
 
 | Group     | Items                                                      |
 | --------- | ---------------------------------------------------------- |
