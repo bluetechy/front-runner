@@ -4,7 +4,7 @@ import { z } from "zod";
  * What a profile is allowed to contain.
  *
  * The rules are here rather than spread through the resolver because there
- * are fifteen of them and because the browser has to enforce the same ones --
+ * are sixteen of them and because the browser has to enforce the same ones --
  * main-gui carries its own copy of this schema, and the two are meant to say
  * the same thing. This one is the authority: a request that reaches the
  * mutation is checked here whatever the form did or did not do.
@@ -13,11 +13,6 @@ import { z } from "zod";
  * A field over its limit is rejected here rather than truncated by Postgres,
  * which would otherwise raise a driver error the caller cannot read.
  */
-
-/* The languages the interface offers, as BCP 47 tags. Stored rather than the
- * name of the language, so the value survives the interface being
- * translated; main-gui writes the names beside these. */
-export const LANGUAGES = ["en-US", "en-GB", "es-ES", "fr-FR"] as const;
 
 /* Stored as they are shown, the way dbo.OrganizationInvitations."Status" is,
  * and the same four the column's check constraint allows. "Not specified" is
@@ -104,17 +99,19 @@ export const profileSchema = z.object({
   NickName: text(64, "Nickname"),
   Designation: text(64, "Designation"),
   Biography: text(2000, "Biographical info"),
-  Language: z.enum(LANGUAGES, {
-    message: "Choose one of the languages offered",
-  }),
   Gender: z.enum(GENDERS, { message: "Choose one of the options offered" }),
   BirthDate: birthDate,
   Phone: phone,
   Address: text(255, "Address"),
-  Twitter: address("Twitter address"),
+  /* Alphabetical, and the same order everywhere these five are listed --
+   * the column list, the GraphQL objects, the form, the profile card. There
+   * is no ranking to express between them, so a new one has exactly one
+   * place to go. */
   Facebook: address("Facebook address"),
-  LinkedIn: address("LinkedIn address"),
   Github: address("GitHub address"),
+  LinkedIn: address("LinkedIn address"),
+  TikTok: address("TikTok address"),
+  Twitter: address("Twitter address"),
   WantsAwardEmails: z.boolean(),
   WantsDigestEmails: z.boolean(),
 });

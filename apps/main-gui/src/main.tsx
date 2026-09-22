@@ -5,6 +5,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { SessionProvider } from "./authentication";
 import { theme } from "./design-system";
+/* Imported for its side effect: this is what starts i18next, and it has to
+ * have run before the first `useTranslation`. */
+import "./language/i18n";
 import { routeTree } from "./routeTree.gen";
 
 const router = createRouter({ routeTree, defaultPreload: "intent" });

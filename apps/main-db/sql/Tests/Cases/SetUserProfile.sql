@@ -13,7 +13,7 @@ BEGIN
 
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
         'member', 'Marcus', 'Member', '', 'Programme manager', 'Runs the scoreboard.',
-        'en-US', 'Female', '1990-04-17', '', '', '', '', '', '', true, false
+        'Female', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
 
     PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Programme manager', 'the save did not return what it wrote');
@@ -32,11 +32,11 @@ DECLARE
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
         'member', 'Marcus', 'Member', 'Marc', 'Programme manager', 'First.',
-        'en-US', 'Female', '1990-04-17', '', '', '', '', '', '', true, false
+        'Female', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
         'member', 'Marcus', 'Member', '', 'Head of programmes', 'Second.',
-        'en-GB', 'Male', '', '', '', '', '', '', '', true, false
+        'Male', '', '', '', '', '', '', '', '', true, false
     );
 
     SELECT count(*) INTO _Count FROM "dbo"."UserProfiles" WHERE "UserProfiles"."UserUUID" = "test"."Fixture"('User.Member');
@@ -56,8 +56,8 @@ DECLARE
     _Saved record;
 BEGIN
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
-        'member', NULL, NULL, NULL, NULL, NULL, 'en-US', NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+        'member', NULL, NULL, NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
     );
 
     PERFORM "test"."AssertEquals"(_Saved."FirstName"::text, '', 'a NULL first name was not stored as empty');
@@ -74,13 +74,12 @@ DECLARE
 BEGIN
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
         'member', '  Marcus  ', '  Member ', '', '  Programme manager  ', '  Runs it.  ',
-        ' en-US ', '  Male  ', '  1990-04-17  ', '', '', '', '', '', '', true, false
+        '  Male  ', '  1990-04-17  ', '', '', '', '', '', '', '', true, false
     );
 
     PERFORM "test"."AssertEquals"(_Saved."FirstName"::text, 'Marcus', 'the first name was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Programme manager', 'the designation was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."Biography"::text, 'Runs it.', 'the biography was stored with its whitespace');
-    PERFORM "test"."AssertEquals"(_Saved."Language"::text, 'en-US', 'the language was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."Gender"::text, 'Male', 'the gender was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."BirthDate"::text, '1990-04-17', 'the birth date was not read through its whitespace');
 END;
@@ -94,8 +93,8 @@ BEGIN
     PERFORM "test"."AssertRaises"(
         format(
             'SELECT * FROM "dbo"."SetUserProfile"(%L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, true, false)',
-            'member', '', '', '', '', '', 'en-US', 'Wizard', '',
-            '', '', '', '', '', ''
+            'member', '', '', '', '', '', 'Wizard', '',
+            '', '', '', '', '', '', ''
         ),
         'a gender outside the four offered was stored',
         'UserProfiles_Gender_Check'
@@ -110,8 +109,8 @@ DECLARE
 BEGIN
     FOREACH _Gender IN ARRAY ARRAY['Male', 'Female', 'Transgender', 'Not specified'] LOOP
         SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
-            'member', '', '', '', '', '', 'en-US', _Gender::varchar(20), '',
-            '', '', '', '', '', '', true, false
+            'member', '', '', '', '', '', _Gender::varchar(20), '',
+            '', '', '', '', '', '', '', true, false
         );
         PERFORM "test"."AssertEquals"(_Saved."Gender"::text, _Gender, 'a gender the form offers did not round-trip');
     END LOOP;
@@ -126,8 +125,8 @@ BEGIN
     PERFORM "test"."AssertRaises"(
         format(
             'SELECT * FROM "dbo"."SetUserProfile"(%L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, true, false)',
-            'member', '', '', '', '', '', 'en-US', 'Not specified', '2026-02-31',
-            '', '', '', '', '', ''
+            'member', '', '', '', '', '', 'Not specified', '2026-02-31',
+            '', '', '', '', '', '', ''
         ),
         'the 31st of February was stored as a birth date',
         'A birth date must be a real date'
@@ -140,9 +139,9 @@ BEGIN
     PERFORM "test"."AssertRaises"(
         format(
             'SELECT * FROM "dbo"."SetUserProfile"(%L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, true, false)',
-            'member', '', '', '', '', '', 'en-US', 'Not specified',
+            'member', '', '', '', '', '', 'Not specified',
             to_char(CURRENT_DATE + 1, 'YYYY-MM-DD'),
-            '', '', '', '', '', ''
+            '', '', '', '', '', '', ''
         ),
         'a birth date in the future was stored',
         'A birth date cannot be in the future.'
@@ -157,9 +156,9 @@ DECLARE
     _Saved record;
 BEGIN
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
-        'member', '', '', '', '', '', 'en-US', 'Not specified',
+        'member', '', '', '', '', '', 'Not specified',
         to_char(CURRENT_DATE, 'YYYY-MM-DD')::varchar(10),
-        '', '', '', '', '', '', true, false
+        '', '', '', '', '', '', '', true, false
     );
 
     PERFORM "test"."AssertEquals"(_Saved."BirthDate"::text, to_char(CURRENT_DATE, 'YYYY-MM-DD'), 'a birth date of today was refused or altered');
@@ -174,8 +173,8 @@ DECLARE
     _User record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Somebody', 'Else', 'Nick', 'Programme manager', '', 'en-US',
-        'Male', '1990-04-17', '', '', '', '', '', '', true, false
+        'member', 'Somebody', 'Else', 'Nick', 'Programme manager', '',
+        'Male', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
 
     SELECT * INTO _User FROM "dbo"."Users" WHERE "Users"."LoginName" = 'member';
@@ -190,8 +189,8 @@ DECLARE
     _Row record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', '', '', '', 'en-US', 'Not specified', '',
-        '', '', '', '', '', '', true, false
+        'member', 'Marcus', 'Member', '', '', '', 'Not specified', '',
+        '', '', '', '', '', '', '', true, false
     );
 
     SELECT * INTO _Row FROM "dbo"."UserProfiles" WHERE "UserProfiles"."UserUUID" = "test"."Fixture"('User.Member');
@@ -205,25 +204,11 @@ BEGIN
     PERFORM "test"."AssertRaises"(
         format(
             'SELECT * FROM "dbo"."SetUserProfile"(%L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, true, false)',
-            'nobody', '', '', '', '', '', 'en-US', 'Not specified', '',
-            '', '', '', '', '', ''
+            'nobody', '', '', '', '', '', 'Not specified', '',
+            '', '', '', '', '', '', ''
         ),
         'a profile was saved for a login that does not exist',
         'Action cannot be performed.'
-    );
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION "test"."TestSetUserProfile_RefusesAMissingLanguage" () RETURNS void AS $$
-BEGIN
-    PERFORM "test"."AssertRaises"(
-        format(
-            'SELECT * FROM "dbo"."SetUserProfile"(%L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, %L, true, false)',
-            'member', '', '', '', '', '', '  ', 'Not specified', '',
-            '', '', '', '', '', ''
-        ),
-        'a profile was saved with no language',
-        'A language is required.'
     );
 END;
 $$ LANGUAGE plpgsql;

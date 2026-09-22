@@ -15,20 +15,6 @@ import { z } from "zod";
  * rather than a bad profile being saved.
  */
 
-/* Stored as BCP 47 tags so the value survives the interface being translated;
- * the label is what the select shows. Same four as the API's LANGUAGES. */
-export const languages = [
-  { tag: "en-US", label: "US English" },
-  { tag: "en-GB", label: "British English" },
-  { tag: "es-ES", label: "Español" },
-  { tag: "fr-FR", label: "Français" },
-] as const;
-
-const tags = languages.map((language) => language.tag) as unknown as [
-  string,
-  ...string[],
-];
-
 /* Stored as they are shown -- the column's check constraint holds these four
  * and no others -- so the value and the label are the same string. "Not
  * specified" is an answer rather than the absence of one, which is why the
@@ -107,15 +93,19 @@ export const profileSchema = z.object({
   NickName: text(64, "Nickname"),
   Designation: text(64, "Designation"),
   Biography: text(2000, "Biographical info"),
-  Language: z.enum(tags, { message: "Choose one of the languages offered" }),
   Gender: z.enum(genders, { message: "Choose one of the options offered" }),
   BirthDate: birthDate,
   Phone: phone,
   Address: text(255, "Address"),
-  Twitter: address("Twitter address"),
+  /* Alphabetical, and the same order everywhere these five are listed --
+   * the column list, the GraphQL objects, the form, the profile card. There
+   * is no ranking to express between them, so a new one has exactly one
+   * place to go. */
   Facebook: address("Facebook address"),
-  LinkedIn: address("LinkedIn address"),
   Github: address("GitHub address"),
+  LinkedIn: address("LinkedIn address"),
+  TikTok: address("TikTok address"),
+  Twitter: address("Twitter address"),
   WantsAwardEmails: z.boolean(),
   WantsDigestEmails: z.boolean(),
 });

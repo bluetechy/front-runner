@@ -7,6 +7,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import CameraIcon from "@/shared/icons/CameraIcon";
 import LocationIcon from "@/shared/icons/LocationIcon";
 import MobileIcon from "@/shared/icons/MobileIcon";
@@ -23,6 +24,10 @@ import { useProfile } from "./profile-api";
  * links and the contact lines are the saved profile's, so editing the form
  * beside it changes this the moment it saves. The tallies and the skill bars
  * are still placeholder -- see `details.ts`.
+ *
+ * What is somebody's own words -- their name, their bio, the handles they
+ * typed -- is never run through `t()`. Only what this card says about them
+ * is. Nor are the five link labels: Facebook is Facebook in Spanish.
  */
 
 /* Enough of the bio to see what it is, until it is asked for in full. */
@@ -35,6 +40,7 @@ export function ProfileSummary({
 }) {
   const { identity } = useSession();
   const { profile, loading } = useProfile();
+  const { t } = useTranslation();
   const [bioOpen, setBioOpen] = useState(false);
 
   const name = identity?.name ?? "—";
@@ -59,10 +65,12 @@ export function ProfileSummary({
             {initialsOf(name)}
           </Avatar>
           <IconButton
-            aria-label="Change picture"
+            aria-label={t("Change picture")}
             onClick={() =>
               onNotice(
-                "There is nowhere to keep a picture yet — the account has no photograph on it.",
+                t(
+                  "There is nowhere to keep a picture yet — the account has no photograph on it.",
+                ),
               )
             }
             sx={{
@@ -92,10 +100,10 @@ export function ProfileSummary({
         >
           {name}
         </Typography>
-        <Muted>{profile?.Designation || "No designation yet"}</Muted>
+        <Muted>{profile?.Designation || t("No designation yet")}</Muted>
 
         <Typography sx={{ mt: 2.5, fontSize: "0.85rem", fontWeight: 600 }}>
-          Bio
+          {t("Bio")}
         </Typography>
         {loading ? (
           <Skeleton sx={{ mt: 1 }} />
@@ -109,7 +117,7 @@ export function ProfileSummary({
             }}
           >
             {bio === ""
-              ? "Nothing here yet — the form beside this is where it goes."
+              ? t("Nothing here yet — the form beside this is where it goes.")
               : bioOpen || !long
                 ? bio
                 : `${bio.slice(0, BIO_PREVIEW).trimEnd()}… `}
@@ -128,7 +136,7 @@ export function ProfileSummary({
                   color: "primary.main",
                 }}
               >
-                {bioOpen ? "Less" : "More"}
+                {bioOpen ? t("Less") : t("More")}
               </Box>
             ) : null}
           </Typography>
@@ -160,18 +168,22 @@ export function ProfileSummary({
                   color: (theme) => theme.palette.brand.cardInkMuted,
                 }}
               >
-                {tally.label}
+                {t(tally.label)}
               </Typography>
             </Box>
           ))}
         </Stack>
 
         <Box sx={{ mt: 3 }}>
-          <CardLabel>Social</CardLabel>
+          <CardLabel>{t("Social")}</CardLabel>
           {links.length === 0 ? (
             <Box sx={{ mt: 1 }}>
               <Muted>
-                {loading ? <Skeleton sx={{ maxWidth: 180 }} /> : "None saved"}
+                {loading ? (
+                  <Skeleton sx={{ maxWidth: 180 }} />
+                ) : (
+                  t("None saved")
+                )}
               </Muted>
             </Box>
           ) : (
@@ -212,7 +224,7 @@ export function ProfileSummary({
         </Box>
 
         <Box sx={{ mt: 3 }}>
-          <CardLabel>Skills</CardLabel>
+          <CardLabel>{t("Skills")}</CardLabel>
           <Stack sx={{ gap: 1.75, mt: 1.5 }}>
             {placeholderSkills.map((skill) => (
               <Box key={skill.label}>
@@ -221,7 +233,7 @@ export function ProfileSummary({
                   sx={{ justifyContent: "space-between", gap: 1 }}
                 >
                   <Typography sx={{ fontSize: "0.85rem", fontWeight: 500 }}>
-                    {skill.label}
+                    {t(skill.label)}
                   </Typography>
                   <Muted>{skill.percent}%</Muted>
                 </Stack>
@@ -247,17 +259,17 @@ export function ProfileSummary({
         </Box>
       </CardSurface>
 
-      <CardSurface title="Contact">
+      <CardSurface title={t("Contact")}>
         <Stack component="ul" sx={{ gap: 2, p: 0, m: 0 }}>
           <ContactLine
-            label="Mobile"
+            label={t("Mobile")}
             value={profile?.Phone ?? ""}
             loading={loading}
           >
             <MobileIcon size={17} />
           </ContactLine>
           <ContactLine
-            label="Current address"
+            label={t("Current address")}
             value={profile?.Address ?? ""}
             loading={loading}
           >
@@ -280,6 +292,10 @@ function ContactLine({
   loading: boolean;
   children: React.ReactNode;
 }) {
+  /* `label` arrives translated from the caller; "Not set" is this
+   * component's own word, so it translates it itself. */
+  const { t } = useTranslation();
+
   return (
     <Stack
       component="li"
@@ -293,7 +309,7 @@ function ContactLine({
           <Skeleton sx={{ width: 140 }} />
         ) : (
           <Typography sx={{ fontSize: "0.88rem", fontWeight: 600 }}>
-            {value || "Not set"}
+            {value || t("Not set")}
           </Typography>
         )}
       </Box>

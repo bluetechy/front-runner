@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { read, remove, write } from "./storage";
+import { read, remove, write } from "../browser-storage";
 import {
   endSession,
   readIdentity,

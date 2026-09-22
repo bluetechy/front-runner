@@ -1,7 +1,9 @@
 import type { FC } from "react";
+import FacebookIcon from "@/shared/icons/FacebookIcon";
 import GithubIcon from "@/shared/icons/GithubIcon";
 import type IconProps from "@/shared/icons/IconProps";
 import LinkedInIcon from "@/shared/icons/LinkedInIcon";
+import TikTokIcon from "@/shared/icons/TikTokIcon";
 import TwitterIcon from "@/shared/icons/TwitterIcon";
 import type { Profile } from "./profile-schema";
 
@@ -14,6 +16,11 @@ import type { Profile } from "./profile-schema";
  * one file so that the day there is a query for either, this is what stops
  * being imported.
  */
+
+/* Each `label` below is the English sentence and its translation key both --
+ * see `language/i18n.ts` -- so it stays English in here and goes through
+ * `t()` where the card draws it. It is also the React key, which is the
+ * other reason it must not change with the language. */
 
 /* Points, badges and certificates, because those are what this product keeps
  * -- not the mock-up's followers and posts. None of the three is counted
@@ -42,14 +49,17 @@ export interface ProfileLink {
   icon: FC<IconProps>;
 }
 
-/* The links the saved profile actually carries, in a fixed order, skipping
+/* The links the saved profile actually carries, alphabetically -- the same
+ * order the form asks for them in, and the column list behind it -- skipping
  * the ones left empty. A handle is stored the way it was typed -- with or
  * without a scheme -- so the href adds one when it has to. */
 export function linksOf(profile: Profile): readonly ProfileLink[] {
   const candidates: { label: string; handle: string; icon: FC<IconProps> }[] = [
+    { label: "Facebook", handle: profile.Facebook, icon: FacebookIcon },
     { label: "GitHub", handle: profile.Github, icon: GithubIcon },
-    { label: "Twitter", handle: profile.Twitter, icon: TwitterIcon },
     { label: "LinkedIn", handle: profile.LinkedIn, icon: LinkedInIcon },
+    { label: "TikTok", handle: profile.TikTok, icon: TikTokIcon },
+    { label: "Twitter", handle: profile.Twitter, icon: TwitterIcon },
   ];
 
   return candidates

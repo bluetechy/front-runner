@@ -15,6 +15,12 @@
 -- here. They are empty until somebody sets them, and a reader with nothing to
 -- show falls back to the account's "Name".
 --
+-- There is no "Language" column. Which language somebody wants to read the
+-- interface in is a fact about the browser they are reading it in, not about
+-- them -- a phone and a desktop may differ, and a signed-out visitor has the
+-- question too -- so main-gui keeps it in localStorage. It was a column here
+-- until 2026-09-22.
+--
 -- Every text column is NOT NULL DEFAULT '' rather than nullable, the way
 -- dbo.Users."Email" already is: an unanswered field and a field answered with
 -- nothing are the same thing to a profile, and one representation means no
@@ -28,9 +34,6 @@ CREATE TABLE "dbo"."UserProfiles" (
     "NickName" varchar(64) NOT NULL DEFAULT '',
     "Designation" varchar(64) NOT NULL DEFAULT '',
     "Biography" varchar(2000) NOT NULL DEFAULT '',
-    -- A BCP 47 tag ("en-US"), not a language's name in itself: what is stored
-    -- has to survive the interface being translated.
-    "Language" varchar(32) NOT NULL DEFAULT 'en-US',
     -- Stored as it is shown, the way dbo.OrganizationInvitations."Status" is,
     -- and constrained to the four the form offers. "Not specified" is the
     -- default because a profile nobody has filled in has not declined to
@@ -43,10 +46,14 @@ CREATE TABLE "dbo"."UserProfiles" (
     "BirthDate" date,
     "Phone" varchar(32) NOT NULL DEFAULT '',
     "Address" varchar(255) NOT NULL DEFAULT '',
-    "Twitter" varchar(255) NOT NULL DEFAULT '',
+    -- The social columns are in alphabetical order, and so is every list of
+    -- them from here to the form: there is no ranking to express between
+    -- them, and a new one has exactly one place to go.
     "Facebook" varchar(255) NOT NULL DEFAULT '',
-    "LinkedIn" varchar(255) NOT NULL DEFAULT '',
     "Github" varchar(255) NOT NULL DEFAULT '',
+    "LinkedIn" varchar(255) NOT NULL DEFAULT '',
+    "TikTok" varchar(255) NOT NULL DEFAULT '',
+    "Twitter" varchar(255) NOT NULL DEFAULT '',
     "WantsAwardEmails" boolean NOT NULL DEFAULT true,
     "WantsDigestEmails" boolean NOT NULL DEFAULT false,
     "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -55,15 +55,15 @@ const userProfile = {
   NickName: "Al",
   Designation: "Programme manager",
   Biography: "Runs the scoreboard.",
-  Language: "en-US",
   Gender: "Not specified",
   BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
-  Twitter: "",
   Facebook: "",
-  LinkedIn: "",
   Github: "github.com/alice",
+  LinkedIn: "",
+  TikTok: "",
+  Twitter: "",
   WantsAwardEmails: true,
   WantsDigestEmails: false,
 };
@@ -530,13 +530,10 @@ describe("GraphQL application", () => {
   // is always their own: the mutation takes no user, so the login name in the
   // parameters can only be the token's.
   it("reads and writes the signed-in account's own profile", async () => {
-    const read = await execute(
-      "{ profile { Designation Language Gender BirthDate } }",
-    );
+    const read = await execute("{ profile { Designation Gender BirthDate } }");
     expect(read.body.errors).toBeUndefined();
     expect(read.body.data.profile).toEqual({
       Designation: "Programme manager",
-      Language: "en-US",
       Gender: "Not specified",
       BirthDate: "1990-04-17",
     });
@@ -561,15 +558,15 @@ describe("GraphQL application", () => {
         "Al",
         "Programme manager",
         "Runs the scoreboard.",
-        "en-US",
         "Not specified",
         "1990-04-17",
         "+1 555 0134",
         "San Francisco, CA",
         "",
-        "",
-        "",
         "github.com/alice",
+        "",
+        "",
+        "",
         true,
         false,
       ],

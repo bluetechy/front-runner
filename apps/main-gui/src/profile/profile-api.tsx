@@ -22,8 +22,8 @@ import { profileSchema, type Profile } from "./profile-schema";
 /* Every field of it, in one place: the query and the mutation ask for the
  * same selection, so a field added to the profile is added once here. */
 const PROFILE_FIELDS = `UserUUID FirstName LastName NickName Designation
-  Biography Language Gender BirthDate Phone Address Twitter Facebook
-  LinkedIn Github WantsAwardEmails WantsDigestEmails`;
+  Biography Gender BirthDate Phone Address Facebook Github
+  LinkedIn TikTok Twitter WantsAwardEmails WantsDigestEmails`;
 
 const READ = `query Profile { profile { ${PROFILE_FIELDS} } }`;
 

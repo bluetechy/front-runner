@@ -15,7 +15,6 @@ BEGIN
     PERFORM "test"."AssertEquals"(_Profile."FirstName"::text, '', 'an unedited profile came back with a first name');
     PERFORM "test"."AssertEquals"(_Profile."LastName"::text, '', 'an unedited profile came back with a last name');
     PERFORM "test"."AssertEquals"(_Profile."Biography"::text, '', 'an unedited profile came back with a biography');
-    PERFORM "test"."AssertEquals"(_Profile."Language"::text, 'en-US', 'an unedited profile did not come back with the default language');
     PERFORM "test"."AssertEquals"(_Profile."Gender"::text, 'Not specified', 'an unedited profile did not come back as unspecified');
     PERFORM "test"."AssertTrue"(_Profile."BirthDate" IS NULL, 'an unedited profile came back with a birth date');
     PERFORM "test"."AssertTrue"(_Profile."WantsAwardEmails", 'award emails did not default to on');
@@ -29,10 +28,11 @@ DECLARE
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
         'member', 'Marcus', 'Member', 'Marc', 'Programme manager',
-        'Runs the scoreboard.', 'en-GB', 'Male', '1990-04-17',
+        'Runs the scoreboard.', 'Male', '1990-04-17',
         '+1 555 0134', 'San Francisco, CA',
-        'twitter.com/marcus', 'facebook.com/marcus',
-        'linkedin.com/in/marcus', 'github.com/marcus', false, true
+        'facebook.com/marcus', 'github.com/marcus',
+        'linkedin.com/in/marcus', 'tiktok.com/@marcus',
+        'twitter.com/marcus', false, true
     );
 
     SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('member');
@@ -40,9 +40,10 @@ BEGIN
     PERFORM "test"."AssertEquals"(_Profile."FirstName"::text, 'Marcus', 'the saved first name did not come back');
     PERFORM "test"."AssertEquals"(_Profile."NickName"::text, 'Marc', 'the saved nickname did not come back');
     PERFORM "test"."AssertEquals"(_Profile."Designation"::text, 'Programme manager', 'the saved designation did not come back');
-    PERFORM "test"."AssertEquals"(_Profile."Language"::text, 'en-GB', 'the saved language did not come back');
     PERFORM "test"."AssertEquals"(_Profile."Gender"::text, 'Male', 'the saved gender did not come back');
     PERFORM "test"."AssertEquals"(_Profile."Github"::text, 'github.com/marcus', 'the saved GitHub handle did not come back');
+    PERFORM "test"."AssertEquals"(_Profile."TikTok"::text, 'tiktok.com/@marcus', 'the saved TikTok handle did not come back');
+    PERFORM "test"."AssertEquals"(_Profile."Twitter"::text, 'twitter.com/marcus', 'the saved Twitter handle did not come back');
     PERFORM "test"."AssertFalse"(_Profile."WantsAwardEmails", 'award emails stayed on after being turned off');
     PERFORM "test"."AssertTrue"(_Profile."WantsDigestEmails", 'the weekly digest stayed off after being turned on');
 END;
@@ -56,8 +57,8 @@ DECLARE
     _Profile record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', '', '', '', '', '', 'en-US', 'Not specified', '1990-04-17',
-        '', '', '', '', '', '', true, false
+        'member', '', '', '', '', '', 'Not specified', '1990-04-17',
+        '', '', '', '', '', '', '', true, false
     );
 
     SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('member');
@@ -72,8 +73,8 @@ DECLARE
     _Other record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', '', 'Programme manager', '', 'en-US',
-        'Male', '1990-04-17', '', '', '', '', '', '', true, false
+        'member', 'Marcus', 'Member', '', 'Programme manager', '',
+        'Male', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
 
     SELECT * INTO _Other FROM "dbo"."GetUserProfile"('owner');

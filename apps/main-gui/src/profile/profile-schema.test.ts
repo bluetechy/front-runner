@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorsOf, genders, languages, profileSchema } from "./profile-schema";
+import { errorsOf, genders, profileSchema } from "./profile-schema";
 
 /*
  * The browser's copy of main-api's rules. These tests are here to catch the
@@ -14,15 +14,15 @@ const valid = {
   NickName: "Marc",
   Designation: "Programme manager",
   Biography: "Runs the scoreboard.",
-  Language: "en-US",
   Gender: "Male",
   BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
-  Twitter: "twitter.com/marcus",
   Facebook: "",
-  LinkedIn: "linkedin.com/in/marcus",
   Github: "github.com/marcus",
+  LinkedIn: "linkedin.com/in/marcus",
+  TikTok: "tiktok.com/@marcus",
+  Twitter: "twitter.com/marcus",
   WantsAwardEmails: true,
   WantsDigestEmails: false,
 };
@@ -44,9 +44,11 @@ describe("what the profile form accepts", () => {
         BirthDate: "",
         Phone: "",
         Address: "",
-        Twitter: "",
-        LinkedIn: "",
+        Facebook: "",
         Github: "",
+        LinkedIn: "",
+        TikTok: "",
+        Twitter: "",
       }),
     ).toEqual({});
   });
@@ -61,8 +63,8 @@ describe("what the profile form accepts", () => {
     ["FirstName", "M".repeat(65)],
     ["Biography", "b".repeat(2001)],
     ["Github", "github com/marcus"],
+    ["TikTok", "tiktok com/@marcus"],
     ["Phone", "no"],
-    ["Language", "kl-KL"],
     ["Gender", "Wizard"],
     ["BirthDate", "17-04-1990"],
     ["BirthDate", "2026-02-31"],
@@ -91,14 +93,5 @@ describe("what the profile form accepts", () => {
 
   it("offers the four genders the column allows", () => {
     expect(genders).toEqual(["Male", "Female", "Transgender", "Not specified"]);
-  });
-
-  it("offers the languages the API stores, as tags", () => {
-    expect(languages.map((language) => language.tag)).toEqual([
-      "en-US",
-      "en-GB",
-      "es-ES",
-      "fr-FR",
-    ]);
   });
 });

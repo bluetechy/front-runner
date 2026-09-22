@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "../app-chrome";
 import { useSession } from "../authentication";
+import { LanguageProvider } from "../language";
 import { ProfileProvider } from "../profile";
 
 /*
@@ -12,7 +13,9 @@ import { ProfileProvider } from "../profile";
  * header and the field; these pages get the rail and the top bar instead, and
  * the two shells never appear together. It is also where the session is
  * guarded, once, rather than in each page, and where the profile is fetched,
- * once, for the rail and the profile page to share.
+ * once, for the rail and the profile page to share. The chosen language sits
+ * here for the same reason: the top bar picks it, and whatever comes to be
+ * translated reads it.
  */
 export const Route = createFileRoute("/_app")({ component: AppLayout });
 
@@ -27,10 +30,12 @@ function AppLayout() {
   }, [status, navigate]);
 
   return (
-    <ProfileProvider>
-      <AppShell>
-        <Outlet />
-      </AppShell>
-    </ProfileProvider>
+    <LanguageProvider>
+      <ProfileProvider>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      </ProfileProvider>
+    </LanguageProvider>
   );
 }

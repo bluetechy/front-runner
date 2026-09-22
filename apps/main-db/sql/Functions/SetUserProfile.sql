@@ -22,15 +22,15 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
     _NickName varchar(64),
     _Designation varchar(64),
     _Biography varchar(2000),
-    _Language varchar(32),
     _Gender varchar(20),
     _BirthDate varchar(10),
     _Phone varchar(32),
     _Address varchar(255),
-    _Twitter varchar(255),
     _Facebook varchar(255),
-    _LinkedIn varchar(255),
     _Github varchar(255),
+    _LinkedIn varchar(255),
+    _TikTok varchar(255),
+    _Twitter varchar(255),
     _WantsAwardEmails boolean,
     _WantsDigestEmails boolean
 ) RETURNS TABLE(
@@ -40,15 +40,15 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
     "NickName" varchar(64),
     "Designation" varchar(64),
     "Biography" varchar(2000),
-    "Language" varchar(32),
     "Gender" varchar(20),
     "BirthDate" varchar(10),
     "Phone" varchar(32),
     "Address" varchar(255),
-    "Twitter" varchar(255),
     "Facebook" varchar(255),
-    "LinkedIn" varchar(255),
     "Github" varchar(255),
+    "LinkedIn" varchar(255),
+    "TikTok" varchar(255),
+    "Twitter" varchar(255),
     "WantsAwardEmails" boolean,
     "WantsDigestEmails" boolean
 ) AS $$
@@ -59,9 +59,6 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
         _UserUUID := "dbo"."GetUserUUID"(_LoginName);
         IF _UserUUID IS NULL THEN
             RAISE EXCEPTION 'Action cannot be performed.';
-        END IF;
-        IF _Language IS NULL OR btrim(_Language) = '' THEN
-            RAISE EXCEPTION 'A language is required.';
         END IF;
         -- NULL is how a caller says "nothing here", and for a question with
         -- four answers that is the fourth one rather than an error. Anything
@@ -90,8 +87,8 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
         -- ON CONFLICT is ambiguous. See apps/main-db/CLAUDE.md.
         INSERT INTO "dbo"."UserProfiles" (
             "UserUUID", "FirstName", "LastName", "NickName", "Designation",
-            "Biography", "Language", "Gender", "BirthDate", "Phone", "Address",
-            "Twitter", "Facebook", "LinkedIn", "Github",
+            "Biography", "Gender", "BirthDate", "Phone", "Address",
+            "Facebook", "Github", "LinkedIn", "TikTok", "Twitter",
             "WantsAwardEmails", "WantsDigestEmails", "CreatedBy"
         )
         VALUES (
@@ -101,15 +98,15 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
             btrim(COALESCE(_NickName, '')),
             btrim(COALESCE(_Designation, '')),
             btrim(COALESCE(_Biography, '')),
-            btrim(_Language),
             _Gender,
             _Birth,
             btrim(COALESCE(_Phone, '')),
             btrim(COALESCE(_Address, '')),
-            btrim(COALESCE(_Twitter, '')),
             btrim(COALESCE(_Facebook, '')),
-            btrim(COALESCE(_LinkedIn, '')),
             btrim(COALESCE(_Github, '')),
+            btrim(COALESCE(_LinkedIn, '')),
+            btrim(COALESCE(_TikTok, '')),
+            btrim(COALESCE(_Twitter, '')),
             COALESCE(_WantsAwardEmails, true),
             COALESCE(_WantsDigestEmails, false),
             _LoginName
@@ -120,15 +117,15 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
             "NickName" = EXCLUDED."NickName",
             "Designation" = EXCLUDED."Designation",
             "Biography" = EXCLUDED."Biography",
-            "Language" = EXCLUDED."Language",
             "Gender" = EXCLUDED."Gender",
             "BirthDate" = EXCLUDED."BirthDate",
             "Phone" = EXCLUDED."Phone",
             "Address" = EXCLUDED."Address",
-            "Twitter" = EXCLUDED."Twitter",
             "Facebook" = EXCLUDED."Facebook",
-            "LinkedIn" = EXCLUDED."LinkedIn",
             "Github" = EXCLUDED."Github",
+            "LinkedIn" = EXCLUDED."LinkedIn",
+            "TikTok" = EXCLUDED."TikTok",
+            "Twitter" = EXCLUDED."Twitter",
             "WantsAwardEmails" = EXCLUDED."WantsAwardEmails",
             "WantsDigestEmails" = EXCLUDED."WantsDigestEmails",
             "UpdatedBy" = _LoginName;

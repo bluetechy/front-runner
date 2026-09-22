@@ -100,6 +100,24 @@ was a dependency for exactly these objects.
 Attribute names are camel-cased and a `style` string is expanded into an
 object, because React wants both.
 
+## Variant C — the flag of a country
+
+`FlagIcon` is the one wrapper that does not take `IconProps`, because a flag
+is not one drawing:
+
+```tsx
+<FlagIcon code="US" size={22} />
+```
+
+There are 256 of them, served as files from `public/flags` (see
+[flags](flags.md)), so the glyph cannot be an import and the prop that picks
+it has to be the country. `code` is an ISO 3166 code in either case; `size` is a diameter,
+because the flag is drawn round, cropped from a 4:3 file. There is no `color`
+— a flag has its own.
+
+Nothing outside this wrapper names a path under `public/flags`, for the same
+reason nothing outside this folder names `react-icons`.
+
 ## Tests
 
 `Icon.test.tsx` covers the renderer — that glyph nodes actually become

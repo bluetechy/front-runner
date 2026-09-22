@@ -99,6 +99,19 @@ card's ink for text, and square-ish corners — a page of pills reads as a page
 of buttons. `FieldRow` puts the label beside the control from `sm` up and
 above it below that, and that is all it does.
 
+## In two languages
+
+This is the first page inside the chrome to go through `t()`, and the worked
+example for doing the rest: the heading, the breadcrumb, all six section
+labels, every field label and hint, both email preferences, and the whole
+summary card switch with the flag in the top bar.
+
+Three things on this page deliberately do not switch — a gender's stored
+value (`Male`, whatever the label says), the five social networks' names, and
+the validation messages, which are main-api's words. `profile-form.i18n.test.tsx`
+pins the first of those. [language](language.md) has the reasoning and how to
+add a string.
+
 ## No website of a person's own
 
 The form offers no website field, and `dbo.UserProfiles` has no column for
@@ -119,6 +132,7 @@ GitHub or LinkedIn address is a person's.
 | Tallies and skills                      | **Placeholder** — in `details.ts`                              |
 | "Update profile"                        | Saves, and says so                                             |
 | The camera button                       | Says plainly that a photograph cannot be kept yet              |
+| Every label on the page                 | **Real** — English and Spanish, from the top bar's flag        |
 
 Two things the page can be asked to do and cannot: keep a photograph, and
 count a tally. Both say so rather than accepting the click quietly — the

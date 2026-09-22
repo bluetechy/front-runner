@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 import AchievementsIcon from "@/shared/icons/AchievementsIcon";
 import BillingIcon from "@/shared/icons/BillingIcon";
 import CertificationsIcon from "@/shared/icons/CertificationsIcon";
@@ -60,6 +61,10 @@ type AppPath =
   | "/tutorials"
   | "/customer-service";
 
+/* `label` is the English sentence and the translation key both -- see
+ * `language/i18n.ts` -- so it stays untranslated in here and goes through
+ * `t()` where it is drawn. It is also the React key, which is the other
+ * reason it must not change with the language. */
 interface NavItem {
   label: string;
   icon: FC<IconProps>;
@@ -122,6 +127,7 @@ function initialsOf(name: string): string {
 function RailContents({ onNavigate }: { onNavigate: () => void }) {
   const { identity } = useSession();
   const { profile } = useProfile();
+  const { t } = useTranslation();
   const name = identity?.name ?? "—";
 
   return (
@@ -210,7 +216,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
        * it and stay where they are, however many groups this grows to. */}
       <Box
         component="nav"
-        aria-label="Application"
+        aria-label={t("Application")}
         sx={{
           flex: 1,
           /* Without this a flex child refuses to shrink below its content,
@@ -244,7 +250,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
                   color: (theme) => theme.palette.brand.railLabel,
                 }}
               >
-                {group.label}
+                {t(group.label)}
               </Typography>
             }
             sx={{ paddingInline: "0.9rem", paddingBlock: "0.9rem 0" }}
@@ -269,7 +275,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
                       <ItemIcon size={20} />
                     </ListItemIcon>
                     <ListItemText
-                      primary={item.label}
+                      primary={t(item.label)}
                       slotProps={{
                         primary: {
                           sx: { fontSize: "0.92rem", fontWeight: 500 },

@@ -5,7 +5,7 @@
  * and nothing in it talks to main-api.
  */
 
-import { read, remove, write } from "./storage";
+import { read, remove, write } from "../browser-storage";
 
 const realmUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}`;
 const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID;

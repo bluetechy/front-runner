@@ -123,16 +123,17 @@ chart should follow too:
 
 ## What is real and what is placeholder
 
-| Piece                            | State                                              |
-| -------------------------------- | -------------------------------------------------- |
-| Layout, chrome, colour           | Final                                              |
-| Every figure on every card       | **Placeholder** — all of it is in `metrics.ts`     |
-| The "Your account" card          | **Real** — Keycloak's identity and main-api's `me` |
-| Who is signed in, in the top bar | Real — from the session                            |
-| Logout, in the account menu      | Real                                               |
-| Search, language, notifications  | Styled and labelled; they do nothing               |
-| "Create KPI"                     | Styled; there is nothing to create yet             |
-| The eight unbuilt nav items      | Disabled on purpose                                |
+| Piece                            | State                                                  |
+| -------------------------------- | ------------------------------------------------------ |
+| Layout, chrome, colour           | Final                                                  |
+| Every figure on every card       | **Placeholder** — all of it is in `metrics.ts`         |
+| The "Your account" card          | **Real** — Keycloak's identity and main-api's `me`     |
+| Who is signed in, in the top bar | Real — from the session                                |
+| Logout, in the account menu      | Real                                                   |
+| Search and notifications         | Styled and labelled; they do nothing                   |
+| The language flag                | **Real** — remembers the choice, translates the chrome |
+| "Create KPI"                     | Styled; there is nothing to create yet                 |
+| The eight unbuilt nav items      | Disabled on purpose                                    |
 
 `metrics.ts` holds every number the page draws, so the day main-api serves
 KPIs there is exactly one file the page stops reading from. The figures are

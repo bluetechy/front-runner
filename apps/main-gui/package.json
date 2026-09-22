@@ -23,8 +23,10 @@
     "@mui/icons-material": "9.4.0",
     "@mui/material": "9.4.0",
     "@tanstack/react-router": "1.170.38",
+    "i18next": "26.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-i18next": "17.0.15",
     "react-icons": "5.7.0",
     "zod": "4.6.5"
   },

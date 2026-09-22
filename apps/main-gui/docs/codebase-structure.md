@@ -24,6 +24,8 @@ src/
   landing/              the marketing landing page
   pricing/              the plans, and the questions people ask about them
   authentication/       the sign-in dialog, and who is signed in
+  browser-storage/      localStorage and sessionStorage, for browsers that refuse them
+  language/             which language the interface is in, and i18next
   dashboard/            where a completed sign-in lands
   profile/              the profile page, and the form that edits it
   wallet/               saved cards and bank accounts, and the dialogs that add them
@@ -77,6 +79,11 @@ moves out into a vertical of its own rather than being imported across.
 `card-surface/` is that rule being applied: it was the dashboard's card until
 the profile page wanted the same white paper, and then it stopped belonging to
 either of them.
+
+`browser-storage/` and `language/` are the same rule again, and the second
+caused the first: the language somebody picks in the top bar is remembered in
+`localStorage`, and the guarded wrapper around it had been `authentication`'s
+private file until there were two callers. See [language](language.md).
 
 `authentication/` is the same rule applied to something less page-shaped: the
 header needs to know who is signed in and to open the dialog, and `dashboard/`

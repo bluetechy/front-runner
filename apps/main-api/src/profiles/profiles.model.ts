@@ -25,8 +25,6 @@ export class UserProfile {
   @Field(() => String)
   Biography!: string;
   @Field(() => String)
-  Language!: string;
-  @Field(() => String)
   Gender!: string;
   // A day, as "1990-04-17", and null when nobody has given one. A String
   // rather than GraphQLISODateTime on purpose: a date that becomes a
@@ -37,14 +35,19 @@ export class UserProfile {
   Phone!: string;
   @Field(() => String)
   Address!: string;
-  @Field(() => String)
-  Twitter!: string;
+  // Alphabetical, the way the column list, the schema and the form all are:
+  // there is no ranking to express between these, and a new one has exactly
+  // one place to go.
   @Field(() => String)
   Facebook!: string;
   @Field(() => String)
+  Github!: string;
+  @Field(() => String)
   LinkedIn!: string;
   @Field(() => String)
-  Github!: string;
+  TikTok!: string;
+  @Field(() => String)
+  Twitter!: string;
   @Field(() => Boolean)
   WantsAwardEmails!: boolean;
   @Field(() => Boolean)
@@ -67,8 +70,6 @@ export class UserProfileInput {
   @Field(() => String)
   Biography!: string;
   @Field(() => String)
-  Language!: string;
-  @Field(() => String)
   Gender!: string;
   // Empty means "not given"; the API's schema refuses anything that is not a
   // real day in the past.
@@ -79,13 +80,15 @@ export class UserProfileInput {
   @Field(() => String)
   Address!: string;
   @Field(() => String)
-  Twitter!: string;
-  @Field(() => String)
   Facebook!: string;
+  @Field(() => String)
+  Github!: string;
   @Field(() => String)
   LinkedIn!: string;
   @Field(() => String)
-  Github!: string;
+  TikTok!: string;
+  @Field(() => String)
+  Twitter!: string;
   @Field(() => Boolean)
   WantsAwardEmails!: boolean;
   @Field(() => Boolean)

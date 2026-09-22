@@ -9,21 +9,23 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import BellIcon from "@/shared/icons/BellIcon";
 import ChevronDownIcon from "@/shared/icons/ChevronDownIcon";
-import GlobeIcon from "@/shared/icons/GlobeIcon";
 import LogoutIcon from "@/shared/icons/LogoutIcon";
 import MenuIcon from "@/shared/icons/MenuIcon";
 import SearchIcon from "@/shared/icons/SearchIcon";
 import { useSession } from "../authentication";
+import { LanguageMenu } from "../language";
 
 /*
  * The bar along the top of the application: white paper, the same as a card,
  * so the rail is the only coloured surface in the chrome.
  *
- * The search field, the language button and the bell are the mock-up's and do
- * nothing yet. What is real is on the right: who is signed in, read from the
- * session, and the menu that signs them out.
+ * The search field and the bell are the mock-up's and do nothing yet. What is
+ * real is the language flag, which remembers what it is told; and what is on
+ * the right: who is signed in, read from the session, and the menu that signs
+ * them out.
  */
 
 /* "Thomas John" -> "TJ". A login name with no space gives one letter, which
@@ -39,6 +41,7 @@ function initialsOf(name: string): string {
 
 export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
   const { identity, logout } = useSession();
+  const { t } = useTranslation();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const name = identity?.name ?? "—";
 
@@ -60,7 +63,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
       }}
     >
       <IconButton
-        aria-label="Open navigation"
+        aria-label={t("Open navigation")}
         onClick={onOpenNav}
         sx={{ display: { lg: "none" }, color: "inherit" }}
       >
@@ -68,8 +71,8 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
       </IconButton>
 
       <TextField
-        placeholder="Search here"
-        aria-label="Search"
+        placeholder={t("Search here")}
+        aria-label={t("Search")}
         size="small"
         slotProps={{
           input: {
@@ -109,18 +112,10 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
           marginLeft: "auto",
         }}
       >
-        <IconButton
-          aria-label="Language"
-          sx={{
-            display: { xs: "none", sm: "inline-flex" },
-            color: (theme) => theme.palette.brand.cardInkMuted,
-          }}
-        >
-          <GlobeIcon size={20} />
-        </IconButton>
+        <LanguageMenu />
 
         <IconButton
-          aria-label="Notifications"
+          aria-label={t("Notifications")}
           sx={{ color: (theme) => theme.palette.brand.cardInkMuted }}
         >
           <Badge badgeContent={3} color="primary">
@@ -132,7 +127,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
           direction="row"
           component="button"
           type="button"
-          aria-label="Account"
+          aria-label={t("Account")}
           aria-haspopup="menu"
           onClick={(event) => setMenuAnchor(event.currentTarget)}
           sx={{
@@ -215,7 +210,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
           sx={{ gap: 1.25, fontSize: "0.9rem" }}
         >
           <LogoutIcon size={18} />
-          Logout
+          {t("Logout")}
         </MenuItem>
       </Menu>
     </Box>

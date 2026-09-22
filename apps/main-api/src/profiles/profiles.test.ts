@@ -11,15 +11,15 @@ const valid: ProfileInput = {
   NickName: "Marc",
   Designation: "Programme manager",
   Biography: "Runs the scoreboard.",
-  Language: "en-US",
   Gender: "Male",
   BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
-  Twitter: "twitter.com/marcus",
   Facebook: "",
-  LinkedIn: "linkedin.com/in/marcus",
   Github: "github.com/marcus",
+  LinkedIn: "linkedin.com/in/marcus",
+  TikTok: "tiktok.com/@marcus",
+  Twitter: "twitter.com/marcus",
   WantsAwardEmails: true,
   WantsDigestEmails: false,
 };
@@ -49,7 +49,7 @@ describe("the profile a caller may read and write", () => {
     await expect(service.get("nobody")).resolves.toBeNull();
   });
 
-  // The order of fifteen positional parameters is the kind of thing that is
+  // The order of seventeen positional parameters is the kind of thing that is
   // wrong once and then wrong forever, so it is pinned here.
   it("passes the whole profile in the order the function declares", async () => {
     const { service, query } = setup([{ UserUUID: "user-id" }]);
@@ -63,15 +63,15 @@ describe("the profile a caller may read and write", () => {
         "Marc",
         "Programme manager",
         "Runs the scoreboard.",
-        "en-US",
         "Male",
         "1990-04-17",
         "+1 555 0134",
         "San Francisco, CA",
-        "twitter.com/marcus",
         "",
-        "linkedin.com/in/marcus",
         "github.com/marcus",
+        "linkedin.com/in/marcus",
+        "tiktok.com/@marcus",
+        "twitter.com/marcus",
         true,
         false,
       ],
@@ -103,9 +103,11 @@ describe("what a profile is allowed to contain", () => {
       BirthDate: "",
       Phone: "",
       Address: "",
-      Twitter: "",
-      LinkedIn: "",
+      Facebook: "",
       Github: "",
+      LinkedIn: "",
+      TikTok: "",
+      Twitter: "",
     });
     expect(empty.Twitter).toBe("");
   });
@@ -120,8 +122,8 @@ describe("what a profile is allowed to contain", () => {
     ["FirstName", "M".repeat(65)],
     ["Biography", "b".repeat(2001)],
     ["Github", "github com/marcus"],
+    ["TikTok", "tiktok com/@marcus"],
     ["Phone", "no"],
-    ["Language", "kl-KL"],
     ["Gender", "Wizard"],
     ["BirthDate", "17-04-1990"],
     ["BirthDate", "2026-02-31"],

@@ -8,6 +8,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession, type Identity } from "../authentication";
 import { CardField, FieldRow } from "./card-field";
@@ -15,7 +16,6 @@ import { useProfile, type StoredProfile } from "./profile-api";
 import {
   errorsOf,
   genders,
-  languages,
   type FieldErrors,
   type Profile,
 } from "./profile-schema";
@@ -29,6 +29,11 @@ import {
  * -- so a value typed here would last until the next sign-in and no longer.
  * They are on the form because a profile that did not show them would look
  * like it had lost them.
+ *
+ * Everything the form *says* goes through `t()`. Nothing it *stores* does:
+ * a gender is written to the database as "Male", and the Spanish label above
+ * that option is a label. The five social fields keep their names in every
+ * language, because Facebook is called Facebook in Spanish.
  */
 
 /* The blank the form starts from before the API answers. */
@@ -38,15 +43,15 @@ const EMPTY: Profile = {
   NickName: "",
   Designation: "",
   Biography: "",
-  Language: languages[0].tag,
   Gender: "Not specified",
   BirthDate: "",
   Phone: "",
   Address: "",
-  Twitter: "",
   Facebook: "",
-  LinkedIn: "",
   Github: "",
+  LinkedIn: "",
+  TikTok: "",
+  Twitter: "",
   WantsAwardEmails: true,
   WantsDigestEmails: false,
 };
@@ -80,6 +85,7 @@ export function ProfileForm({
 }) {
   const { identity } = useSession();
   const { profile, loading, save } = useProfile();
+  const { t } = useTranslation();
   const [form, setForm] = useState<Profile>(EMPTY);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
@@ -109,21 +115,24 @@ export function ProfileForm({
     const found = errorsOf(form);
     setErrors(found);
     if (Object.keys(found).length > 0) {
-      onNotice("Some fields need another look — see the messages on them.");
+      onNotice(t("Some fields need another look — see the messages on them."));
       return;
     }
 
     setSaving(true);
     try {
       await save(form);
-      onNotice("Profile saved.", "success");
+      onNotice(t("Profile saved."), "success");
     } catch (failure: unknown) {
       /* The API is the authority. If it refused something this form let
-       * through, its message is the one worth showing. */
+       * through, its message is the one worth showing -- in the language the
+       * API wrote it in, which is English. Translating a message this side
+       * would mean holding a copy of every sentence main-api can produce,
+       * and the copy would be the one that went stale. */
       onNotice(
         failure instanceof Error
           ? failure.message
-          : "The profile was not saved.",
+          : t("The profile was not saved."),
       );
     } finally {
       setSaving(false);
@@ -141,21 +150,8 @@ export function ProfileForm({
           void submit();
         }}
       >
-        <Section label="Personal information">
-          <FieldRow label="Language" htmlFor="profile-language">
-            <CardField
-              id="profile-language"
-              value={form.Language}
-              onChange={(value) => set("Language", value)}
-              options={languages.map((language) => ({
-                value: language.tag,
-                label: language.label,
-              }))}
-              error={errors.Language}
-              loading={loading}
-            />
-          </FieldRow>
-          <FieldRow label="Gender" htmlFor="profile-gender">
+        <Section label={t("Personal information")}>
+          <FieldRow label={t("Gender")} htmlFor="profile-gender">
             <CardField
               id="profile-gender"
               value={form.Gender}
@@ -163,38 +159,40 @@ export function ProfileForm({
                * what the control already guarantees -- and the schema checks
                * it again on the way out regardless. */
               onChange={(value) => set("Gender", value as Profile["Gender"])}
+              /* The value is what the column holds and the schema checks;
+               * only what is read off the screen is translated. */
               options={genders.map((gender) => ({
                 value: gender,
-                label: gender,
+                label: t(gender),
               }))}
               error={errors.Gender}
               loading={loading}
             />
           </FieldRow>
-          <FieldRow label="Date of birth" htmlFor="profile-birth-date">
+          <FieldRow label={t("Date of birth")} htmlFor="profile-birth-date">
             <CardField
               id="profile-birth-date"
               type="date"
               value={form.BirthDate}
               onChange={(value) => set("BirthDate", value)}
               error={errors.BirthDate}
-              hint="Leave it empty if you would rather not say."
+              hint={t("Leave it empty if you would rather not say.")}
               loading={loading}
             />
           </FieldRow>
         </Section>
 
-        <Section label="Name">
-          <FieldRow label="User name" htmlFor="profile-user-name">
+        <Section label={t("Name")}>
+          <FieldRow label={t("User name")} htmlFor="profile-user-name">
             <CardField
               id="profile-user-name"
               value={identity?.loginName ?? ""}
               onChange={() => undefined}
               readOnly
-              hint="Your sign-in name. Change it where you sign in."
+              hint={t("Your sign-in name. Change it where you sign in.")}
             />
           </FieldRow>
-          <FieldRow label="First name" htmlFor="profile-first-name">
+          <FieldRow label={t("First name")} htmlFor="profile-first-name">
             <CardField
               id="profile-first-name"
               value={form.FirstName}
@@ -203,7 +201,7 @@ export function ProfileForm({
               loading={loading}
             />
           </FieldRow>
-          <FieldRow label="Last name" htmlFor="profile-last-name">
+          <FieldRow label={t("Last name")} htmlFor="profile-last-name">
             <CardField
               id="profile-last-name"
               value={form.LastName}
@@ -212,7 +210,7 @@ export function ProfileForm({
               loading={loading}
             />
           </FieldRow>
-          <FieldRow label="Nickname" htmlFor="profile-nickname">
+          <FieldRow label={t("Nickname")} htmlFor="profile-nickname">
             <CardField
               id="profile-nickname"
               value={form.NickName}
@@ -221,7 +219,7 @@ export function ProfileForm({
               loading={loading}
             />
           </FieldRow>
-          <FieldRow label="Designation" htmlFor="profile-designation">
+          <FieldRow label={t("Designation")} htmlFor="profile-designation">
             <CardField
               id="profile-designation"
               value={form.Designation}
@@ -232,17 +230,17 @@ export function ProfileForm({
           </FieldRow>
         </Section>
 
-        <Section label="Contact info">
-          <FieldRow label="Email" htmlFor="profile-email">
+        <Section label={t("Contact info")}>
+          <FieldRow label={t("Email")} htmlFor="profile-email">
             <CardField
               id="profile-email"
               value={identity?.email ?? ""}
               onChange={() => undefined}
               readOnly
-              hint="Your sign-in address. Change it where you sign in."
+              hint={t("Your sign-in address. Change it where you sign in.")}
             />
           </FieldRow>
-          <FieldRow label="Phone" htmlFor="profile-phone">
+          <FieldRow label={t("Phone")} htmlFor="profile-phone">
             <CardField
               id="profile-phone"
               type="tel"
@@ -252,7 +250,7 @@ export function ProfileForm({
               loading={loading}
             />
           </FieldRow>
-          <FieldRow label="Address" htmlFor="profile-address">
+          <FieldRow label={t("Address")} htmlFor="profile-address">
             <CardField
               id="profile-address"
               rows={2}
@@ -264,31 +262,16 @@ export function ProfileForm({
           </FieldRow>
         </Section>
 
-        <Section label="Social info">
-          <FieldRow label="Twitter" htmlFor="profile-twitter">
-            <CardField
-              id="profile-twitter"
-              value={form.Twitter}
-              onChange={(value) => set("Twitter", value)}
-              error={errors.Twitter}
-              loading={loading}
-            />
-          </FieldRow>
+        {/* Alphabetical, the same order the card beside this lists them in
+         * and the schema declares them in: there is no ranking to express
+         * between these, so a new one has exactly one place to go. */}
+        <Section label={t("Social info")}>
           <FieldRow label="Facebook" htmlFor="profile-facebook">
             <CardField
               id="profile-facebook"
               value={form.Facebook}
               onChange={(value) => set("Facebook", value)}
               error={errors.Facebook}
-              loading={loading}
-            />
-          </FieldRow>
-          <FieldRow label="LinkedIn" htmlFor="profile-linkedin">
-            <CardField
-              id="profile-linkedin"
-              value={form.LinkedIn}
-              onChange={(value) => set("LinkedIn", value)}
-              error={errors.LinkedIn}
               loading={loading}
             />
           </FieldRow>
@@ -301,10 +284,37 @@ export function ProfileForm({
               loading={loading}
             />
           </FieldRow>
+          <FieldRow label="LinkedIn" htmlFor="profile-linkedin">
+            <CardField
+              id="profile-linkedin"
+              value={form.LinkedIn}
+              onChange={(value) => set("LinkedIn", value)}
+              error={errors.LinkedIn}
+              loading={loading}
+            />
+          </FieldRow>
+          <FieldRow label="TikTok" htmlFor="profile-tiktok">
+            <CardField
+              id="profile-tiktok"
+              value={form.TikTok}
+              onChange={(value) => set("TikTok", value)}
+              error={errors.TikTok}
+              loading={loading}
+            />
+          </FieldRow>
+          <FieldRow label="Twitter" htmlFor="profile-twitter">
+            <CardField
+              id="profile-twitter"
+              value={form.Twitter}
+              onChange={(value) => set("Twitter", value)}
+              error={errors.Twitter}
+              loading={loading}
+            />
+          </FieldRow>
         </Section>
 
-        <Section label="About yourself">
-          <FieldRow label="Biographical info" htmlFor="profile-biography">
+        <Section label={t("About yourself")}>
+          <FieldRow label={t("Biographical info")} htmlFor="profile-biography">
             <CardField
               id="profile-biography"
               rows={4}
@@ -316,8 +326,8 @@ export function ProfileForm({
           </FieldRow>
         </Section>
 
-        <Section label="Email preferences" last>
-          <FieldRow label="Send me">
+        <Section label={t("Email preferences")} last>
+          <FieldRow label={t("Send me")}>
             {loading ? (
               <Skeleton sx={{ maxWidth: 280 }} />
             ) : (
@@ -325,12 +335,12 @@ export function ProfileForm({
                 <Preference
                   checked={form.WantsAwardEmails}
                   onChange={(next) => set("WantsAwardEmails", next)}
-                  label="Email when a badge or a level is awarded to me"
+                  label={t("Email when a badge or a level is awarded to me")}
                 />
                 <Preference
                   checked={form.WantsDigestEmails}
                   onChange={(next) => set("WantsDigestEmails", next)}
-                  label="A weekly digest of the programme's scoreboard"
+                  label={t("A weekly digest of the programme's scoreboard")}
                 />
               </Stack>
             )}
@@ -349,7 +359,7 @@ export function ProfileForm({
             saving ? <CircularProgress size={16} color="inherit" /> : undefined
           }
         >
-          {saving ? "Saving…" : "Update profile"}
+          {saving ? t("Saving…") : t("Update profile")}
         </Button>
       </Box>
     </CardSurface>

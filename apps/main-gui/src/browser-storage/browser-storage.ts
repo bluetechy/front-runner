@@ -5,6 +5,10 @@
  * exception there would take down the whole app on the way to deciding
  * whether anyone is signed in. Refusing to remember a session is survivable;
  * failing to render is not.
+ *
+ * A vertical of its own rather than `authentication`'s, because it stopped
+ * being one vertical's business the moment `language` also had something
+ * worth remembering between visits.
  */
 
 type Kind = "local" | "session";

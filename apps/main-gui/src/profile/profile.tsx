@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ProfileForm } from "./profile-form";
 import { ProfileSummary } from "./profile-summary";
 
@@ -18,10 +19,17 @@ import { ProfileSummary } from "./profile-summary";
  *
  * `notice` is how the page says something back: that it saved, that a field
  * needs another look, or that the API refused. Nothing here fails quietly.
+ *
+ * This is the first page inside the chrome to be translated -- the heading,
+ * the breadcrumb, every label on the form, and the card down the left switch
+ * with the flag in the top bar. What does not switch is what a field is
+ * *worth*: a gender is stored as "Male" whatever the label above it says,
+ * and a validation message is the API's words. See docs/language.md.
  */
 
 type Tone = "success" | "info" | "error";
 export function Profile() {
+  const { t } = useTranslation();
   const [notice, setNotice] = useState<{
     message: string;
     tone: Tone;
@@ -39,7 +47,7 @@ export function Profile() {
           variant="h2"
           sx={{ fontSize: "clamp(1.6rem, 3vw, 2.1rem)" }}
         >
-          Profile
+          {t("Profile")}
         </Typography>
         <Stack
           direction="row"
@@ -55,7 +63,7 @@ export function Profile() {
               "&:hover": { textDecoration: "underline" },
             }}
           >
-            Dashboard
+            {t("Dashboard")}
           </Typography>
           <Typography
             component="span"
@@ -67,7 +75,7 @@ export function Profile() {
             component="span"
             sx={{ fontSize: "inherit", color: "text.secondary" }}
           >
-            Profile
+            {t("Profile")}
           </Typography>
         </Stack>
       </Stack>
