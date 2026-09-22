@@ -11,8 +11,9 @@ and its Keycloak flows, [the dashboard](dashboard.md),
 [the profile page](profile-page.md) and [the wallet page](wallet-page.md) for
 what is behind the login, [notifications](notifications.md) for the bell in the
 top bar, the page behind it and the TanStack Query under both, [language](language.md) for the flag
-beside it and the i18next behind that, and [icons](shared/icons.md) for how
-every icon is wrapped.
+beside it and the i18next behind that, [icons](shared/icons.md) for how
+every icon is wrapped, and [the style guide](style-guide.md) for the surfaces,
+the ink each one carries, and what a colour has to clear before it goes in.
 
 ## Development with Docker Compose
 

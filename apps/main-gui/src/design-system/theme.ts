@@ -48,27 +48,60 @@ const cardInkMuted = "#6a5581";
 const cardRule = "rgba(31, 5, 56, 0.12)";
 
 /*
- * The chrome behind the login. The marketing pages are the field with a
- * transparent header laid over it; the application has two surfaces of its
- * own -- a rail down the left edge, which is the accent itself, and a bar
- * along the top, which is the card's paper stretched across the window.
+ * The chrome behind the login: a rail down the left edge and a bar across the
+ * top. They were two surfaces of their own once -- the rail the accent itself,
+ * the bar the card's paper stretched across the window -- and they are one
+ * surface now, the field's own violet, so the only lit thing in the chrome is
+ * the page you are on.
+ *
+ * The bar is flat and the rail is that same violet sinking to the darkest one
+ * at its foot: the two meet at the corner in one colour, and the rail has
+ * pulled a shade below the field by the time it reaches the bottom of the
+ * window.
  */
-const rail = `linear-gradient(176deg, ${accent}, ${accentStrong})`;
-const railInk = "rgba(255, 255, 255, 0.86)";
-const railLabel = "rgba(255, 255, 255, 0.62)";
-const railActive = "rgba(255, 255, 255, 0.2)";
-const railEdge = "rgba(255, 255, 255, 0.28)";
+const chrome = violet[900];
+const chromeRail = `linear-gradient(176deg, ${violet[900]}, ${violet[950]})`;
 
 /*
- * The teal the charts' third series is drawn in, which is also the pill the
- * rail marks the page you are on with. One constant rather than two, because
- * the second is meant to be the same colour as the first.
+ * Everything written on the chrome is white, and the quieter half of it is
+ * white held back rather than a grey of its own: 7.8:1 against the bar and
+ * the top of the rail, 8.3:1 at the rail's foot. Both ends are far above the
+ * 4.5:1 text needs, which is the point -- the rail deepens as it falls and
+ * the writing on it must not go with it.
+ */
+const chromeInk = "#ffffff";
+const chromeLabel = "rgba(255, 255, 255, 0.66)";
+
+/* The wash under the pointer, the hairline along the chrome's outer edges,
+ * and the hollow the top bar's search field is sunk into. */
+const chromeHover = "rgba(255, 255, 255, 0.09)";
+const chromeEdge = "rgba(255, 255, 255, 0.16)";
+const chromeField = "rgba(255, 255, 255, 0.08)";
+
+/*
+ * The pill under the page you are on: the same fade a contained button is
+ * painted with, with its magenta end taken down one step. A nav item is
+ * written at 0.92rem, which needs 4.5:1; the button's own `accentStrong`
+ * gives white 4.1:1 there and this gives 4.8:1, against 5.4:1 at the violet
+ * end the fade runs to. The pill itself is 3.6:1 against the chrome, which is
+ * the floor for something drawn rather than written.
+ */
+const accentPill = "#d1258f";
+const chromeSelected = `linear-gradient(95deg, ${accentPill}, ${accentDeep})`;
+
+/*
+ * The teal the charts' third series is drawn in, and the fade a person's face
+ * is drawn on -- an avatar is the one circle in this app that is neither the
+ * accent nor card paper, so nobody mistakes a face for a button.
  *
- * White on it is 3.1:1, which is under what text needs, so the selected item
- * is written in the card's ink instead -- 5.9:1, and the same dark violet
- * everything else on white paper is written in.
+ * The initials inside that circle are white, and white on `teal` itself is
+ * 3.1:1, which is under what text needs. So the fade is not drawn in it: it
+ * runs between the same hue taken down to 4.7:1 and to 7.3:1, and the letters
+ * clear the floor at both ends of it and everywhere between.
  */
 const teal = "#1f9fb5";
+const tealLit = "#0f7f93";
+const tealDeep = "#0a5f72";
 
 /*
  * Series colours for the dashboard's charts, drawn on card paper rather than
@@ -143,18 +176,31 @@ const brand = {
   cardInk,
   cardInkMuted,
   cardRule,
-  /* The rail behind the login, and the ink on it. */
-  rail,
-  railInk,
-  /* The heading over a group of nav items, quieter than the items. */
-  railLabel,
-  railActive,
-  railEdge,
+  /* The chrome behind the login: the bar across the top, and the rail down
+   * the left edge that falls away from it. */
+  chrome,
+  chromeRail,
+  chromeInk,
+  /* The heading over a group of nav items, the second line under somebody's
+   * name, and anything else on the chrome that is not the first thing read. */
+  chromeLabel,
+  chromeHover,
+  chromeEdge,
+  /* A hollow in the chrome, the way `inputField` is one in the panel: the top
+   * bar's search field. */
+  chromeField,
   /* The pill under the page you are on, and what it is written in. */
-  railSelected: teal,
-  railSelectedInk: cardInk,
-  /* A hollow in card paper, the way `inputField` is one in the panel: the
-   * top bar's search field, which on white would otherwise be white. */
+  chromeSelected,
+  chromeSelectedInk: "#ffffff",
+  /* The fade a face is drawn on. */
+  avatarGradient: `linear-gradient(95deg, ${tealLit}, ${tealDeep})`,
+  /* What this app writes on a surface painted in the accent -- the
+   * notification panel's heading, and the control in it that has nothing
+   * left to do. */
+  onAccentWash: "rgba(255, 255, 255, 0.2)",
+  onAccentLabel: "rgba(255, 255, 255, 0.62)",
+  /* A hollow in card paper, the way `inputField` is one in the panel: a
+   * read-only field, which on white would otherwise be white. */
   cardField: "rgba(31, 5, 56, 0.05)",
   /* The tint a stat tile's icon sits in. */
   cardTint: "rgba(227, 79, 196, 0.12)",

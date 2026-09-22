@@ -6,10 +6,12 @@ import type { SxProps, Theme } from "@mui/material/styles";
  *
  * This product has nowhere to keep a photograph -- the profile page says so
  * where the camera button is -- so a person is drawn as their initials on the
- * button's gradient. Three places want that now: the rail's account button,
- * the profile page, and the face on a notification. It was a private copy of
- * the same six lines in the first two until the third asked for it, which is
- * the rule in docs/codebase-structure.md being applied.
+ * teal fade. Teal because the accent's fade is what a button and the selected
+ * page in the rail are painted with, and a face is neither: see
+ * docs/style-guide.md. Four places want it now: the rail, the top bar, the
+ * profile page, and the face on a notification. It was a private copy of the
+ * same six lines in two of them until the third asked for it, which is the
+ * rule in docs/codebase-structure.md being applied.
  *
  * The day an account can carry a photograph, this is the one file that learns
  * about it and the three callers do not.
@@ -48,7 +50,7 @@ export function InitialsAvatar({
         fontSize,
         fontWeight: 600,
         color: "common.white",
-        backgroundImage: (theme) => theme.palette.brand.buttonGradient,
+        backgroundImage: (theme) => theme.palette.brand.avatarGradient,
         ...sx,
       }}
     >

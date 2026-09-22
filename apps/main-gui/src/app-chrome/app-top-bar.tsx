@@ -18,8 +18,9 @@ import { LanguageMenu } from "../language";
 import { NotificationMenu } from "../notifications";
 
 /*
- * The bar along the top of the application: white paper, the same as a card,
- * so the rail is the only coloured surface in the chrome.
+ * The bar along the top of the application: the chrome, the same violet as the
+ * rail it meets at the corner, so the two read as one surface the pages are
+ * laid inside rather than as two edges of different colours.
  *
  * The search field is the mock-up's and does nothing yet. What is real is the
  * language flag, which remembers what it is told; the bell, which reads the
@@ -46,9 +47,9 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
         gap: { xs: 1, sm: 2 },
         paddingInline: { xs: "1rem", md: "1.5rem" },
         paddingBlock: "0.85rem",
-        backgroundColor: (theme) => theme.palette.brand.card,
-        borderBottom: (theme) => `1px solid ${theme.palette.brand.cardRule}`,
-        color: (theme) => theme.palette.brand.cardInk,
+        backgroundColor: (theme) => theme.palette.brand.chrome,
+        borderBottom: (theme) => `1px solid ${theme.palette.brand.chromeEdge}`,
+        color: (theme) => theme.palette.brand.chromeInk,
       }}
     >
       <IconButton
@@ -70,7 +71,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
                 <Box
                   sx={{
                     display: "flex",
-                    color: (theme) => theme.palette.brand.cardInkMuted,
+                    color: (theme) => theme.palette.brand.chromeLabel,
                   }}
                 >
                   <SearchIcon size={18} />
@@ -81,14 +82,15 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
         }}
         sx={{
           flex: { xs: 1, md: "0 1 22rem" },
-          /* The theme's field is a hollow in the dark panel, which on white
-           * paper is invisible; on a card it takes the card's own hollow. */
+          /* The theme's field is a hollow in the dark panel; this is the same
+           * hollow cut into the chrome, which is a shade lighter again. */
           "& .MuiOutlinedInput-root": {
-            backgroundColor: (theme) => theme.palette.brand.cardField,
-            color: (theme) => theme.palette.brand.cardInk,
+            backgroundColor: (theme) => theme.palette.brand.chromeField,
+            color: (theme) => theme.palette.brand.chromeInk,
           },
           "& .MuiOutlinedInput-input::placeholder": {
-            color: (theme) => theme.palette.brand.cardInkMuted,
+            color: (theme) => theme.palette.brand.chromeLabel,
+            opacity: 1,
           },
         }}
       />
@@ -121,9 +123,9 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
             borderRadius: 999,
             cursor: "pointer",
             backgroundColor: "transparent",
-            color: (theme) => theme.palette.brand.cardInk,
+            color: (theme) => theme.palette.brand.chromeInk,
             "&:hover": {
-              backgroundColor: (theme) => theme.palette.brand.cardField,
+              backgroundColor: (theme) => theme.palette.brand.chromeHover,
             },
           }}
         >
@@ -138,7 +140,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
               sx={{
                 fontSize: "0.72rem",
                 lineHeight: 1.3,
-                color: (theme) => theme.palette.brand.cardInkMuted,
+                color: (theme) => theme.palette.brand.chromeLabel,
               }}
             >
               {identity?.loginName ?? ""}
@@ -147,7 +149,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
           <Box
             sx={{
               display: "flex",
-              color: (theme) => theme.palette.brand.cardInkMuted,
+              color: (theme) => theme.palette.brand.chromeLabel,
             }}
           >
             <ChevronDownIcon size={16} />
@@ -162,8 +164,9 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         sx={{
-          /* The application's menus are card paper, like everything else on
-           * this side of the login; the theme's are the dark panel. */
+          /* The application's menus are card paper -- the bar they hang from
+           * is the chrome now, and a dark menu on a dark bar would be one
+           * surface where there are two; the theme's own are the panel. */
           "& .MuiPaper-root": {
             marginTop: "0.4rem",
             minWidth: 180,

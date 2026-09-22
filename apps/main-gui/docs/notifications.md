@@ -54,8 +54,9 @@ card's own hairline, and the panel shadow.
 
 **Mark all read greys out rather than disappearing** when nothing is unread.
 The heading keeps its shape as the last row is read, and the control stays
-where the person left it. Its disabled colours are the rail's whites — this app
-already has an answer for ink on a surface painted in the accent.
+where the person left it. Its disabled colours are the theme's `onAccent`
+pair — this app already has an answer for ink on a surface painted in the
+accent, which this heading still is even though the rail no longer is.
 
 The footer goes to [the page](#the-page), which is the same list with room to
 read it in.
@@ -79,8 +80,8 @@ keeps its own pages and its own place in the list.
 
 The theme dresses a toggle for the violet field — light violet ink, accent
 gradient under the selected segment — and that ink is unreadable on card paper,
-so this takes the shape the rail's selected item has instead: the card's own
-hollow as the track, and the chosen segment in white paper with the card's ink.
+so this takes a shape of its own instead: the card's own hollow as the track,
+and the chosen segment in white paper with the card's ink.
 
 ### When the list is not a list
 

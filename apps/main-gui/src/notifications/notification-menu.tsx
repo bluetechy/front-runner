@@ -70,7 +70,7 @@ export function NotificationMenu() {
         }
         aria-haspopup="dialog"
         onClick={(event) => setAnchor(event.currentTarget)}
-        sx={{ color: (theme) => theme.palette.brand.cardInkMuted }}
+        sx={{ color: (theme) => theme.palette.brand.chromeLabel }}
       >
         <Badge badgeContent={unread} color="primary" max={99}>
           <BellIcon size={20} />
@@ -165,12 +165,12 @@ export function NotificationMenu() {
                 /* Nothing unread is nothing to do, so it greys out rather
                  * than disappearing: the heading keeps its shape as the last
                  * row is read, and the control stays where somebody left it.
-                 * The two whites are the rail's -- they are what this app
-                 * writes on a surface painted in the accent, which is what
-                 * this heading is. */
+                 * The two whites are the theme's `onAccent` pair -- what
+                 * this app writes on a surface painted in the accent, which
+                 * is what this heading is. */
                 "&.Mui-disabled": {
-                  backgroundColor: (theme) => theme.palette.brand.railActive,
-                  color: (theme) => theme.palette.brand.railLabel,
+                  backgroundColor: (theme) => theme.palette.brand.onAccentWash,
+                  color: (theme) => theme.palette.brand.onAccentLabel,
                 },
               }}
             >

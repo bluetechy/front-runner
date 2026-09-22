@@ -30,7 +30,7 @@ export function LanguageMenu() {
         onClick={(event) => setAnchor(event.currentTarget)}
         sx={{
           display: { xs: "none", sm: "inline-flex" },
-          color: (theme) => theme.palette.brand.cardInkMuted,
+          color: (theme) => theme.palette.brand.chromeLabel,
         }}
       >
         <FlagIcon code={language.flag} size={22} />

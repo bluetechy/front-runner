@@ -10,9 +10,11 @@ that were asked for:
 
 - the mock-up floats its navigation as an inset panel; here the rail is
   **fixed to the left edge** and runs the full height of the window
-- the rail is the **accent pink**, not the mock-up's blue
-- the bar along the top is **white**, and the cards are laid on this app's own
-  field rather than on the mock-up's pale grey
+- the rail is not the mock-up's blue — it was the **accent pink** at first,
+  and the rail and the top bar are both the **chrome's violet** now, so the
+  only coloured thing in the chrome is the page you are on
+- the cards are laid on this app's own field rather than on the mock-up's pale
+  grey
 
 ## The two shells
 
@@ -87,20 +89,25 @@ them.
 Four surfaces, all of them from `theme.palette.brand`, and nothing on the page
 defines a colour of its own:
 
-| Surface          | Token                           | What it is                          |
-| ---------------- | ------------------------------- | ----------------------------------- |
-| the rail         | `rail`, `railInk`, `railActive` | the accent, at the left edge        |
-| the top bar      | `card`, `cardRule`              | card paper stretched across the top |
-| behind the cards | `field`                         | the same field every page is on     |
-| a card           | `card`, `cardEdge`, `cardInk`   | the pricing card, exactly           |
+| Surface             | Token                                    | What it is                               |
+| ------------------- | ---------------------------------------- | ---------------------------------------- |
+| the rail            | `chromeRail`, `chromeInk`, `chromeHover` | the field's violet, sinking as it falls  |
+| the top bar         | `chrome`, `chromeEdge`                   | the same violet, flat, across the top    |
+| the page you are on | `chromeSelected`                         | the button's fade, taken one step deeper |
+| behind the cards    | `field`                                  | the same field every page is on          |
+| a card              | `card`, `cardEdge`, `cardInk`            | the pricing card, exactly                |
+
+The rail and the bar are one surface in two pieces, and what may be written on
+each of the four is [the style guide](style-guide.md).
 
 A dashboard card is the pricing card: white paper, the field's darkest violet
 as a 2px rule, corners at `1.75rem`. That is deliberate — the app should have
 one white surface, not two that are nearly the same. It lives in
 `src/card-surface` as `CardSurface`, which is where it went when
 [the profile page](profile-page.md) wanted it too. `cardField` and
-`cardTint` were added for the two things the pricing cards never needed: a
-hollow for the search field, and the tint a stat tile's icon sits in.
+`cardTint` were added for two things the pricing cards never needed: a hollow
+in card paper — a read-only field, a row already read — and the tint a stat
+tile's icon sits in.
 
 ## The charts
 

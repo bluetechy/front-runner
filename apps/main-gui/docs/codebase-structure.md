@@ -123,6 +123,10 @@ its own when a second one does.
 
 ## Extending the theme
 
+[The style guide](style-guide.md) is this theme read from the outside: the
+four surfaces, the ink each one carries, where the accent is allowed, and the
+contrast a new colour has to clear. Read it before adding one.
+
 `theme.ts` augments MUI's `Palette` with a `brand` section for the things
 Material has no slot for — the page's background gradient, the artwork's glow,
 the button gradient, the nav text colour, the gutter width. Add to that object

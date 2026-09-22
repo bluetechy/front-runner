@@ -1,4 +1,3 @@
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
@@ -27,6 +26,7 @@ import SettingsIcon from "@/shared/icons/SettingsIcon";
 import TutorialsIcon from "@/shared/icons/TutorialsIcon";
 import WalletIcon from "@/shared/icons/WalletIcon";
 import { useSession } from "../authentication";
+import { InitialsAvatar } from "../avatar";
 import { useProfile } from "../profile";
 
 /*
@@ -35,6 +35,10 @@ import { useProfile } from "../profile";
  * to meet the edge -- so from `lg` up it is a permanent drawer taking its own
  * column out of the flow, and below that a temporary one the top bar's
  * hamburger opens over the page.
+ *
+ * It is painted in the chrome, which is the field's own violet: see
+ * `design-system/theme.ts` and docs/style-guide.md for why the rail stopped
+ * being the accent and what is left wearing it.
  *
  * The logo, whoever is signed in, and then the nav in three named groups.
  * Every item is a route: Command Center is this dashboard, and the other
@@ -113,17 +117,6 @@ const navGroups: readonly NavGroup[] = [
   },
 ];
 
-/* "Test User" -> "TU". A login name with no space gives one letter, which is
- * the point: it is an avatar, not a label. */
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 function RailContents({ onNavigate }: { onNavigate: () => void }) {
   const { identity } = useSession();
   const { profile } = useProfile();
@@ -166,19 +159,14 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
       <Stack
         sx={{ flexShrink: 0, alignItems: "center", paddingInline: "1.5rem" }}
       >
-        <Avatar
+        <InitialsAvatar
+          name={name}
+          size={68}
+          fontSize="1.4rem"
           sx={{
-            width: 68,
-            height: 68,
-            fontSize: "1.4rem",
-            fontWeight: 600,
-            color: "common.white",
-            backgroundColor: (theme) => theme.palette.brand.railActive,
-            border: (theme) => `3px solid ${theme.palette.brand.railEdge}`,
+            border: (theme) => `3px solid ${theme.palette.brand.chromeEdge}`,
           }}
-        >
-          {initialsOf(name)}
-        </Avatar>
+        />
         <Typography
           sx={{
             mt: 1.25,
@@ -194,7 +182,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
           sx={{
             minHeight: "1.2rem",
             fontSize: "0.78rem",
-            color: (theme) => theme.palette.brand.railLabel,
+            color: (theme) => theme.palette.brand.chromeLabel,
           }}
         >
           {/* What they are here as, from their profile. Blank until they
@@ -208,7 +196,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
           flexShrink: 0,
           mt: 2,
           marginInline: "1.4rem",
-          borderColor: (theme) => theme.palette.brand.railEdge,
+          borderColor: (theme) => theme.palette.brand.chromeEdge,
         }}
       />
 
@@ -226,11 +214,11 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
           paddingBottom: 2,
           scrollbarWidth: "thin",
           scrollbarColor: (theme) =>
-            `${theme.palette.brand.railEdge} transparent`,
+            `${theme.palette.brand.chromeEdge} transparent`,
           "&::-webkit-scrollbar": { width: 6 },
           "&::-webkit-scrollbar-thumb": {
             borderRadius: 999,
-            backgroundColor: (theme) => theme.palette.brand.railEdge,
+            backgroundColor: (theme) => theme.palette.brand.chromeEdge,
           },
         }}
       >
@@ -247,7 +235,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
                   fontWeight: 600,
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                  color: (theme) => theme.palette.brand.railLabel,
+                  color: (theme) => theme.palette.brand.chromeLabel,
                 }}
               >
                 {t(group.label)}
@@ -293,20 +281,24 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
-/* The page you are on is a teal pill -- the charts' third series -- written in
- * the card's ink, because white on that teal is under the contrast text
- * needs. TanStack Router marks the item for us. */
+/* The page you are on is a pill in the accent's fade, lit the way a contained
+ * button is: on a rail that is now the same violet as the field, the one
+ * coloured thing left in the chrome is where you are. TanStack Router marks
+ * the item for us. */
 const itemStyle: SxProps<Theme> = {
   borderRadius: 999,
   paddingBlock: "0.55rem",
   paddingInline: "0.9rem",
-  color: (theme) => theme.palette.brand.railInk,
-  "&:hover": { backgroundColor: (theme) => theme.palette.brand.railActive },
+  color: (theme) => theme.palette.brand.chromeInk,
+  transition: "background-color 150ms ease",
+  "&:hover": { backgroundColor: (theme) => theme.palette.brand.chromeHover },
   '&[data-status="active"]': {
-    color: (theme) => theme.palette.brand.railSelectedInk,
-    backgroundColor: (theme) => theme.palette.brand.railSelected,
+    color: (theme) => theme.palette.brand.chromeSelectedInk,
+    backgroundImage: (theme) => theme.palette.brand.chromeSelected,
+    boxShadow: "0 10px 24px rgba(209, 37, 143, 0.3)",
     "&:hover": {
-      backgroundColor: (theme) => theme.palette.brand.railSelected,
+      backgroundColor: "transparent",
+      backgroundImage: (theme) => theme.palette.brand.chromeSelected,
     },
   },
 };
@@ -318,13 +310,16 @@ export function AppSidebar({
   open: boolean;
   onClose: () => void;
 }) {
-  /* One set of paper styles for both drawers: the accent itself, square at
-   * the edge it is fixed to, and no border where the field would show. A
-   * column, because the nav below the profile is the part that scrolls. */
+  /* One set of paper styles for both drawers: the chrome, square at the edge
+   * it is fixed to, and a hairline down the side the field is on -- the rail
+   * and the field are close enough in colour now that without it the two run
+   * together. A column, because the nav below the profile is the part that
+   * scrolls. */
   const paper: SxProps<Theme> = {
     width: RAIL_WIDTH,
     border: "none",
-    backgroundImage: (theme) => theme.palette.brand.rail,
+    borderRight: (theme) => `1px solid ${theme.palette.brand.chromeEdge}`,
+    backgroundImage: (theme) => theme.palette.brand.chromeRail,
     color: "common.white",
     display: "flex",
     flexDirection: "column",
