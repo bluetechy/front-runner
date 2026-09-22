@@ -18,7 +18,6 @@ import CertificationsIcon from "@/shared/icons/CertificationsIcon";
 import CustomerServiceIcon from "@/shared/icons/CustomerServiceIcon";
 import DashboardIcon from "@/shared/icons/DashboardIcon";
 import type IconProps from "@/shared/icons/IconProps";
-import KpiIcon from "@/shared/icons/KpiIcon";
 import ProfileIcon from "@/shared/icons/ProfileIcon";
 import ScheduleIcon from "@/shared/icons/ScheduleIcon";
 import SecurityIcon from "@/shared/icons/SecurityIcon";
@@ -26,6 +25,7 @@ import SettingsIcon from "@/shared/icons/SettingsIcon";
 import TutorialsIcon from "@/shared/icons/TutorialsIcon";
 import WalletIcon from "@/shared/icons/WalletIcon";
 import { useSession } from "../authentication";
+import { Logo } from "../logo";
 import { InitialsAvatar } from "../avatar";
 import { useProfile } from "../profile";
 
@@ -125,40 +125,14 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <>
-      <Stack
-        component={Link}
+      <Logo
         to="/dashboard"
-        direction="row"
         sx={{
           flexShrink: 0,
-          alignItems: "center",
           justifyContent: "center",
-          gap: 1.25,
           padding: "1.6rem 1.5rem 1.1rem",
-          textDecoration: "none",
-          /* The mark takes this through `currentColor`; the word below paints
-           * over it with the fade the marketing header's logo wears, so the
-           * logo is the same logo on both sides of the login. */
-          color: (theme) => theme.palette.brand.logoMark,
         }}
-      >
-        <KpiIcon size={24} />
-        <Typography
-          component="span"
-          sx={{
-            fontFamily: (theme) => theme.typography.h1.fontFamily,
-            fontStyle: "italic",
-            fontWeight: 700,
-            fontSize: "1.3rem",
-            letterSpacing: "0.01em",
-            backgroundImage: (theme) => theme.palette.brand.logoGradient,
-            backgroundClip: "text",
-            color: "transparent",
-          }}
-        >
-          YourLogo
-        </Typography>
-      </Stack>
+      />
 
       {/* Whoever is signed in. The picture is their initials until there is
        * somewhere to get a photograph from -- the token carries none.

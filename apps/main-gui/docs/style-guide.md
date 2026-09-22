@@ -81,10 +81,13 @@ step — see [contrast](#contrast) for why it is not the same constant.
 
 The logo is the one thing wearing a fade that is not the accent's:
 `brand.logoGradient`, a lighter magenta-to-violet pair, painted through the
-word with `background-clip: text` and given to the mark beside it in the rail
-as `brand.logoMark`. It is the same in both places the logo appears — the
-marketing header and the top of the rail — because a logo that changes either
-side of a login is two logos.
+word with `background-clip: text` and given to the mark beside it as
+`brand.logoMark`. Neither token is reached for outside `src/logo`, which is
+the only place the logo is drawn — the marketing header and the rail both
+render `<Logo>`, because a logo that changes either side of a login is two
+logos. The word is text in the display face rather than artwork, so it is
+selectable, read aloud, and still the logo at any size; the mark beside it is
+a vector from `shared/icons` and takes its size and colour as props.
 
 ## Teal, and faces
 

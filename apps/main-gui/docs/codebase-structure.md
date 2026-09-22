@@ -32,6 +32,7 @@ src/
   notifications/        the bell in the top bar, and the panel behind it
   card-surface/         the white card those are all made of
   avatar/               the circle that stands in for somebody's face
+  logo/                 the product's mark and wordmark, wherever they are drawn
   toast/                what a page says back when it has finished doing something
   shared/icons/         every icon, wrapping whatever library supplies it
   shared/lib/           small predicates shared inside shared/
@@ -88,6 +89,13 @@ and the gradient circle around it were a private copy in `app-chrome/` and
 another in `profile/`, and when a notification wanted the same face it moved
 out rather than becoming a third. There are no photographs in this product
 yet; when there are, that is the one file that learns about it.
+
+`logo/` is the rule applied to the smallest thing in the product: the
+marketing header and the top of the rail each wrote out the mark and the word
+themselves, which is how the logo came to be a magenta fade on one side of the
+login and plain white on the other. What it says, what it is set in, what it
+is painted with, and whether the mark is drawn at all are one file now, and
+the two callers pass only where it goes and where it sits.
 
 `toast/` is the rule being got ahead of by one: the profile page and the
 wallet each had the same `Snackbar` and `Alert` written out inside them, and

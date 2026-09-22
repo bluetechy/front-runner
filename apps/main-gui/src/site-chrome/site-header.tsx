@@ -1,5 +1,4 @@
 import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
@@ -9,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import SearchIcon from "@/shared/icons/SearchIcon";
 import { useSession, useLoginPrompt } from "../authentication";
+import { Logo } from "../logo";
 
 const navItems = [
   { to: "/", label: "Home" },
@@ -34,23 +34,9 @@ export function SiteHeader() {
             justifyContent: { xs: "space-between", md: "flex-start" },
           }}
         >
-          <Box
-            component={Link}
-            to="/"
-            sx={{
-              fontFamily: (theme) => theme.typography.h1.fontFamily,
-              fontStyle: "italic",
-              fontWeight: 700,
-              fontSize: "1.35rem",
-              letterSpacing: "0.01em",
-              textDecoration: "none",
-              backgroundImage: (theme) => theme.palette.brand.logoGradient,
-              backgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            YourLogo
-          </Box>
+          {/* The word alone up here: the mark would be one more thing in a
+           * row that is already navigation, a name and a search. */}
+          <Logo to="/" mark={false} size="1.35rem" />
 
           <Stack
             component="nav"
