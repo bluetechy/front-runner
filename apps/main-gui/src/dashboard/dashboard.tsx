@@ -4,8 +4,7 @@ import Grid from "@mui/material/Grid";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useNavigate } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import CustomersIcon from "@/shared/icons/CustomersIcon";
 import PlusIcon from "@/shared/icons/PlusIcon";
 import { useSession } from "../authentication";
@@ -34,8 +33,9 @@ import {
  *
  * Every number on it but the account card's comes from `metrics.ts` and is a
  * placeholder; see docs/dashboard.md for what is real and what is not. The
- * chrome around it -- the rail, the top bar -- is `app-chrome`, applied by
- * the route rather than here.
+ * chrome around it -- the rail, the top bar -- is `app-chrome`, and the
+ * session it needs is guarded, both by the `_app` layout route rather than
+ * here.
  */
 
 function greeting(hour: number): string {
@@ -45,14 +45,7 @@ function greeting(hour: number): string {
 }
 
 export function Dashboard() {
-  const { status, identity } = useSession();
-  const navigate = useNavigate();
-
-  /* Signing out from the top bar, or arriving here without a session at all,
-   * goes back to the landing page rather than sitting on an empty dashboard. */
-  useEffect(() => {
-    if (status === "signed-out") void navigate({ to: "/", replace: true });
-  }, [status, navigate]);
+  const { identity } = useSession();
 
   /* "Thomas John" is greeted as Thomas. A login name gives itself back. */
   const firstName = identity?.name?.split(/\s+/)[0] ?? "there";

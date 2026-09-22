@@ -21,18 +21,21 @@ under it and they never appear together:
 
 ```
 routes/
-  __root.tsx             the outlet, and nothing else
-  _site.tsx              PageShell: the field, the header, the login dialog
-  _site.index.tsx        /            the landing page
-  _site.about.tsx        /about       and the rest of the marketing pages
+  __root.tsx              the outlet, and nothing else
+  _site.tsx               PageShell: the field, the header, the login dialog
+  _site.index.tsx         /            the landing page
+  _site.about.tsx         /about       and the rest of the marketing pages
   _site.auth.callback.tsx /auth/callback
-  dashboard.tsx          /dashboard   AppShell + Dashboard
+  _app.tsx                AppShell: the rail, the top bar, the session guard
+  _app.dashboard.tsx      /dashboard   the dashboard itself
+  _app.schedule.tsx       /schedule    and the six other pages in the rail
 ```
 
-`_site` is a pathless layout route, so every marketing URL is exactly what it
-was; what changed is that the header is now applied by the layout rather than
-by the root. Adding a second page behind the login means one more route file
-beside `dashboard.tsx` wrapped in the same `AppShell`.
+Both are pathless layout routes, so every URL is exactly what it says. The
+session is guarded once, in `_app`: signing out, or arriving without a
+session, goes back to the landing page from any page behind the login rather
+than from each of them separately. Adding another page behind the login is one
+more `_app.<name>.tsx`, and nothing else.
 
 ## The chrome
 

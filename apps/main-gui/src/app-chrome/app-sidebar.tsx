@@ -32,17 +32,31 @@ import { useSession } from "../authentication";
  * hamburger opens over the page.
  *
  * The logo, whoever is signed in, and then the nav in three named groups.
- * Command Center is the only item with a route behind it; the rest name the
- * sections this product is going to have, and are disabled until they exist,
- * because a nav link that goes nowhere is worse than one that says so.
+ * Every item is a route: Command Center is this dashboard, and the other
+ * seven are pages that say plainly they have not been built yet. Selecting
+ * one is a navigation, so the URL, the back button and the pill under the
+ * item you are on all agree without any of them being told twice.
  */
 
 export const RAIL_WIDTH = 258;
 
+/* Every page behind the login. Spelled out rather than left as `string`, so
+ * a link to a route that does not exist is a failed build rather than a dead
+ * item in the rail. */
+type AppPath =
+  | "/dashboard"
+  | "/schedule"
+  | "/achievements"
+  | "/certifications"
+  | "/profile"
+  | "/settings"
+  | "/tutorials"
+  | "/customer-service";
+
 interface NavItem {
   label: string;
   icon: FC<IconProps>;
-  to?: "/dashboard";
+  to: AppPath;
 }
 
 interface NavGroup {
@@ -55,23 +69,31 @@ const navGroups: readonly NavGroup[] = [
     label: "Dashboard",
     items: [
       { label: "Command Center", icon: DashboardIcon, to: "/dashboard" },
-      { label: "Schedule", icon: ScheduleIcon },
-      { label: "Achievements", icon: AchievementsIcon },
-      { label: "Certifications", icon: CertificationsIcon },
+      { label: "Schedule", icon: ScheduleIcon, to: "/schedule" },
+      { label: "Achievements", icon: AchievementsIcon, to: "/achievements" },
+      {
+        label: "Certifications",
+        icon: CertificationsIcon,
+        to: "/certifications",
+      },
     ],
   },
   {
     label: "Account",
     items: [
-      { label: "Profile", icon: ProfileIcon },
-      { label: "Settings", icon: SettingsIcon },
+      { label: "Profile", icon: ProfileIcon, to: "/profile" },
+      { label: "Settings", icon: SettingsIcon, to: "/settings" },
     ],
   },
   {
     label: "Support",
     items: [
-      { label: "Tutorials", icon: TutorialsIcon },
-      { label: "Customer Service", icon: CustomerServiceIcon },
+      { label: "Tutorials", icon: TutorialsIcon, to: "/tutorials" },
+      {
+        label: "Customer Service",
+        icon: CustomerServiceIcon,
+        to: "/customer-service",
+      },
     ],
   },
 ];
@@ -197,19 +219,6 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
           >
             {group.items.map((item) => {
               const ItemIcon = item.icon;
-              const contents = (
-                <>
-                  <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
-                    <ItemIcon size={20} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    slotProps={{
-                      primary: { sx: { fontSize: "0.92rem", fontWeight: 500 } },
-                    }}
-                  />
-                </>
-              );
 
               return (
                 <ListItem
@@ -217,22 +226,25 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
                   disablePadding
                   sx={{ marginBottom: 0.25 }}
                 >
-                  {item.to ? (
-                    <ListItemButton
-                      component={Link}
-                      to={item.to}
-                      activeOptions={{ exact: true }}
-                      onClick={onNavigate}
-                      sx={itemStyle}
-                    >
-                      {contents}
-                    </ListItemButton>
-                  ) : (
-                    /* Not built yet, and saying so is the whole point. */
-                    <ListItemButton disabled sx={itemStyle}>
-                      {contents}
-                    </ListItemButton>
-                  )}
+                  <ListItemButton
+                    component={Link}
+                    to={item.to}
+                    activeOptions={{ exact: true }}
+                    onClick={onNavigate}
+                    sx={itemStyle}
+                  >
+                    <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
+                      <ItemIcon size={20} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.label}
+                      slotProps={{
+                        primary: {
+                          sx: { fontSize: "0.92rem", fontWeight: 500 },
+                        },
+                      }}
+                    />
+                  </ListItemButton>
                 </ListItem>
               );
             })}
@@ -243,17 +255,15 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
-/* Shared by the linked item and the disabled ones, so the row they sit in is
- * the same shape whether or not there is a page behind it. The page you are
- * on is a teal pill -- the charts' third series -- written in the card's ink,
- * because white on that teal is under the contrast text needs. */
+/* The page you are on is a teal pill -- the charts' third series -- written in
+ * the card's ink, because white on that teal is under the contrast text
+ * needs. TanStack Router marks the item for us. */
 const itemStyle: SxProps<Theme> = {
   borderRadius: 999,
   paddingBlock: "0.55rem",
   paddingInline: "0.9rem",
   color: (theme) => theme.palette.brand.railInk,
   "&:hover": { backgroundColor: (theme) => theme.palette.brand.railActive },
-  "&.Mui-disabled": { opacity: 0.62 },
   '&[data-status="active"]': {
     color: (theme) => theme.palette.brand.railSelectedInk,
     backgroundColor: (theme) => theme.palette.brand.railSelected,

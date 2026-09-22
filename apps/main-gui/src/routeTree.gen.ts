@@ -9,8 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as SiteRouteImport } from './routes/_site'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
+import { Route as AppCertificationsRouteImport } from './routes/_app.certifications'
+import { Route as AppCustomerServiceRouteImport } from './routes/_app.customer-service'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppScheduleRouteImport } from './routes/_app.schedule'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppTutorialsRouteImport } from './routes/_app.tutorials'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
 import { Route as SiteContactRouteImport } from './routes/_site.contact'
@@ -18,14 +26,53 @@ import { Route as SiteFeaturesRouteImport } from './routes/_site.features'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
 import { Route as SiteAuthCallbackRouteImport } from './routes/_site.auth.callback'
 
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SiteRoute = SiteRouteImport.update({
   id: '/_site',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
+const AppAchievementsRoute = AppAchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCertificationsRoute = AppCertificationsRouteImport.update({
+  id: '/certifications',
+  path: '/certifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomerServiceRoute = AppCustomerServiceRouteImport.update({
+  id: '/customer-service',
+  path: '/customer-service',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppScheduleRoute = AppScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTutorialsRoute = AppTutorialsRouteImport.update({
+  id: '/tutorials',
+  path: '/tutorials',
+  getParentRoute: () => AppRoute,
 } as any)
 const SiteIndexRoute = SiteIndexRouteImport.update({
   id: '/',
@@ -60,7 +107,14 @@ const SiteAuthCallbackRoute = SiteAuthCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/achievements': typeof AppAchievementsRoute
+  '/certifications': typeof AppCertificationsRoute
+  '/customer-service': typeof AppCustomerServiceRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/profile': typeof AppProfileRoute
+  '/schedule': typeof AppScheduleRoute
+  '/settings': typeof AppSettingsRoute
+  '/tutorials': typeof AppTutorialsRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
   '/features': typeof SiteFeaturesRoute
@@ -68,18 +122,33 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRoutesByTo {
-  '/dashboard': typeof DashboardRoute
+  '/': typeof SiteIndexRoute
+  '/achievements': typeof AppAchievementsRoute
+  '/certifications': typeof AppCertificationsRoute
+  '/customer-service': typeof AppCustomerServiceRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/profile': typeof AppProfileRoute
+  '/schedule': typeof AppScheduleRoute
+  '/settings': typeof AppSettingsRoute
+  '/tutorials': typeof AppTutorialsRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
-  '/': typeof SiteIndexRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_app': typeof AppRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
-  '/dashboard': typeof DashboardRoute
+  '/_app/achievements': typeof AppAchievementsRoute
+  '/_app/certifications': typeof AppCertificationsRoute
+  '/_app/customer-service': typeof AppCustomerServiceRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/schedule': typeof AppScheduleRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/tutorials': typeof AppTutorialsRoute
   '/_site/about': typeof SiteAboutRoute
   '/_site/contact': typeof SiteContactRoute
   '/_site/features': typeof SiteFeaturesRoute
@@ -91,7 +160,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/achievements'
+    | '/certifications'
+    | '/customer-service'
     | '/dashboard'
+    | '/profile'
+    | '/schedule'
+    | '/settings'
+    | '/tutorials'
     | '/about'
     | '/contact'
     | '/features'
@@ -99,17 +175,32 @@ export interface FileRouteTypes {
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
+    | '/achievements'
+    | '/certifications'
+    | '/customer-service'
     | '/dashboard'
+    | '/profile'
+    | '/schedule'
+    | '/settings'
+    | '/tutorials'
     | '/about'
     | '/contact'
     | '/features'
     | '/pricing'
-    | '/'
     | '/auth/callback'
   id:
     | '__root__'
+    | '/_app'
     | '/_site'
-    | '/dashboard'
+    | '/_app/achievements'
+    | '/_app/certifications'
+    | '/_app/customer-service'
+    | '/_app/dashboard'
+    | '/_app/profile'
+    | '/_app/schedule'
+    | '/_app/settings'
+    | '/_app/tutorials'
     | '/_site/about'
     | '/_site/contact'
     | '/_site/features'
@@ -119,12 +210,19 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AppRoute: typeof AppRouteWithChildren
   SiteRoute: typeof SiteRouteWithChildren
-  DashboardRoute: typeof DashboardRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_site': {
       id: '/_site'
       path: ''
@@ -132,12 +230,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
+    '/_app/achievements': {
+      id: '/_app/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AppAchievementsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/certifications': {
+      id: '/_app/certifications'
+      path: '/certifications'
+      fullPath: '/certifications'
+      preLoaderRoute: typeof AppCertificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/customer-service': {
+      id: '/_app/customer-service'
+      path: '/customer-service'
+      fullPath: '/customer-service'
+      preLoaderRoute: typeof AppCustomerServiceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/schedule': {
+      id: '/_app/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AppScheduleRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tutorials': {
+      id: '/_app/tutorials'
+      path: '/tutorials'
+      fullPath: '/tutorials'
+      preLoaderRoute: typeof AppTutorialsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_site/': {
       id: '/_site/'
@@ -184,6 +331,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppRouteChildren {
+  AppAchievementsRoute: typeof AppAchievementsRoute
+  AppCertificationsRoute: typeof AppCertificationsRoute
+  AppCustomerServiceRoute: typeof AppCustomerServiceRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppScheduleRoute: typeof AppScheduleRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTutorialsRoute: typeof AppTutorialsRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAchievementsRoute: AppAchievementsRoute,
+  AppCertificationsRoute: AppCertificationsRoute,
+  AppCustomerServiceRoute: AppCustomerServiceRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppScheduleRoute: AppScheduleRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppTutorialsRoute: AppTutorialsRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 interface SiteRouteChildren {
   SiteAboutRoute: typeof SiteAboutRoute
   SiteContactRoute: typeof SiteContactRoute
@@ -205,8 +376,8 @@ const SiteRouteChildren: SiteRouteChildren = {
 const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  AppRoute: AppRouteWithChildren,
   SiteRoute: SiteRouteWithChildren,
-  DashboardRoute: DashboardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

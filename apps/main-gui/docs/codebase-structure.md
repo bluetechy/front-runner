@@ -51,9 +51,10 @@ a vertical. Anything longer than that belongs in the vertical, not in
 
 **There are two shells, and the route says which one.** `__root.tsx` is an
 outlet and nothing else. The marketing pages sit under the pathless `_site`
-layout route, which wraps them in `site-chrome`; `/dashboard` sits outside it
-and wraps itself in `app-chrome`. They never appear together, which is why
-neither is in the root. See [the dashboard](dashboard.md).
+layout route, which wraps them in `site-chrome`; the pages behind the login
+sit under `_app`, which wraps them in `app-chrome` and guards the session for
+all of them at once. They never appear together, which is why neither is in
+the root. See [the dashboard](dashboard.md).
 
 **No file outside `shared/icons` imports an icon library.** Every icon is a
 wrapper in that folder taking `{ color, size }`, so a page asks for
@@ -83,8 +84,7 @@ its own when a second one does.
 1. Add the vertical: `src/<name>/`, with `<name>.tsx` and an `index.ts` that
    exports the entry component.
 2. Add the route rendering it: `src/routes/_site.<name>.tsx` for a marketing
-   page, or `src/routes/<name>.tsx` wrapped in `AppShell` for a page behind
-   the login.
+   page, or `src/routes/_app.<name>.tsx` for one behind the login.
 3. The router plugin regenerates `routeTree.gen.ts`, and the header's `<Link>`
    to `/<name>` starts type-checking.
 
