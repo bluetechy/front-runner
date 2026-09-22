@@ -45,14 +45,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- The button is there whether or not there is anything to do, so clicking it
--- with an empty bell answers an empty list rather than raising.
-CREATE FUNCTION "test"."TestMarkAllNotificationsRead_AcceptsHavingNothingToDo" () RETURNS void AS $$
-DECLARE
-    _Count bigint;
+-- How many were marked, rather than the list: the caller is holding a page,
+-- and the honest answer to "mark everything" is how much was marked.
+CREATE FUNCTION "test"."TestMarkAllNotificationsRead_AnswersWithHowManyItMarked" () RETURNS void AS $$
 BEGIN
-    SELECT count(*) INTO _Count FROM "dbo"."MarkAllNotificationsRead"('owner');
-    PERFORM "test"."AssertEquals"(_Count, 0::bigint, 'an account with no notifications should get an empty list back');
+    PERFORM "test"."AssertEquals"("dbo"."MarkAllNotificationsRead"('member'), 1, 'the count of marked notifications is wrong');
+END;
+$$ LANGUAGE plpgsql;
+
+-- The button is there whether or not there is anything to do, so clicking it
+-- twice is the same as clicking it once and the second click answers zero.
+CREATE FUNCTION "test"."TestMarkAllNotificationsRead_AcceptsHavingNothingToDo" () RETURNS void AS $$
+BEGIN
+    PERFORM "dbo"."MarkAllNotificationsRead"('member');
+    PERFORM "test"."AssertEquals"("dbo"."MarkAllNotificationsRead"('member'), 0, 'marking everything read twice marked something the second time');
+    PERFORM "test"."AssertEquals"("dbo"."MarkAllNotificationsRead"('owner'), 0, 'an account with no notifications marked something');
 END;
 $$ LANGUAGE plpgsql;
 

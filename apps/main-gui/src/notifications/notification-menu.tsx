@@ -7,29 +7,35 @@ import Popover from "@mui/material/Popover";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import BellIcon from "@/shared/icons/BellIcon";
+import { MorePlease } from "./more-please";
+import { NotificationFilters } from "./notification-filter";
 import { NotificationRow } from "./notification-row";
 import {
-  unreadCount,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
+  useNotificationCounts,
   useNotifications,
+  type NotificationFilter,
 } from "./notifications-api";
 
 /*
  * The bell in the top bar, and everything behind it.
  *
- * A `Popover` rather than the `Menu` the flag and the account use: this is a
- * panel with a heading, a scrolling list and a footer, and calling it a menu
- * would promise arrow-key navigation between things that are not menu items.
- * The paper is dressed to match those two regardless, because it hangs off the
- * same bar.
+ * A `Popover`, not the `Menu` the flag and the account use: this is a panel
+ * with a heading, a filter, a scrolling list and a footer, and calling it a
+ * menu would promise arrow-key navigation between things that are not menu
+ * items. The paper is dressed to match those two regardless, because it hangs
+ * off the same bar.
  *
- * The badge counts what is **unread**, not what is there, and MUI drops a
- * badge showing zero -- so marking everything read takes the dot off the bell
- * without anything here saying so.
+ * The badge counts what is **unread**, and MUI drops a badge showing zero --
+ * so marking everything read takes the dot off the bell without anything here
+ * saying so. It is its own query and not a count of what is on screen: the
+ * list is one page of a list that may be long, and switching the filter must
+ * not change the number on the bell. The page reads the same query, so the
+ * badge and its "Unread 6" tab are one number.
  */
 
 /* Tall enough to show four rows and half of the fifth, which is what tells
@@ -39,12 +45,20 @@ const LIST_HEIGHT = "19.5rem";
 export function NotificationMenu() {
   const { t } = useTranslation();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const { data, isPending, isError, error } = useNotifications();
+  const [filter, setFilter] = useState<NotificationFilter>("All");
+
+  const list = useNotifications(filter);
+  const { data: counts } = useNotificationCounts();
+  const unread = counts?.Unread ?? 0;
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
-  const notifications = data ?? [];
-  const unread = unreadCount(notifications);
+  /* The pages, flattened. Query keeps them as an array of arrays so it can
+   * refetch one of them; nothing below cares which page a row came from. */
+  const notifications = useMemo(
+    () => list.data?.pages.flat() ?? [],
+    [list.data],
+  );
 
   return (
     <>
@@ -76,7 +90,7 @@ export function NotificationMenu() {
             sx: {
               overflow: "visible",
               marginTop: "0.7rem",
-              width: { xs: "calc(100vw - 2rem)", sm: 360 },
+              width: { xs: "calc(100vw - 2rem)", sm: 380 },
               maxWidth: "calc(100vw - 2rem)",
               backgroundColor: "transparent",
               backgroundImage: "none",
@@ -164,27 +178,46 @@ export function NotificationMenu() {
             </Button>
           </Box>
 
+          <Box
+            sx={{
+              padding: "0.6rem 0.75rem",
+              borderBottom: (theme) =>
+                `1px solid ${theme.palette.brand.cardRule}`,
+            }}
+          >
+            <NotificationFilters filter={filter} onChange={setFilter} />
+          </Box>
+
           <Box sx={{ maxHeight: LIST_HEIGHT, overflowY: "auto" }}>
-            {isPending ? (
+            {list.isPending ? (
               <Message>{t("Loading your notifications…")}</Message>
-            ) : isError ? (
+            ) : list.isError ? (
               <Message>
-                {error instanceof Error
-                  ? error.message
+                {list.error instanceof Error
+                  ? list.error.message
                   : t("Your notifications could not be loaded.")}
               </Message>
             ) : notifications.length === 0 ? (
-              <Message>{t("You have no notifications yet.")}</Message>
+              <Message>{emptySentence(t, filter)}</Message>
             ) : (
-              <List disablePadding>
-                {notifications.map((notification) => (
-                  <NotificationRow
-                    key={notification.NotificationUUID}
-                    notification={notification}
-                    onRead={(notificationId) => markRead.mutate(notificationId)}
-                  />
-                ))}
-              </List>
+              <>
+                <List disablePadding>
+                  {notifications.map((notification) => (
+                    <NotificationRow
+                      key={notification.NotificationUUID}
+                      notification={notification}
+                      onRead={(notificationId) =>
+                        markRead.mutate(notificationId)
+                      }
+                    />
+                  ))}
+                </List>
+                <MorePlease
+                  hasMore={list.hasNextPage}
+                  busy={list.isFetchingNextPage}
+                  onReached={() => void list.fetchNextPage()}
+                />
+              </>
             )}
           </Box>
 
@@ -236,6 +269,15 @@ function unreadSentence(t: TFunction, unread: number): string {
   if (unread === 0) return t("You are all caught up.");
   if (unread === 1) return t("You have 1 unread notification.");
   return t("You have {{unread}} unread notifications.", { unread });
+}
+
+/* An empty list means something different under each filter, and "you have no
+ * notifications yet" under Unread would be a lie told to somebody who has
+ * forty of them. */
+function emptySentence(t: TFunction, filter: NotificationFilter): string {
+  if (filter === "Unread") return t("Nothing unread.");
+  if (filter === "Read") return t("Nothing read yet.");
+  return t("You have no notifications yet.");
 }
 
 /* Whatever the list has to say when it is not a list: waiting, broken, or

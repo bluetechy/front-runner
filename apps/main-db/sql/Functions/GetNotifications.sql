@@ -7,15 +7,19 @@
 -- wants a boolean has "ReadAt IS NULL" in front of it. See
 -- sql/Tables/Notifications.sql.
 --
--- Read and unread come back in one list rather than two. The bell shows both,
--- with the unread ones marked, so splitting them here would only mean the
--- caller interleaving them again by "CreatedAt".
+-- Read and unread come back in one list rather than two. The bell shows both
+-- and filters between them, so splitting them here would only mean the caller
+-- interleaving them again by "CreatedAt".
+--
+-- The actor is joined rather than left as a UUID, because every caller that
+-- wants one wants their name: the bell draws them as the face on the row. The
+-- join is LEFT, and both actor columns are NULL together -- plenty of what
+-- this schema notifies on has nobody behind it.
 --
 -- _RowLimit is the same optional cap the point readers take -- 0 or NULL for
--- every row -- and the API passes nothing, deliberately: the badge counts the
--- unread ones in what comes back, so a cap applied here would be a badge that
--- says 50 when there are 60. When the menu grows a second page, the cap and
--- the count arrive together.
+-- every row. main-api pages this by wrapping the call in its own LIMIT and
+-- OFFSET, the way it pages dbo.GetUsers, and passes nothing here; the cap
+-- stays for a caller that wants "the latest handful" without paging.
 --
 -- An account that does not exist has no notifications rather than an error,
 -- the way an unknown login has an empty wallet: there is nothing secret in
@@ -28,6 +32,8 @@ CREATE FUNCTION "dbo"."GetNotifications" (
     "NotificationUUID" uuid,
     "OrganizationUUID" uuid,
     "TaskUUID" uuid,
+    "ActorUUID" uuid,
+    "ActorName" varchar(64),
     "NotificationType" varchar(50),
     "Message" text,
     "ReadAt" TIMESTAMPTZ,
@@ -46,15 +52,23 @@ CREATE FUNCTION "dbo"."GetNotifications" (
             "Notifications"."NotificationUUID",
             "Notifications"."OrganizationUUID",
             "Notifications"."TaskUUID",
+            "Notifications"."ActorUUID",
+            "Actors"."Name",
             "Notifications"."NotificationType",
             "Notifications"."Message",
             "Notifications"."ReadAt",
             "Notifications"."CreatedAt"
         FROM "dbo"."Notifications"
+        -- A disabled account is still who did it. The filter belongs on who
+        -- may sign in, not on what is already in somebody's history.
+        LEFT JOIN "dbo"."Users" AS "Actors"
+            ON ("Actors"."UserUUID" = "Notifications"."ActorUUID")
         WHERE "Notifications"."UserUUID" = _UserUUID
         -- Ties break on the UUID, which is arbitrary but stable: two rows
         -- share a "CreatedAt" only when one transaction wrote both, and the
-        -- list has to come back the same way twice.
+        -- list has to come back the same way twice. A page boundary lands in
+        -- the middle of this list, so an unstable sort would show a row twice
+        -- and skip another.
         ORDER BY "Notifications"."CreatedAt" DESC, "Notifications"."NotificationUUID"
         LIMIT (CASE WHEN COALESCE(_RowLimit, 0) > 0 THEN _RowLimit ELSE NULL END);
     END;

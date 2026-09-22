@@ -10,7 +10,7 @@ import {
 } from "@jest/globals";
 import { Test } from "@nestjs/testing";
 import { GraphQLSchemaHost } from "@nestjs/graphql";
-import { isEnumType, isInputObjectType } from "graphql";
+import { isEnumType, isInputObjectType, isLeafType } from "graphql";
 import {
   BadRequestException,
   ForbiddenException,
@@ -773,10 +773,15 @@ describe("GraphQL application", () => {
               argument.defaultValue === undefined,
           )
           .map((argument) => `${argument.name}: ${placeholder(argument.type)}`);
+        // A field returning a scalar takes no selection set, and asking one
+        // for `__typename` fails validation before the guard this test is
+        // about ever runs -- which is not the same thing as being public.
+        const named = String(field.type).replace(/[[\]!]/g, "");
+        const leaf = isLeafType(schema.getType(named));
         const selection = `${field.name}${args.length ? `(${args.join(", ")})` : ""}`;
         return {
           name: field.name,
-          document: `${root.name.toLowerCase()} { ${selection} { __typename } }`,
+          document: `${root.name.toLowerCase()} { ${selection}${leaf ? "" : " { __typename }"} }`,
         };
       }),
     );

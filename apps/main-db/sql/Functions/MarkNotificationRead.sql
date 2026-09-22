@@ -1,10 +1,12 @@
 --
--- Mark one notification as seen.
+-- Mark one notification as seen, and answer with the row as it now stands.
 --
--- It answers with the whole list rather than the row it touched, the way the
--- wallet's writes do: the caller is a menu showing every notification and a
--- badge counting the unread ones, and handing back one row would leave it to
--- work out what the count is now.
+-- One row rather than the whole list. It answered with the list until the bell
+-- started paging: "here is everything" stops being a useful answer once the
+-- caller is holding page three of it, and a mutation that returns a different
+-- number of rows than the caller has on screen is worse than one that returns
+-- the row that changed. The count on the badge is its own read -- see
+-- main-api's notifications service.
 --
 -- Reading something twice is not an error and does not move "ReadAt". The
 -- first time is when it was seen; a second click on a row already open would
@@ -21,6 +23,8 @@ CREATE FUNCTION "dbo"."MarkNotificationRead" (
     "NotificationUUID" uuid,
     "OrganizationUUID" uuid,
     "TaskUUID" uuid,
+    "ActorUUID" uuid,
+    "ActorName" varchar(64),
     "NotificationType" varchar(50),
     "Message" text,
     "ReadAt" TIMESTAMPTZ,
@@ -45,6 +49,9 @@ CREATE FUNCTION "dbo"."MarkNotificationRead" (
         WHERE "Notifications"."NotificationUUID" = _NotificationUUID
             AND "Notifications"."ReadAt" IS NULL;
 
-        RETURN QUERY SELECT * FROM "dbo"."GetNotifications"(_LoginName);
+        -- Read back through the reader rather than from the UPDATE, so the
+        -- row a caller is handed is assembled exactly once, actor and all.
+        RETURN QUERY SELECT * FROM "dbo"."GetNotifications"(_LoginName) AS "Read"
+        WHERE "Read"."NotificationUUID" = _NotificationUUID;
     END;
 $$ LANGUAGE plpgsql;

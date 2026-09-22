@@ -1,4 +1,3 @@
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -14,6 +13,7 @@ import LogoutIcon from "@/shared/icons/LogoutIcon";
 import MenuIcon from "@/shared/icons/MenuIcon";
 import SearchIcon from "@/shared/icons/SearchIcon";
 import { useSession } from "../authentication";
+import { InitialsAvatar } from "../avatar";
 import { LanguageMenu } from "../language";
 import { NotificationMenu } from "../notifications";
 
@@ -27,17 +27,6 @@ import { NotificationMenu } from "../notifications";
  * right: who is signed in, read from the session, and the menu that signs them
  * out.
  */
-
-/* "Thomas John" -> "TJ". A login name with no space gives one letter, which
- * is the point: it is an avatar, not a label. */
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
   const { identity, logout } = useSession();
@@ -138,17 +127,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
             },
           }}
         >
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              fontSize: "0.85rem",
-              color: "common.white",
-              backgroundImage: (theme) => theme.palette.brand.buttonGradient,
-            }}
-          >
-            {initialsOf(name)}
-          </Avatar>
+          <InitialsAvatar name={name} size={36} fontSize="0.85rem" />
           <Box sx={{ display: { xs: "none", sm: "block" }, textAlign: "left" }}>
             <Typography
               sx={{ fontSize: "0.85rem", fontWeight: 600, lineHeight: 1.3 }}

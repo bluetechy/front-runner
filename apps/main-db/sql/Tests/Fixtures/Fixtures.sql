@@ -331,10 +331,12 @@ INSERT INTO "dbo"."UserRoles" ("UserUUID", "RoleUUID", "CreatedBy") VALUES
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Role.Lead'),     'fixtures'),
     ("test"."Fixture"('User.Member'), "test"."Fixture"('Role.Reviewer'), 'fixtures');
 
--- One unread and one read, which is the only question this table answers.
-INSERT INTO "dbo"."Notifications" ("NotificationUUID", "UserUUID", "OrganizationUUID", "TaskUUID", "NotificationType", "Message", "ReadAt", "CreatedBy") VALUES
-    ("test"."Fixture"('Notification.Unread'), "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Task.Build'), 'Assigned', 'You have a new task.', NULL,                     'fixtures'),
-    ("test"."Fixture"('Notification.Read'),   "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), NULL,                           'Welcome',  'Welcome aboard.',      '2024-01-03 00:00:00+00', 'fixtures');
+-- One unread and one read, which is the only question this table answers. One
+-- has an actor and one has none, which is the other thing a reader has to cope
+-- with: the owner assigned the task, and nobody in particular said welcome.
+INSERT INTO "dbo"."Notifications" ("NotificationUUID", "UserUUID", "OrganizationUUID", "TaskUUID", "ActorUUID", "NotificationType", "Message", "ReadAt", "CreatedBy") VALUES
+    ("test"."Fixture"('Notification.Unread'), "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), "test"."Fixture"('Task.Build'), "test"."Fixture"('User.Owner'), 'Assigned', 'You have a new task.', NULL,                     'fixtures'),
+    ("test"."Fixture"('Notification.Read'),   "test"."Fixture"('User.Member'), "test"."Fixture"('Organization.Acme'), NULL,                           NULL,                           'Welcome',  'Welcome aboard.',      '2024-01-03 00:00:00+00', 'fixtures');
 
 INSERT INTO "dbo"."AccessControlLists" ("UserUUID", "TaskUUID", "PermissionType", "CreatedBy") VALUES
     ("test"."Fixture"('User.Member'),   "test"."Fixture"('Task.Build'), 'Write', 'fixtures'),

@@ -1,6 +1,6 @@
 --
 -- Reading one person's notifications: both states in one list, newest first,
--- and never somebody else's.
+-- with whoever caused each one, and never somebody else's.
 --
 
 CREATE FUNCTION "test"."TestGetNotifications_ReturnsReadAndUnreadInOneList" () RETURNS void AS $$
@@ -80,5 +80,51 @@ BEGIN
 
     SELECT count(*) INTO _Count FROM "dbo"."GetNotifications"('member', NULL);
     PERFORM "test"."AssertEquals"(_Count, 2::bigint, 'no limit should mean every row');
+END;
+$$ LANGUAGE plpgsql;
+
+-- The actor is who caused it, as against the user, who is being told. It is
+-- joined rather than left as a UUID because every caller that wants one wants
+-- their name.
+CREATE FUNCTION "test"."TestGetNotifications_NamesWhoCausedIt" () RETURNS void AS $$
+DECLARE
+    _Notification record;
+BEGIN
+    SELECT * INTO _Notification FROM "dbo"."GetNotifications"('member') AS "Notifications"
+    WHERE "Notifications"."NotificationUUID" = "test"."Fixture"('Notification.Unread');
+
+    PERFORM "test"."AssertEquals"(_Notification."ActorUUID", "test"."Fixture"('User.Owner'), 'the actor did not come back');
+    PERFORM "test"."AssertEquals"(_Notification."ActorName"::text, 'Olivia Owner', 'the actor came back without a name');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Plenty of what this schema notifies on has nobody behind it, so the join is
+-- LEFT and both columns are NULL together. A row that vanished because its
+-- actor was NULL would be an inner join nobody noticed.
+CREATE FUNCTION "test"."TestGetNotifications_KeepsTheOnesNobodyCaused" () RETURNS void AS $$
+DECLARE
+    _Notification record;
+BEGIN
+    SELECT * INTO _Notification FROM "dbo"."GetNotifications"('member') AS "Notifications"
+    WHERE "Notifications"."NotificationUUID" = "test"."Fixture"('Notification.Read');
+
+    PERFORM "test"."AssertEquals"(_Notification."Message", 'Welcome aboard.', 'a notification with no actor was dropped by the join');
+    PERFORM "test"."AssertEquals"(_Notification."ActorUUID", NULL::uuid, 'a notification with no actor came back with one');
+    PERFORM "test"."AssertEquals"(_Notification."ActorName", NULL::varchar(64), 'a notification with no actor came back with a name');
+END;
+$$ LANGUAGE plpgsql;
+
+-- A disabled account is still who did it: the filter belongs on who may sign
+-- in, not on what is already in somebody's history.
+CREATE FUNCTION "test"."TestGetNotifications_NamesADisabledActor" () RETURNS void AS $$
+DECLARE
+    _ActorName varchar(64);
+BEGIN
+    UPDATE "dbo"."Notifications" SET "ActorUUID" = "test"."Fixture"('User.Disabled'), "UpdatedBy" = 'test'
+    WHERE "Notifications"."NotificationUUID" = "test"."Fixture"('Notification.Unread');
+
+    SELECT "Notifications"."ActorName" INTO _ActorName FROM "dbo"."GetNotifications"('member') AS "Notifications"
+    WHERE "Notifications"."NotificationUUID" = "test"."Fixture"('Notification.Unread');
+    PERFORM "test"."AssertEquals"(_ActorName::text, 'Dana Disabled', 'a disabled actor stopped being who did it');
 END;
 $$ LANGUAGE plpgsql;

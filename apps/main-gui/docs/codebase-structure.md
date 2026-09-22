@@ -31,6 +31,7 @@ src/
   wallet/               saved cards and bank accounts, and the dialogs that add them
   notifications/        the bell in the top bar, and the panel behind it
   card-surface/         the white card those are all made of
+  avatar/               the circle that stands in for somebody's face
   shared/icons/         every icon, wrapping whatever library supplies it
   shared/lib/           small predicates shared inside shared/
   coming-soon/          the placeholder the unbuilt routes render
@@ -80,6 +81,12 @@ moves out into a vertical of its own rather than being imported across.
 `card-surface/` is that rule being applied: it was the dashboard's card until
 the profile page wanted the same white paper, and then it stopped belonging to
 either of them.
+
+`avatar/` is that rule applied a third time, and to six lines: `initialsOf`
+and the gradient circle around it were a private copy in `app-chrome/` and
+another in `profile/`, and when a notification wanted the same face it moved
+out rather than becoming a third. There are no photographs in this product
+yet; when there are, that is the one file that learns about it.
 
 `browser-storage/` and `language/` are the same rule again, and the second
 caused the first: the language somebody picks in the top bar is remembered in

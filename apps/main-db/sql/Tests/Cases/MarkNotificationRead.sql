@@ -30,15 +30,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- The whole list, the way the wallet's writes answer with the whole wallet:
--- the caller is a menu with a badge on it, and one row would leave it to work
--- out what the count is now.
-CREATE FUNCTION "test"."TestMarkNotificationRead_AnswersWithTheWholeList" () RETURNS void AS $$
+-- The row that changed and nothing else. It answered with the whole list until
+-- the bell started paging, at which point "here is everything" stopped being a
+-- useful answer to a caller holding page three.
+CREATE FUNCTION "test"."TestMarkNotificationRead_AnswersWithTheOneRow" () RETURNS void AS $$
 DECLARE
+    _Marked record;
     _Count bigint;
 BEGIN
     SELECT count(*) INTO _Count FROM "dbo"."MarkNotificationRead"('member', "test"."Fixture"('Notification.Unread'));
-    PERFORM "test"."AssertEquals"(_Count, 2::bigint, 'marking one notification read did not answer with the whole list');
+    PERFORM "test"."AssertEquals"(_Count, 1::bigint, 'marking one notification read answered with more than the row that changed');
+
+    SELECT * INTO _Marked FROM "dbo"."MarkNotificationRead"('member', "test"."Fixture"('Notification.Unread'));
+    PERFORM "test"."AssertEquals"(_Marked."NotificationUUID", "test"."Fixture"('Notification.Unread'), 'the wrong row came back');
+    PERFORM "test"."AssertTrue"(_Marked."ReadAt" IS NOT NULL, 'the row came back still unread');
+    -- Assembled through the reader, so it is the same shape the list is.
+    PERFORM "test"."AssertEquals"(_Marked."ActorName"::text, 'Olivia Owner', 'the row came back without its actor');
 END;
 $$ LANGUAGE plpgsql;
 

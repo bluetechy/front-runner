@@ -219,7 +219,7 @@ BEGIN
         ('FK_Checklists_Tasks'), ('FK_CreditCards_Users'),
         ('FK_EventLog_Organizations'), ('FK_EventLog_Users'), ('FK_Labels_Organizations'),
         ('FK_Notifications_Organizations'), ('FK_Notifications_Tasks'),
-        ('FK_Notifications_Users'),
+        ('FK_Notifications_Users'), ('FK_Notifications_Users_ActorUUID'),
         ('FK_OrganizationInvitations_Organizations'),
         ('FK_OrganizationInvitations_Users_AcceptedByUserUUID'),
         ('FK_OrganizationInvitations_Users_InvitedByUserUUID'),

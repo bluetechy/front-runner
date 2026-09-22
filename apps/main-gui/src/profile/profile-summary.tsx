@@ -1,4 +1,3 @@
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -11,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import CameraIcon from "@/shared/icons/CameraIcon";
 import LocationIcon from "@/shared/icons/LocationIcon";
 import MobileIcon from "@/shared/icons/MobileIcon";
+import { InitialsAvatar } from "../avatar";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession } from "../authentication";
 import { linksOf, placeholderSkills, placeholderTallies } from "./details";
@@ -52,18 +52,7 @@ export function ProfileSummary({
     <Stack sx={{ gap: { xs: 2, md: 2.5 } }}>
       <CardSurface>
         <Box sx={{ position: "relative", width: 124, alignSelf: "flex-start" }}>
-          <Avatar
-            sx={{
-              width: 124,
-              height: 124,
-              fontSize: "2.4rem",
-              fontWeight: 600,
-              color: "common.white",
-              backgroundImage: (theme) => theme.palette.brand.buttonGradient,
-            }}
-          >
-            {initialsOf(name)}
-          </Avatar>
+          <InitialsAvatar name={name} size={124} fontSize="2.4rem" />
           <IconButton
             aria-label={t("Change picture")}
             onClick={() =>
@@ -351,14 +340,4 @@ function Muted({ children }: { children: React.ReactNode }) {
       {children}
     </Typography>
   );
-}
-
-/* "Test User" -> "TU", the same stand-in for a picture the rail uses. */
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
