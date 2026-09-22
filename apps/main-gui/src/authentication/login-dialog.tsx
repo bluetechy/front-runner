@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useNavigate } from "@tanstack/react-router";
 import AppleIcon from "@/shared/icons/AppleIcon";
 import ArrowRightIcon from "@/shared/icons/ArrowRightIcon";
+import CloseIcon from "@/shared/icons/CloseIcon";
 import FacebookIcon from "@/shared/icons/FacebookIcon";
 import GoogleIcon from "@/shared/icons/GoogleIcon";
 import { useId, useState, type FormEvent } from "react";
@@ -103,8 +104,29 @@ export function LoginDialog({
         component="form"
         onSubmit={submit}
         noValidate
-        sx={{ p: { xs: "1.75rem 1.5rem", sm: "2.25rem 2.5rem" } }}
+        sx={{
+          position: "relative",
+          p: { xs: "1.75rem 1.5rem", sm: "2.25rem 2.5rem" },
+        }}
       >
+        {/* Escape and the backdrop already close the dialog; this is the
+         * same exit for anyone who does not reach for either. Held back
+         * while a sign-in is in flight, like the other two. */}
+        <IconButton
+          aria-label="Close"
+          onClick={onClose}
+          disabled={busy}
+          sx={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            color: "text.secondary",
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <CloseIcon color="currentColor" size={20} />
+        </IconButton>
+
         <Typography
           id={titleId}
           variant="h2"
