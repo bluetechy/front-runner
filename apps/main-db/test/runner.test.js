@@ -76,6 +76,7 @@ const applyFile = async (client, file) => {
 const applySchema = async (client) => {
   await client.query('CREATE SCHEMA IF NOT EXISTS "dbo"');
   await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+  await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"');
 
   for (const directory of ["Functions", "Tables", "ForeignKeys", "Triggers"]) {
     for (const file of await sqlFilesIn(directory)) {

@@ -5,6 +5,16 @@ export function validateEnvironment(env: Record<string, unknown>) {
       throw new Error(`${name} is required`);
     return value;
   };
+  // A secret with a floor under its length, so a key that is really a
+  // placeholder is refused at boot rather than encrypting things weakly for
+  // months. Required rather than defaulted: a default would be a key shared by
+  // every deployment that forgot to set one, which is no key at all.
+  const secret = (name: string, minimum: number): string => {
+    const value = required(name);
+    if (value.trim().length < minimum)
+      throw new Error(`${name} must be at least ${minimum} characters`);
+    return value;
+  };
   const integer = (name: string, fallback: number, max: number) => {
     const value = Number(env[name] ?? fallback);
     if (!Number.isInteger(value) || value < 1 || value > max)
@@ -45,6 +55,13 @@ export function validateEnvironment(env: Record<string, unknown>) {
     KEYCLOAK_ISSUER_URL: issuer,
     KEYCLOAK_JWKS_URL: jwks,
     KEYCLOAK_AUDIENCE: required("KEYCLOAK_AUDIENCE"),
+    // What dbo.AddCreditCard and dbo.AddBankAccount encrypt a card or account
+    // number under. It is passed to them on every call and is never stored in
+    // the database, which is the only thing that makes encrypting the column
+    // worth anything. Rotating it orphans what is already stored -- nothing
+    // reads those columns back today, so nothing breaks, but see
+    // apps/main-db/sql/Tables/CreditCards.sql before that stops being true.
+    WALLET_ENCRYPTION_KEY: secret("WALLET_ENCRYPTION_KEY", 16),
     CORS_ORIGINS: String(env.CORS_ORIGINS ?? "")
       .split(",")
       .map((value) => value.trim())

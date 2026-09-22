@@ -16,5 +16,9 @@ Object.assign(process.env, {
   KEYCLOAK_JWKS_URL:
     "https://identity.example.test/realms/front-runner/protocol/openid-connect/certs",
   KEYCLOAK_AUDIENCE: "main-api",
+  // Nothing under test encrypts anything -- the wallet's service is driven
+  // with a stubbed database -- but the key is required at boot, and app.test.ts
+  // boots the real module.
+  WALLET_ENCRYPTION_KEY: "test-only-wallet-key",
   CORS_ORIGINS: "",
 });

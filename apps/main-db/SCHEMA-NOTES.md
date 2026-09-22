@@ -12,24 +12,27 @@ bin/
 test/
   runner.test.js    discovers and drives the SQL tests
 sql/
-  Functions/        one function per file            (43)
-  Tables/           CREATE TABLE only, no triggers   (51)
-  Triggers/         one trigger per file            (104)
-  ForeignKeys/      FK constraints, one file per table (39 files, 83 constraints)
+  Functions/        one function per file            (64)
+  Tables/           CREATE TABLE only, no triggers   (55)
+  Triggers/         one trigger per file            (112)
+  ForeignKeys/      FK constraints, one file per table (43 files, 89 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand     (44)
+  Seeds/Dev/        demo data, applied on demand     (45)
                     see Seeds/README.md
   Tests/            see Tests/README.md
-    Helpers/        assertions and shared setup       (8)
+    Helpers/        assertions and shared setup       (9)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (60)
+    Cases/          one file per object under test    (82)
   Drafts/           not built; see "Drafts" below
-    Functions/        real logic, to rewrite          (2)
-    StoredProcedures/ real logic, to rewrite          (2)
+    Functions/        real logic, to rewrite          (1)
+    StoredProcedures/ real logic, to rewrite          (1)
     Unbuilt.sql       118 signatures, nothing written
 ```
 
-`bin/apply.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security`.
+`bin/apply.sh` applies `Functions -> Tables -> ForeignKeys -> Triggers -> Security`,
+after creating the `dbo` schema and the two extensions the schema needs:
+`uuid-ossp` for every primary key, and `pgcrypto` for the wallet's encrypted
+number columns.
 `init.sh` creates the database and role on first container start and then calls it.
 Nothing under `Drafts/`, `Seeds/` or `Tests/` is applied by either.
 
@@ -100,6 +103,17 @@ is still unquoted — see below.
 so a parameter can never collide with the PascalCase column of the same name. The
 related trap that this does _not_ solve — `RETURNS TABLE` output columns shadowing
 table columns — is in `CLAUDE.md`.
+
+**The wallet's default is one flag over two tables, and nothing constrains it.**
+`dbo.CreditCards."IsDefault"` and `dbo.BankAccounts."IsDefault"` are one answer
+to "which method pays", so at most one row across _both_ tables may be true --
+and no unique index can say that, because the rows it would have to compare are
+in different tables. `dbo.SetDefaultPaymentMethod` clears both and then sets
+one; `dbo.AddCreditCard`, `dbo.AddBankAccount` and `dbo.RemovePaymentMethod`
+each keep the invariant too. Writing either column by hand goes round all four.
+This is not in the register below because it is not a defect — it is a rule the
+functions hold instead of the schema, and `Tests/Cases/SetDefaultPaymentMethod.sql`
+is what proves they do.
 
 `PointTransfers` bends the "2nd to same table" rule: it has two foreign keys to
 `Users` and _both_ carry the column suffix. The rule leaves the first one

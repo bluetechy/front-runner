@@ -7,6 +7,7 @@ const base = {
   POSTGRES_PASSWORD: "test",
   KEYCLOAK_ISSUER_URL: "https://identity.example.test/realms/front-runner",
   KEYCLOAK_AUDIENCE: "main-api",
+  WALLET_ENCRYPTION_KEY: "a-key-long-enough-to-pass",
 };
 describe("environment validation", () => {
   it("parses ports, pool limits and explicit CORS origins", () => {
@@ -25,12 +26,20 @@ describe("environment validation", () => {
   it("requires database credentials", () => {
     expect(() => validateEnvironment({})).toThrow();
   });
-  it.each(["KEYCLOAK_ISSUER_URL", "KEYCLOAK_AUDIENCE"])(
-    "requires %s",
-    (name) => {
-      expect(() => validateEnvironment({ ...base, [name]: "" })).toThrow(name);
-    },
-  );
+  it.each([
+    "KEYCLOAK_ISSUER_URL",
+    "KEYCLOAK_AUDIENCE",
+    "WALLET_ENCRYPTION_KEY",
+  ])("requires %s", (name) => {
+    expect(() => validateEnvironment({ ...base, [name]: "" })).toThrow(name);
+  });
+  // A short key is the shape a forgotten placeholder takes, so it is refused
+  // at boot rather than left quietly encrypting card numbers with "changeme".
+  it("refuses a wallet key too short to be one", () => {
+    expect(() =>
+      validateEnvironment({ ...base, WALLET_ENCRYPTION_KEY: "changeme" }),
+    ).toThrow("WALLET_ENCRYPTION_KEY");
+  });
   it.each(["bad", "0", "65536"])("rejects invalid API port %s", (API_PORT) => {
     expect(() => validateEnvironment({ ...base, API_PORT })).toThrow(
       "API_PORT",

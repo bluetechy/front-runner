@@ -24,9 +24,15 @@ run() {
 # The SQL under /sql hard-codes the "dbo" schema, so the schema name is fixed
 # even when the database it lives in is not (test.sh builds into a scratch
 # database of its own).
+#
+# pgcrypto is here for the wallet: dbo.AddCreditCard and dbo.AddBankAccount
+# encrypt the number they are given, under a key the caller passes in and this
+# database never stores. See sql/Tables/CreditCards.sql -- both the column and
+# this extension are meant to go when a payment processor is wired up.
 run <<'SQL'
 CREATE SCHEMA IF NOT EXISTS "dbo";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 SQL
 
 # Order matters: functions are referenced by the triggers, foreign keys need

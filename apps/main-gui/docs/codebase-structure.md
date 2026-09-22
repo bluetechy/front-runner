@@ -26,7 +26,8 @@ src/
   authentication/       the sign-in dialog, and who is signed in
   dashboard/            where a completed sign-in lands
   profile/              the profile page, and the form that edits it
-  card-surface/         the white card both of those are made of
+  wallet/               saved cards and bank accounts, and the dialogs that add them
+  card-surface/         the white card those are all made of
   shared/icons/         every icon, wrapping whatever library supplies it
   shared/lib/           small predicates shared inside shared/
   coming-soon/          the placeholder the unbuilt routes render

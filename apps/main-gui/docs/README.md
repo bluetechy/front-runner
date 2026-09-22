@@ -7,8 +7,9 @@ here; nothing was carried over from it. See
 [codebase structure](codebase-structure.md) for how the source is organized,
 [the landing page](landing-page.md) and [the pricing page](pricing-page.md)
 for what is built so far, [signing in](authentication.md) for the login dialog
-and its Keycloak flows, [the dashboard](dashboard.md) and
-[the profile page](profile-page.md) for what is behind the login, and [icons](shared/icons.md) for how every icon is
+and its Keycloak flows, [the dashboard](dashboard.md),
+[the profile page](profile-page.md) and [the wallet page](wallet-page.md) for
+what is behind the login, and [icons](shared/icons.md) for how every icon is
 wrapped.
 
 ## Development with Docker Compose

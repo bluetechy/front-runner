@@ -10,7 +10,7 @@ import {
 } from "@jest/globals";
 import { Test } from "@nestjs/testing";
 import { GraphQLSchemaHost } from "@nestjs/graphql";
-import { isInputObjectType } from "graphql";
+import { isEnumType, isInputObjectType } from "graphql";
 import {
   BadRequestException,
   ForbiddenException,
@@ -762,6 +762,9 @@ describe("GraphQL application", () => {
           .map((field) => `${field.name}: ${placeholder(field.type)}`);
         return `{ ${fields.join(", ")} }`;
       }
+      // An enum value is a bare name rather than a string, and any of them
+      // will do -- the point is to get past parsing and reach the guard.
+      if (isEnumType(declared)) return declared.getValues()[0]!.name;
       return name === "Boolean" ? "false" : name === "Int" ? "1" : `"${orgId}"`;
     };
     const operations = roots.flatMap((root) =>

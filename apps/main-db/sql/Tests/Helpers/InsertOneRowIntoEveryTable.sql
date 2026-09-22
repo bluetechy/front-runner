@@ -36,6 +36,16 @@ BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
     INSERT INTO "dbo"."UserProfiles" ("UserUUID", "Designation", "CreatedBy") VALUES (_UserUUID, 'Smoke Designation', _By);
+    -- The wallet, written directly rather than through dbo.AddCreditCard, because
+    -- this helper's job is to prove the tables accept a row. The number is
+    -- encrypted here the way the function would do it: the column is bytea, so
+    -- there is no way to put a readable one in even by accident. The expiry is
+    -- two years out rather than a literal, so this row never starts reading as
+    -- an expired card as the suite ages.
+    INSERT INTO "dbo"."CreditCards" ("UserUUID", "Brand", "NameOnCard", "Number", "Last4", "ExpirationMonth", "ExpirationYear", "CreatedBy")
+        VALUES (_UserUUID, 'Visa', 'Smoke User', public.pgp_sym_encrypt('4111111111111111', 'smoke-key'), '1111', 4, (EXTRACT(year FROM CURRENT_DATE) + 2)::smallint, _By);
+    INSERT INTO "dbo"."BankAccounts" ("UserUUID", "NameOnAccount", "AccountType", "RoutingNumber", "Number", "Last4", "CreatedBy")
+        VALUES (_UserUUID, 'Smoke User', 'Checking', '021000021', public.pgp_sym_encrypt('000123456789', 'smoke-key'), '6789', _By);
     INSERT INTO "dbo"."Teams" ("OrganizationUUID", "Name", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Team', _By) RETURNING "TeamUUID" INTO _TeamUUID;
     INSERT INTO "dbo"."Points" ("Name", "Description", "CreatedBy") VALUES ('Smoke Points', 'Smoke test point type.', _By) RETURNING "PointUUID" INTO _PointUUID;
     INSERT INTO "dbo"."BadgeCategories" ("Name", "CreatedBy") VALUES ('Smoke Category', _By) RETURNING "BadgeCategoryUUID" INTO _BadgeCategoryUUID;

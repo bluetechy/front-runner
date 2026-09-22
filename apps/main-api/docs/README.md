@@ -53,6 +53,16 @@ startup — the keys are fetched when the first token arrives. `CORS_ORIGINS` is
 explicit comma-separated allowlist; set it to the actual frontend origin(s).
 Browser cookies are not used by this API.
 
+`WALLET_ENCRYPTION_KEY` is what `dbo.AddCreditCard` and `dbo.AddBankAccount`
+encrypt a saved card or account number under. It is **required**, has to be at
+least 16 characters, and is handed to those functions on every call — it is
+never stored in the database, which is the only thing that makes encrypting
+the column worth anything. Rotating it orphans what is already stored; nothing
+reads those columns back today, so nothing breaks, but see
+`apps/main-db/sql/Tables/CreditCards.sql` before that stops being true. The key
+and the columns it protects are a placeholder for a payment processor and are
+meant to be deleted together.
+
 ## Checks
 
 ```sh
