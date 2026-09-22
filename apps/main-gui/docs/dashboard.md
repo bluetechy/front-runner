@@ -57,26 +57,30 @@ what they are here as — then the nav in three named groups. **Only the nav
 scrolls.** The block above it is fixed, so a short window or a longer list of
 groups scrolls the items and leaves the logo and the profile where they are.
 
-| Group     | Items                                                      |
-| --------- | ---------------------------------------------------------- |
-| Dashboard | **Command Center**, Schedule, Achievements, Certifications |
-| Account   | Profile, Settings                                          |
-| Support   | Tutorials, Customer Service                                |
+| Group     | Items                                                                           |
+| --------- | ------------------------------------------------------------------------------- |
+| Dashboard | **Command Center**, Schedule, Achievements, Certifications                      |
+| Account   | **Profile**, Security & Login, Billing & Subscription, Payment Wallet, Settings |
+| Support   | Tutorials, Customer Service                                                     |
 
-Only **Command Center** has a route behind it — it is this page. The other
-seven name the sections this product is going to have and are disabled until
-they exist, because a nav link that goes nowhere is worse than one that says
-so. The page you are on is marked with a **teal pill**, the same teal the
-charts' third series is drawn in; the two are one constant in the theme.
+**Command Center** is this page and **Profile** is [its own](profile-page.md).
+The other nine are routes too, rendering `coming-soon`: they name the sections
+this product is going to have and say plainly that they are not built, which is
+better than a nav link that goes nowhere. Because every item is a route, the
+URL, the back button and the pill agree without any of them being told twice.
+The page you are on is marked with a **teal pill**, the same teal the charts'
+third series is drawn in; the two are one constant in the theme.
 
 White on that teal is 3.1:1, which is under what text needs, so the selected
 item is written in the card's ink — the same dark violet everything else on
 white paper is written in, and 5.9:1 against the pill.
 
-The picture in the profile block is the person's initials. The token carries
-no photograph, and neither the token nor the `me` query carries a title, so
-the line under the name is a placeholder constant in `app-sidebar.tsx` — the
-nearest real thing either of them has is the account's admin flag.
+The picture in the profile block is the person's initials: the token carries
+no photograph and there is nowhere to upload one yet. The line under the name
+is the designation from their saved profile, read through `useProfile()`, so
+the rail and [the profile page](profile-page.md) make one request between
+them. It is blank until they fill it in, rather than a title invented for
+them.
 
 ## Colour
 

@@ -12,13 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
+import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppCertificationsRouteImport } from './routes/_app.certifications'
 import { Route as AppCustomerServiceRouteImport } from './routes/_app.customer-service'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppScheduleRouteImport } from './routes/_app.schedule'
+import { Route as AppSecurityRouteImport } from './routes/_app.security'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppTutorialsRouteImport } from './routes/_app.tutorials'
+import { Route as AppWalletRouteImport } from './routes/_app.wallet'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
 import { Route as SiteContactRouteImport } from './routes/_site.contact'
@@ -37,6 +40,11 @@ const SiteRoute = SiteRouteImport.update({
 const AppAchievementsRoute = AppAchievementsRouteImport.update({
   id: '/achievements',
   path: '/achievements',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCertificationsRoute = AppCertificationsRouteImport.update({
@@ -64,6 +72,11 @@ const AppScheduleRoute = AppScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSecurityRoute = AppSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -72,6 +85,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppTutorialsRoute = AppTutorialsRouteImport.update({
   id: '/tutorials',
   path: '/tutorials',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWalletRoute = AppWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => AppRoute,
 } as any)
 const SiteIndexRoute = SiteIndexRouteImport.update({
@@ -108,13 +126,16 @@ const SiteAuthCallbackRoute = SiteAuthCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof SiteIndexRoute
   '/achievements': typeof AppAchievementsRoute
+  '/billing': typeof AppBillingRoute
   '/certifications': typeof AppCertificationsRoute
   '/customer-service': typeof AppCustomerServiceRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/schedule': typeof AppScheduleRoute
+  '/security': typeof AppSecurityRoute
   '/settings': typeof AppSettingsRoute
   '/tutorials': typeof AppTutorialsRoute
+  '/wallet': typeof AppWalletRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
   '/features': typeof SiteFeaturesRoute
@@ -124,13 +145,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof SiteIndexRoute
   '/achievements': typeof AppAchievementsRoute
+  '/billing': typeof AppBillingRoute
   '/certifications': typeof AppCertificationsRoute
   '/customer-service': typeof AppCustomerServiceRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/schedule': typeof AppScheduleRoute
+  '/security': typeof AppSecurityRoute
   '/settings': typeof AppSettingsRoute
   '/tutorials': typeof AppTutorialsRoute
+  '/wallet': typeof AppWalletRoute
   '/about': typeof SiteAboutRoute
   '/contact': typeof SiteContactRoute
   '/features': typeof SiteFeaturesRoute
@@ -142,13 +166,16 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
   '/_app/achievements': typeof AppAchievementsRoute
+  '/_app/billing': typeof AppBillingRoute
   '/_app/certifications': typeof AppCertificationsRoute
   '/_app/customer-service': typeof AppCustomerServiceRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/schedule': typeof AppScheduleRoute
+  '/_app/security': typeof AppSecurityRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tutorials': typeof AppTutorialsRoute
+  '/_app/wallet': typeof AppWalletRoute
   '/_site/about': typeof SiteAboutRoute
   '/_site/contact': typeof SiteContactRoute
   '/_site/features': typeof SiteFeaturesRoute
@@ -161,13 +188,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/achievements'
+    | '/billing'
     | '/certifications'
     | '/customer-service'
     | '/dashboard'
     | '/profile'
     | '/schedule'
+    | '/security'
     | '/settings'
     | '/tutorials'
+    | '/wallet'
     | '/about'
     | '/contact'
     | '/features'
@@ -177,13 +207,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/achievements'
+    | '/billing'
     | '/certifications'
     | '/customer-service'
     | '/dashboard'
     | '/profile'
     | '/schedule'
+    | '/security'
     | '/settings'
     | '/tutorials'
+    | '/wallet'
     | '/about'
     | '/contact'
     | '/features'
@@ -194,13 +227,16 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_site'
     | '/_app/achievements'
+    | '/_app/billing'
     | '/_app/certifications'
     | '/_app/customer-service'
     | '/_app/dashboard'
     | '/_app/profile'
     | '/_app/schedule'
+    | '/_app/security'
     | '/_app/settings'
     | '/_app/tutorials'
+    | '/_app/wallet'
     | '/_site/about'
     | '/_site/contact'
     | '/_site/features'
@@ -235,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/achievements'
       fullPath: '/achievements'
       preLoaderRoute: typeof AppAchievementsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/certifications': {
@@ -272,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScheduleRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/security': {
+      id: '/_app/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof AppSecurityRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -284,6 +334,13 @@ declare module '@tanstack/react-router' {
       path: '/tutorials'
       fullPath: '/tutorials'
       preLoaderRoute: typeof AppTutorialsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/wallet': {
+      id: '/_app/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof AppWalletRouteImport
       parentRoute: typeof AppRoute
     }
     '/_site/': {
@@ -333,24 +390,30 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAchievementsRoute: typeof AppAchievementsRoute
+  AppBillingRoute: typeof AppBillingRoute
   AppCertificationsRoute: typeof AppCertificationsRoute
   AppCustomerServiceRoute: typeof AppCustomerServiceRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScheduleRoute: typeof AppScheduleRoute
+  AppSecurityRoute: typeof AppSecurityRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTutorialsRoute: typeof AppTutorialsRoute
+  AppWalletRoute: typeof AppWalletRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAchievementsRoute: AppAchievementsRoute,
+  AppBillingRoute: AppBillingRoute,
   AppCertificationsRoute: AppCertificationsRoute,
   AppCustomerServiceRoute: AppCustomerServiceRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppProfileRoute: AppProfileRoute,
   AppScheduleRoute: AppScheduleRoute,
+  AppSecurityRoute: AppSecurityRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTutorialsRoute: AppTutorialsRoute,
+  AppWalletRoute: AppWalletRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

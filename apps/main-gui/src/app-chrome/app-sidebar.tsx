@@ -13,6 +13,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
 import AchievementsIcon from "@/shared/icons/AchievementsIcon";
+import BillingIcon from "@/shared/icons/BillingIcon";
 import CertificationsIcon from "@/shared/icons/CertificationsIcon";
 import CustomerServiceIcon from "@/shared/icons/CustomerServiceIcon";
 import DashboardIcon from "@/shared/icons/DashboardIcon";
@@ -20,8 +21,10 @@ import type IconProps from "@/shared/icons/IconProps";
 import KpiIcon from "@/shared/icons/KpiIcon";
 import ProfileIcon from "@/shared/icons/ProfileIcon";
 import ScheduleIcon from "@/shared/icons/ScheduleIcon";
+import SecurityIcon from "@/shared/icons/SecurityIcon";
 import SettingsIcon from "@/shared/icons/SettingsIcon";
 import TutorialsIcon from "@/shared/icons/TutorialsIcon";
+import WalletIcon from "@/shared/icons/WalletIcon";
 import { useSession } from "../authentication";
 import { useProfile } from "../profile";
 
@@ -34,7 +37,7 @@ import { useProfile } from "../profile";
  *
  * The logo, whoever is signed in, and then the nav in three named groups.
  * Every item is a route: Command Center is this dashboard, and the other
- * seven are pages that say plainly they have not been built yet. Selecting
+ * ten are pages that say plainly they have not been built yet. Selecting
  * one is a navigation, so the URL, the back button and the pill under the
  * item you are on all agree without any of them being told twice.
  */
@@ -50,6 +53,9 @@ type AppPath =
   | "/achievements"
   | "/certifications"
   | "/profile"
+  | "/security"
+  | "/billing"
+  | "/wallet"
   | "/settings"
   | "/tutorials"
   | "/customer-service";
@@ -83,6 +89,9 @@ const navGroups: readonly NavGroup[] = [
     label: "Account",
     items: [
       { label: "Profile", icon: ProfileIcon, to: "/profile" },
+      { label: "Security & Login", icon: SecurityIcon, to: "/security" },
+      { label: "Billing & Subscription", icon: BillingIcon, to: "/billing" },
+      { label: "Payment Wallet", icon: WalletIcon, to: "/wallet" },
       { label: "Settings", icon: SettingsIcon, to: "/settings" },
     ],
   },
