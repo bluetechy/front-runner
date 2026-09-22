@@ -3,7 +3,6 @@
   "ignorePatterns": [
     "apps/main-gui/src/routeTree.gen.ts",
     "**/dist/**",
-    "**/build/**",
     "**/.test-dist/**",
     "**/coverage/**"
   ],
