@@ -73,7 +73,7 @@ export function NotificationMenu() {
         sx={{ color: (theme) => theme.palette.brand.chromeLabel }}
       >
         <Badge badgeContent={unread} color="primary" max={99}>
-          <BellIcon size={20} />
+          <BellIcon color="currentColor" size={20} />
         </Badge>
       </IconButton>
 

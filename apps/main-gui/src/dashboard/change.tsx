@@ -65,7 +65,7 @@ export function Change({
       >
         {percent}%
       </Typography>
-      <Arrow size={13} />
+      <Arrow color="currentColor" size={13} />
       {/* The arrow is a shape, so the direction is said in words too. */}
       <Typography component="span" sx={visuallyHidden}>
         {up ? "up" : "down"}

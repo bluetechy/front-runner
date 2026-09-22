@@ -166,7 +166,11 @@ function MethodRow({
             backgroundColor: (theme) => theme.palette.brand.cardTint,
           }}
         >
-          {card ? <CreditCardIcon size={20} /> : <BankIcon size={20} />}
+          {card ? (
+            <CreditCardIcon color="currentColor" size={20} />
+          ) : (
+            <BankIcon color="currentColor" size={20} />
+          )}
         </Box>
 
         <Box sx={{ minWidth: 0 }}>
@@ -210,7 +214,7 @@ function MethodRow({
             variant="text"
             disabled={busy}
             onClick={onRemove}
-            startIcon={<TrashIcon size={16} />}
+            startIcon={<TrashIcon color="currentColor" size={16} />}
             sx={{
               mt: 0.75,
               fontFamily: "inherit",

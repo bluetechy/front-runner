@@ -22,10 +22,22 @@ interface IconProps {
 ```
 
 `size` accepts a string because it reaches an SVG `width`/`height`, which takes
-one. `color` defaults to `currentColor` in the wrappers below, so an icon takes
-the colour of whatever encloses it and a caller only passes `color` to override
-that. Nothing else is part of the contract — no `sx`, no `className`, no
-library-specific props — because anything more would leak the library back out.
+one. **`color` defaults to `#000000`** — every wrapper in the folder, no
+exceptions — and the colour an icon is actually drawn in is set **where it is
+used**, the way every other colour in this app is. An icon that should take the
+colour of whatever encloses it is passed the keyword for that:
+
+```tsx
+<CloseIcon color="currentColor" size={20} />
+```
+
+which is most of the call sites, because the surface around an icon already
+knows what it is written in. The keyword is a colour a caller passes, never the
+default a wrapper assumes: a wrapper with no colour of its own is one that
+draws differently depending on where it is dropped, and the contract is the
+same everywhere or it is not a contract. Nothing else is part of it — no `sx`,
+no `className`, no library-specific props — because anything more would leak
+the library back out.
 
 ## Variant A — the library has the icon
 
@@ -120,11 +132,24 @@ reason nothing outside this folder names `react-icons`.
 
 ## Tests
 
-`Icon.test.tsx` covers the renderer — that glyph nodes actually become
-elements, and that the two attribute rules above hold. The per-icon tests cover
-colour and size on the resulting `svg`. Both matter: an assertion about colour
-and size passes just as happily against an **empty** `<svg>`, so something has
-to check that the glyph rendered at all.
+**Every wrapper has a `<Name>.test.tsx` beside it** — one per icon, no
+exceptions, the same three cases each:
+
+1. it renders without errors;
+2. it renders with custom props — the hex colour and the size reach the `svg`,
+   and the glyph itself is there, because an assertion about colour and size
+   passes just as happily against an **empty** `<svg>`;
+3. it takes a keyword colour as well as a hex one, since `currentColor` is what
+   most call sites pass and a wrapper that dropped it would draw black on
+   black.
+
+That third case reads the keyword off the **inline style** rather than through
+`toHaveStyle`, which resolves `currentColor` against the element's computed
+colour and would compare black with black. jsdom lowercases it on the way in,
+so the assertion is against `currentcolor`.
+
+`Icon.test.tsx` covers the renderer instead — that glyph nodes actually become
+elements, and that the two attribute rules above hold.
 
 Run them with `npm test --workspace main-gui`.
 

@@ -95,7 +95,7 @@ export function Faq() {
           }}
         >
           <AccordionSummary
-            expandIcon={<ChevronDownIcon size={22} />}
+            expandIcon={<ChevronDownIcon color="currentColor" size={22} />}
             sx={{
               padding: "0.35rem 1.4rem",
               "& .MuiAccordionSummary-content": { marginBlock: "0.9rem" },

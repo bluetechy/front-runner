@@ -42,7 +42,7 @@ export function NotificationFace({
   if (!notification.ActorName)
     return (
       <Box aria-hidden sx={{ flex: "0 0 auto", ...disc(size) }}>
-        <Icon size={Math.round(size * 0.48)} />
+        <Icon color="currentColor" size={Math.round(size * 0.48)} />
       </Box>
     );
 
@@ -61,7 +61,7 @@ export function NotificationFace({
             boxSizing: "content-box",
           }}
         >
-          <Icon size={Math.round(size * 0.27)} />
+          <Icon color="currentColor" size={Math.round(size * 0.27)} />
         </Box>
       }
       sx={{ flex: "0 0 auto" }}

@@ -57,7 +57,7 @@ export function Logo({
 
   const inside = (
     <>
-      {mark ? <KpiIcon size={markSize} /> : null}
+      {mark ? <KpiIcon color="currentColor" size={markSize} /> : null}
       <Typography
         component="span"
         sx={{

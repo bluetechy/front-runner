@@ -57,7 +57,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
         onClick={onOpenNav}
         sx={{ display: { lg: "none" }, color: "inherit" }}
       >
-        <MenuIcon size={22} />
+        <MenuIcon color="currentColor" size={22} />
       </IconButton>
 
       <TextField
@@ -74,7 +74,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
                     color: (theme) => theme.palette.brand.chromeLabel,
                   }}
                 >
-                  <SearchIcon size={18} />
+                  <SearchIcon color="currentColor" size={18} />
                 </Box>
               </InputAdornment>
             ),
@@ -152,7 +152,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
               color: (theme) => theme.palette.brand.chromeLabel,
             }}
           >
-            <ChevronDownIcon size={16} />
+            <ChevronDownIcon color="currentColor" size={16} />
           </Box>
         </Stack>
       </Stack>
@@ -184,7 +184,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
           }}
           sx={{ gap: 1.25, fontSize: "0.9rem" }}
         >
-          <LogoutIcon size={18} />
+          <LogoutIcon color="currentColor" size={18} />
           {t("Logout")}
         </MenuItem>
       </Menu>

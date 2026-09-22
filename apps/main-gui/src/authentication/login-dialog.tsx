@@ -186,7 +186,7 @@ export function LoginDialog({
                   disabled={busy}
                   sx={{ color: "text.secondary", mr: -0.5 }}
                 >
-                  <ArrowRightIcon size={20} />
+                  <ArrowRightIcon color="currentColor" size={20} />
                 </IconButton>
               </InputAdornment>
             }

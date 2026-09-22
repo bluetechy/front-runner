@@ -120,10 +120,10 @@ export function Wallet() {
               label="Add a bank account"
               onClick={() => setAdding("bank")}
             >
-              <BankIcon size={20} />
+              <BankIcon color="currentColor" size={20} />
             </AddButton>
             <AddButton label="Add a card" onClick={() => setAdding("card")}>
-              <CreditCardIcon size={20} />
+              <CreditCardIcon color="currentColor" size={20} />
             </AddButton>
           </Stack>
         }

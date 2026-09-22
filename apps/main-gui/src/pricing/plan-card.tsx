@@ -238,7 +238,7 @@ export function PlanCard({
               aria-hidden
               sx={{ display: "flex", pt: "0.2rem", color: "primary.main" }}
             >
-              <CheckCircleIcon size={16} />
+              <CheckCircleIcon color="currentColor" size={16} />
             </Box>
             <Typography sx={{ fontSize: "0.85rem", lineHeight: 1.6 }}>
               {feature}

@@ -152,7 +152,7 @@ export function NotificationItem({
                   },
                 }}
               >
-                <MarkReadIcon size={18} />
+                <MarkReadIcon color="currentColor" size={18} />
               </IconButton>
             </span>
           </Tooltip>

@@ -29,7 +29,7 @@ export function StatTile({ tile }: { tile: Tile }) {
             backgroundColor: (theme) => theme.palette.brand.cardTint,
           }}
         >
-          <TileIcon size={20} />
+          <TileIcon color="currentColor" size={20} />
         </Box>
 
         <Box sx={{ minWidth: 0 }}>

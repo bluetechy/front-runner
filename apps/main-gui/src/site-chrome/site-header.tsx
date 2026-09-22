@@ -135,7 +135,7 @@ export function SiteHeader() {
                 "&:hover": { transform: "scale(1.06)" },
               }}
             >
-              <SearchIcon size={19} />
+              <SearchIcon color="currentColor" size={19} />
             </IconButton>
           </Stack>
         </Toolbar>

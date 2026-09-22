@@ -75,7 +75,7 @@ export function ProfileSummary({
               "&:hover": { transform: "scale(1.06)" },
             }}
           >
-            <CameraIcon size={16} />
+            <CameraIcon color="currentColor" size={16} />
           </IconButton>
         </Box>
 
@@ -188,7 +188,7 @@ export function ProfileSummary({
                     sx={{ gap: 1.5, alignItems: "center", listStyle: "none" }}
                   >
                     <Badge>
-                      <LinkIcon size={17} />
+                      <LinkIcon color="currentColor" size={17} />
                     </Badge>
                     <Box sx={{ minWidth: 0 }}>
                       <Muted>{link.label}</Muted>
@@ -256,14 +256,14 @@ export function ProfileSummary({
             value={profile?.Phone ?? ""}
             loading={loading}
           >
-            <MobileIcon size={17} />
+            <MobileIcon color="currentColor" size={17} />
           </ContactLine>
           <ContactLine
             label={t("Current address")}
             value={profile?.Address ?? ""}
             loading={loading}
           >
-            <LocationIcon size={17} />
+            <LocationIcon color="currentColor" size={17} />
           </ContactLine>
         </Stack>
       </CardSurface>

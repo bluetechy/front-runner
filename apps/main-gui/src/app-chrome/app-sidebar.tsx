@@ -248,7 +248,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
                     sx={itemStyle}
                   >
                     <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
-                      <ItemIcon size={20} />
+                      <ItemIcon color="currentColor" size={20} />
                     </ListItemIcon>
                     <ListItemText
                       primary={t(item.label)}

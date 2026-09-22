@@ -2,7 +2,7 @@ import React from 'react';
 import { FaGithub } from 'react-icons/fa6';
 import type IconProps from '@/shared/icons/IconProps';
 
-const GithubIconFactory: React.FC<IconProps> = ({ color = 'currentColor', size = 16 }) => {
+const GithubIconFactory: React.FC<IconProps> = ({ color = '#000000', size = 16 }) => {
 	return <FaGithub style={{ fill : color }} size={size} />;
 };
 

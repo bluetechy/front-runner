@@ -70,7 +70,10 @@ export function Dashboard() {
         >
           Dashboard
         </Typography>
-        <Button variant="contained" startIcon={<PlusIcon size={16} />}>
+        <Button
+          variant="contained"
+          startIcon={<PlusIcon color="currentColor" size={16} />}
+        >
           Create KPI
         </Button>
       </Stack>
@@ -277,7 +280,7 @@ export function Dashboard() {
                   backgroundColor: (theme) => theme.palette.brand.cardTint,
                 }}
               >
-                <CustomersIcon size={20} />
+                <CustomersIcon color="currentColor" size={20} />
               </Box>
               <Typography
                 sx={{
