@@ -21,6 +21,7 @@ src/
   design-system/        the MUI theme: palette, type, component defaults
   site-chrome/          the shell every route renders inside: header, nav
   landing/              the marketing landing page
+  pricing/              the plans, and the questions people ask about them
   authentication/       the sign-in dialog, and who is signed in
   signed-in/            where a completed sign-in lands
   shared/icons/         every icon, wrapping whatever library supplies it

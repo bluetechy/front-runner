@@ -34,6 +34,19 @@ const panelEdge = "rgba(227, 79, 196, 0.22)";
 const inputField = "rgba(255, 255, 255, 0.07)";
 const placeholder = "#9c86b6";
 
+/*
+ * The pricing cards are the one surface in the app that is not violet: white
+ * paper laid on the field, with the field's own darkest violet drawn round it
+ * as a border. Nothing in the dark palette can be reused inside them -- white
+ * text on white is the obvious half, but "text.secondary" and the outlined
+ * button's pink are just as unreadable there -- so a card carries its own ink,
+ * its own muted ink, and its own hairline.
+ */
+const card = "#ffffff";
+const cardInk = violet[950];
+const cardInkMuted = "#6a5581";
+const cardRule = "rgba(31, 5, 56, 0.12)";
+
 const brand = {
   /* The field every page is rendered on. */
   field: [
@@ -51,6 +64,14 @@ const brand = {
   panelGlow: "0 30px 80px rgba(10, 2, 24, 0.7)",
   /* Inputs are a hollow of the panel rather than a surface of their own. */
   inputField,
+  /* White paper on the field: the pricing cards, and whatever follows. */
+  card,
+  cardEdge: violet[950],
+  cardInk,
+  cardInkMuted,
+  cardRule,
+  /* The track a segmented control's selected pill slides along. */
+  segmentTrack: "rgba(255, 255, 255, 0.06)",
   gutter,
 } as const;
 
@@ -212,6 +233,49 @@ export const theme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: { transition: "transform 150ms ease" },
+      },
+    },
+    /*
+     * Segmented controls: a pill track with the selected segment lit by the
+     * same gradient as a contained button. The pricing page has two of them
+     * -- who the plans are for, and how often you pay -- so the look belongs
+     * here rather than in either one.
+     */
+    MuiToggleButtonGroup: {
+      defaultProps: { exclusive: true },
+      styleOverrides: {
+        root: {
+          gap: "0.25rem",
+          padding: "0.3rem",
+          borderRadius: 999,
+          backgroundColor: brand.segmentTrack,
+          border: `1px solid ${panelEdge}`,
+        },
+        grouped: {
+          border: "none",
+          borderRadius: "999px !important",
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          fontFamily: displayFont,
+          fontStyle: "italic",
+          fontSize: "0.9rem",
+          textTransform: "none",
+          letterSpacing: "normal",
+          padding: "0.5rem 1.5rem",
+          color: brand.navText,
+          transition: "color 150ms ease, background-image 150ms ease",
+          "&:hover": { color: "#ffffff", backgroundColor: "transparent" },
+          "&.Mui-selected": {
+            color: "#ffffff",
+            backgroundColor: "transparent",
+            backgroundImage: brand.buttonGradient,
+            "&:hover": { backgroundImage: brand.buttonGradient },
+          },
+        },
       },
     },
   },

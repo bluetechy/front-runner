@@ -13,7 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FeaturesRouteImport } from './routes/features'
-import { Route as ImplementationRouteImport } from './routes/implementation'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as SignedInRouteImport } from './routes/signed-in'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
@@ -37,9 +37,9 @@ const FeaturesRoute = FeaturesRouteImport.update({
   path: '/features',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ImplementationRoute = ImplementationRouteImport.update({
-  id: '/implementation',
-  path: '/implementation',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignedInRoute = SignedInRouteImport.update({
@@ -58,7 +58,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
-  '/implementation': typeof ImplementationRoute
+  '/pricing': typeof PricingRoute
   '/signed-in': typeof SignedInRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
@@ -67,7 +67,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
-  '/implementation': typeof ImplementationRoute
+  '/pricing': typeof PricingRoute
   '/signed-in': typeof SignedInRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
@@ -77,7 +77,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/features': typeof FeaturesRoute
-  '/implementation': typeof ImplementationRoute
+  '/pricing': typeof PricingRoute
   '/signed-in': typeof SignedInRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
@@ -88,7 +88,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contact'
     | '/features'
-    | '/implementation'
+    | '/pricing'
     | '/signed-in'
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
@@ -97,7 +97,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contact'
     | '/features'
-    | '/implementation'
+    | '/pricing'
     | '/signed-in'
     | '/auth/callback'
   id:
@@ -106,7 +106,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/contact'
     | '/features'
-    | '/implementation'
+    | '/pricing'
     | '/signed-in'
     | '/auth/callback'
   fileRoutesById: FileRoutesById
@@ -116,7 +116,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ContactRoute: typeof ContactRoute
   FeaturesRoute: typeof FeaturesRoute
-  ImplementationRoute: typeof ImplementationRoute
+  PricingRoute: typeof PricingRoute
   SignedInRoute: typeof SignedInRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
@@ -151,11 +151,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeaturesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/implementation': {
-      id: '/implementation'
-      path: '/implementation'
-      fullPath: '/implementation'
-      preLoaderRoute: typeof ImplementationRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signed-in': {
@@ -180,7 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ContactRoute: ContactRoute,
   FeaturesRoute: FeaturesRoute,
-  ImplementationRoute: ImplementationRoute,
+  PricingRoute: PricingRoute,
   SignedInRoute: SignedInRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }

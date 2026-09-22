@@ -5,9 +5,10 @@ Vite + React 19 + MUI 9 + TanStack Router, in TypeScript, running on
 This app replaced the Create React App / webpack 4 front end that used to live
 here; nothing was carried over from it. See
 [codebase structure](codebase-structure.md) for how the source is organized,
-[the landing page](landing-page.md) for what is built so far, and
-[signing in](authentication.md) for the login dialog and its Keycloak flows,
-and [icons](shared/icons.md) for how every icon is wrapped.
+[the landing page](landing-page.md) and [the pricing page](pricing-page.md)
+for what is built so far, [signing in](authentication.md) for the login dialog
+and its Keycloak flows, and [icons](shared/icons.md) for how every icon is
+wrapped.
 
 ## Development with Docker Compose
 
@@ -117,4 +118,9 @@ it resolves to a real route rather than a 404.
 - **Headless Chrome clamps windows to 500px wide on macOS.** Screenshots taken
   at `--window-size=420,…` are 420px crops of a 500px layout, which looks
   exactly like a broken responsive header. Render the page in a 390px `<iframe>`
-  instead to check narrow widths.
+  instead to check narrow widths, or drive the browser over the DevTools
+  protocol: `--remote-debugging-port=9222`, then
+  `Emulation.setDeviceMetricsOverride` at the width you want before
+  `Page.captureScreenshot`. That one also answers the question directly —
+  `document.documentElement.scrollWidth` against `window.innerWidth` says
+  whether anything really overflows, which a crop cannot.
