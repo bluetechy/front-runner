@@ -6,7 +6,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import { useSession } from "../authentication";
-import { CardLabel, DashboardCard } from "./dashboard-card";
+import { CardLabel, CardSurface } from "../card-surface";
 
 /*
  * The one card on this page that is not placeholder. It shows the identity
@@ -70,7 +70,7 @@ export function AccountCard() {
   }, [getAccessToken]);
 
   return (
-    <DashboardCard title="Your account">
+    <CardSurface title="Your account">
       <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <CardLabel>Identity from Keycloak</CardLabel>
@@ -102,7 +102,7 @@ export function AccountCard() {
           )}
         </Grid>
       </Grid>
-    </DashboardCard>
+    </CardSurface>
   );
 }
 

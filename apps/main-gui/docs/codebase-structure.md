@@ -25,6 +25,8 @@ src/
   pricing/              the plans, and the questions people ask about them
   authentication/       the sign-in dialog, and who is signed in
   dashboard/            where a completed sign-in lands
+  profile/              the profile page, and the form that edits it
+  card-surface/         the white card both of those are made of
   shared/icons/         every icon, wrapping whatever library supplies it
   shared/lib/           small predicates shared inside shared/
   coming-soon/          the placeholder the unbuilt routes render
@@ -71,6 +73,9 @@ rule below, in that it is exempt from Prettier — see the icons page.
 **Shared code becomes its own vertical.** `coming-soon/` exists because four
 routes need it. When a second page needs something the landing page owns, it
 moves out into a vertical of its own rather than being imported across.
+`card-surface/` is that rule being applied: it was the dashboard's card until
+the profile page wanted the same white paper, and then it stopped belonging to
+either of them.
 
 `authentication/` is the same rule applied to something less page-shaped: the
 header needs to know who is signed in and to open the dialog, and `dashboard/`

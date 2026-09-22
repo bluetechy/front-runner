@@ -11,7 +11,7 @@ import { useSession } from "../authentication";
 import { AccountCard } from "./account-card";
 import { Change } from "./change";
 import { DailySalesBars, EarningsDonut, SalesLines } from "./charts";
-import { CardLabel, DashboardCard } from "./dashboard-card";
+import { CardLabel, CardSurface } from "../card-surface";
 import { StatTile } from "./stat-tile";
 import {
   averageDailySales,
@@ -78,7 +78,7 @@ export function Dashboard() {
       <Grid container spacing={{ xs: 2, md: 2.5 }}>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Stack sx={{ gap: { xs: 2, md: 2.5 }, height: "100%" }}>
-            <DashboardCard>
+            <CardSurface>
               <Box sx={{ position: "relative", overflow: "hidden" }}>
                 {/* Where the mock-up puts its illustration. Until there is
                  * one, the card is lit rather than filled. */}
@@ -131,9 +131,9 @@ export function Dashboard() {
                   </Box>
                 </Stack>
               </Box>
-            </DashboardCard>
+            </CardSurface>
 
-            <DashboardCard title="This month revenue" sx={{ flex: 1 }}>
+            <CardSurface title="This month revenue" sx={{ flex: 1 }}>
               <Stack direction="row" sx={{ alignItems: "center", gap: 1.5 }}>
                 <Headline>{money(monthRevenue.earned)}</Headline>
                 <Change
@@ -181,7 +181,7 @@ export function Dashboard() {
                   },
                 }}
               />
-            </DashboardCard>
+            </CardSurface>
           </Stack>
         </Grid>
 
@@ -196,7 +196,7 @@ export function Dashboard() {
         </Grid>
 
         <Grid size={{ xs: 12, lg: 6 }}>
-          <DashboardCard title="Expected earnings">
+          <CardSurface title="Expected earnings">
             <Stack
               direction="row"
               sx={{ alignItems: "center", gap: 1.5, mb: 2 }}
@@ -216,11 +216,11 @@ export function Dashboard() {
               />
             </Stack>
             <EarningsDonut slices={expectedEarnings.slices} />
-          </DashboardCard>
+          </CardSurface>
         </Grid>
 
         <Grid size={{ xs: 12, lg: 6 }}>
-          <DashboardCard title="Average daily sales">
+          <CardSurface title="Average daily sales">
             <Stack
               direction="row"
               sx={{ alignItems: "center", gap: 1.5, mb: 2 }}
@@ -238,20 +238,20 @@ export function Dashboard() {
                 labels={weekdays}
               />
             </Box>
-          </DashboardCard>
+          </CardSurface>
         </Grid>
 
         <Grid size={{ xs: 12, lg: 8 }}>
-          <DashboardCard title="Weekly sales">
+          <CardSurface title="Weekly sales">
             <Headline>{money(weeklySales.total)}</Headline>
             <Box sx={{ mt: 2 }}>
               <SalesLines series={weeklySales.series} labels={weekdays} />
             </Box>
-          </DashboardCard>
+          </CardSurface>
         </Grid>
 
         <Grid size={{ xs: 12, lg: 4 }}>
-          <DashboardCard title="New customers this month">
+          <CardSurface title="New customers this month">
             <Stack direction="row" sx={{ alignItems: "center", gap: 1.5 }}>
               <Headline>{newCustomers.value}</Headline>
               <Change
@@ -291,7 +291,7 @@ export function Dashboard() {
                 joined today
               </Typography>
             </Stack>
-          </DashboardCard>
+          </CardSurface>
         </Grid>
 
         <Grid size={12}>

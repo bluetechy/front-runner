@@ -92,7 +92,9 @@ defines a colour of its own:
 
 A dashboard card is the pricing card: white paper, the field's darkest violet
 as a 2px rule, corners at `1.75rem`. That is deliberate — the app should have
-one white surface, not two that are nearly the same. `cardField` and
+one white surface, not two that are nearly the same. It lives in
+`src/card-surface` as `CardSurface`, which is where it went when
+[the profile page](profile-page.md) wanted it too. `cardField` and
 `cardTint` were added for the two things the pricing cards never needed: a
 hollow for the search field, and the tint a stat tile's icon sits in.
 

@@ -23,6 +23,7 @@ import ScheduleIcon from "@/shared/icons/ScheduleIcon";
 import SettingsIcon from "@/shared/icons/SettingsIcon";
 import TutorialsIcon from "@/shared/icons/TutorialsIcon";
 import { useSession } from "../authentication";
+import { placeholderPosition } from "../profile";
 
 /*
  * The rail down the left edge of the application. It is fixed there rather
@@ -97,13 +98,6 @@ const navGroups: readonly NavGroup[] = [
     ],
   },
 ];
-
-/*
- * What the person signed in is here as. Placeholder: neither the token nor
- * the `me` query carries a title, and the nearest thing either of them has is
- * the account's admin flag. One line to change when there is a real one.
- */
-const POSITION = "Programme manager";
 
 /* "Test User" -> "TU". A login name with no space gives one letter, which is
  * the point: it is an avatar, not a label. */
@@ -186,7 +180,9 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
             color: (theme) => theme.palette.brand.railLabel,
           }}
         >
-          {POSITION}
+          {/* Placeholder, and the profile page's own -- one constant, so
+           * the rail and that page cannot say different things. */}
+          {placeholderPosition}
         </Typography>
       </Stack>
 

@@ -5,15 +5,18 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 
 /*
- * One card on the dashboard: white paper on the field, with the same dark
- * rule and the same 1.75rem corners the pricing cards have, because they are
- * the same surface and the app should only have one of them. Everything
- * inside is drawn in the card's own ink -- see `brand.card*` in the theme.
+ * A card behind the login: white paper on the field, with the same dark rule
+ * and the same 1.75rem corners the pricing cards have, because they are the
+ * same surface and the app should only have one of them. Everything inside is
+ * drawn in the card's own ink -- see `brand.card*` in the theme.
  *
- * The heading is the small uppercase label the mock-up puts over each card,
+ * It started as the dashboard's card and became a vertical of its own when
+ * the profile page wanted the same surface.
+ *
+ * The heading is the small uppercase label the mock-ups put over each card,
  * and `action` is whatever sits opposite it: a period picker, a link.
  */
-export function DashboardCard({
+export function CardSurface({
   title,
   action,
   children,

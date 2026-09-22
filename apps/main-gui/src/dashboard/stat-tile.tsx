@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Change } from "./change";
-import { DashboardCard } from "./dashboard-card";
+import { CardSurface } from "../card-surface";
 import type { Tile } from "./metrics";
 
 /*
@@ -13,7 +13,7 @@ export function StatTile({ tile }: { tile: Tile }) {
   const TileIcon = tile.icon;
 
   return (
-    <DashboardCard sx={{ padding: { xs: "1.1rem", sm: "1.2rem 1.3rem" } }}>
+    <CardSurface sx={{ padding: { xs: "1.1rem", sm: "1.2rem 1.3rem" } }}>
       <Stack direction="row" sx={{ alignItems: "center", gap: 1.5 }}>
         <Box
           aria-hidden
@@ -67,6 +67,6 @@ export function StatTile({ tile }: { tile: Tile }) {
           </Stack>
         </Box>
       </Stack>
-    </DashboardCard>
+    </CardSurface>
   );
 }
