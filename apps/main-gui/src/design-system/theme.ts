@@ -55,8 +55,20 @@ const cardRule = "rgba(31, 5, 56, 0.12)";
  */
 const rail = `linear-gradient(176deg, ${accent}, ${accentStrong})`;
 const railInk = "rgba(255, 255, 255, 0.86)";
+const railLabel = "rgba(255, 255, 255, 0.62)";
 const railActive = "rgba(255, 255, 255, 0.2)";
 const railEdge = "rgba(255, 255, 255, 0.28)";
+
+/*
+ * The teal the charts' third series is drawn in, which is also the pill the
+ * rail marks the page you are on with. One constant rather than two, because
+ * the second is meant to be the same colour as the first.
+ *
+ * White on it is 3.1:1, which is under what text needs, so the selected item
+ * is written in the card's ink instead -- 5.9:1, and the same dark violet
+ * everything else on white paper is written in.
+ */
+const teal = "#1f9fb5";
 
 /*
  * Series colours for the dashboard's charts, drawn on card paper rather than
@@ -66,7 +78,7 @@ const railEdge = "rgba(255, 255, 255, 0.28)";
  * protanopia, against a floor of 8. They are assigned in this order and never
  * cycled: a fourth series is not a fourth hue, it is a different chart.
  */
-const chartSeries = [accentStrong, accentDeep, "#1f9fb5"] as const;
+const chartSeries = [accentStrong, accentDeep, teal] as const;
 
 const brand = {
   /* The field every page is rendered on. */
@@ -94,8 +106,13 @@ const brand = {
   /* The rail behind the login, and the ink on it. */
   rail,
   railInk,
+  /* The heading over a group of nav items, quieter than the items. */
+  railLabel,
   railActive,
   railEdge,
+  /* The pill under the page you are on, and what it is written in. */
+  railSelected: teal,
+  railSelectedInk: cardInk,
   /* A hollow in card paper, the way `inputField` is one in the panel: the
    * top bar's search field, which on white would otherwise be white. */
   cardField: "rgba(31, 5, 56, 0.05)",

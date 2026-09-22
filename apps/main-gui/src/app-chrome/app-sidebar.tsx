@@ -1,3 +1,6 @@
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -9,16 +12,17 @@ import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Link } from "@tanstack/react-router";
 import type { FC } from "react";
-import CustomersIcon from "@/shared/icons/CustomersIcon";
+import AchievementsIcon from "@/shared/icons/AchievementsIcon";
+import CertificationsIcon from "@/shared/icons/CertificationsIcon";
+import CustomerServiceIcon from "@/shared/icons/CustomerServiceIcon";
 import DashboardIcon from "@/shared/icons/DashboardIcon";
 import type IconProps from "@/shared/icons/IconProps";
 import KpiIcon from "@/shared/icons/KpiIcon";
-import OperationsIcon from "@/shared/icons/OperationsIcon";
-import ProductsIcon from "@/shared/icons/ProductsIcon";
-import PromotionsIcon from "@/shared/icons/PromotionsIcon";
-import RevenueIcon from "@/shared/icons/RevenueIcon";
-import StoresIcon from "@/shared/icons/StoresIcon";
-import SupportIcon from "@/shared/icons/SupportIcon";
+import ProfileIcon from "@/shared/icons/ProfileIcon";
+import ScheduleIcon from "@/shared/icons/ScheduleIcon";
+import SettingsIcon from "@/shared/icons/SettingsIcon";
+import TutorialsIcon from "@/shared/icons/TutorialsIcon";
+import { useSession } from "../authentication";
 
 /*
  * The rail down the left edge of the application. It is fixed there rather
@@ -27,9 +31,10 @@ import SupportIcon from "@/shared/icons/SupportIcon";
  * column out of the flow, and below that a temporary one the top bar's
  * hamburger opens over the page.
  *
- * Dashboard is the only item with a route behind it. The rest name the
+ * The logo, whoever is signed in, and then the nav in three named groups.
+ * Command Center is the only item with a route behind it; the rest name the
  * sections this product is going to have, and are disabled until they exist,
- * because a link that goes nowhere is worse than one that says so.
+ * because a nav link that goes nowhere is worse than one that says so.
  */
 
 export const RAIL_WIDTH = 258;
@@ -40,19 +45,59 @@ interface NavItem {
   to?: "/dashboard";
 }
 
-const navItems: readonly NavItem[] = [
-  { label: "Dashboard", icon: DashboardIcon, to: "/dashboard" },
-  { label: "Sales and Revenue", icon: RevenueIcon },
-  { label: "KPIs", icon: KpiIcon },
-  { label: "Customers", icon: CustomersIcon },
-  { label: "Products", icon: ProductsIcon },
-  { label: "Stores", icon: StoresIcon },
-  { label: "Promotions", icon: PromotionsIcon },
-  { label: "Operations", icon: OperationsIcon },
-  { label: "Help & Support", icon: SupportIcon },
+interface NavGroup {
+  label: string;
+  items: readonly NavItem[];
+}
+
+const navGroups: readonly NavGroup[] = [
+  {
+    label: "Dashboard",
+    items: [
+      { label: "Command Center", icon: DashboardIcon, to: "/dashboard" },
+      { label: "Schedule", icon: ScheduleIcon },
+      { label: "Achievements", icon: AchievementsIcon },
+      { label: "Certifications", icon: CertificationsIcon },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { label: "Profile", icon: ProfileIcon },
+      { label: "Settings", icon: SettingsIcon },
+    ],
+  },
+  {
+    label: "Support",
+    items: [
+      { label: "Tutorials", icon: TutorialsIcon },
+      { label: "Customer Service", icon: CustomerServiceIcon },
+    ],
+  },
 ];
 
+/*
+ * What the person signed in is here as. Placeholder: neither the token nor
+ * the `me` query carries a title, and the nearest thing either of them has is
+ * the account's admin flag. One line to change when there is a real one.
+ */
+const POSITION = "Programme manager";
+
+/* "Test User" -> "TU". A login name with no space gives one letter, which is
+ * the point: it is an avatar, not a label. */
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 function RailContents({ onNavigate }: { onNavigate: () => void }) {
+  const { identity } = useSession();
+  const name = identity?.name ?? "—";
+
   return (
     <>
       <Stack
@@ -61,13 +106,14 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
         direction="row"
         sx={{
           alignItems: "center",
+          justifyContent: "center",
           gap: 1.25,
-          padding: "1.75rem 1.5rem 1.5rem",
+          padding: "1.6rem 1.5rem 1.1rem",
           textDecoration: "none",
           color: "common.white",
         }}
       >
-        <KpiIcon size={26} />
+        <KpiIcon size={24} />
         <Typography
           component="span"
           sx={{
@@ -82,69 +128,138 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
         </Typography>
       </Stack>
 
-      <List
-        component="nav"
-        aria-label="Application"
-        sx={{ paddingInline: "0.9rem" }}
-      >
-        {navItems.map((item) => {
-          const ItemIcon = item.icon;
-          const contents = (
-            <>
-              <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
-                <ItemIcon size={20} />
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                slotProps={{
-                  primary: { sx: { fontSize: "0.92rem", fontWeight: 500 } },
-                }}
-              />
-            </>
-          );
+      {/* Whoever is signed in. The picture is their initials until there is
+       * somewhere to get a photograph from -- the token carries none. */}
+      <Stack sx={{ alignItems: "center", paddingInline: "1.5rem" }}>
+        <Avatar
+          sx={{
+            width: 68,
+            height: 68,
+            fontSize: "1.4rem",
+            fontWeight: 600,
+            color: "common.white",
+            backgroundColor: (theme) => theme.palette.brand.railActive,
+            border: (theme) => `3px solid ${theme.palette.brand.railEdge}`,
+          }}
+        >
+          {initialsOf(name)}
+        </Avatar>
+        <Typography
+          sx={{
+            mt: 1.25,
+            fontSize: "0.98rem",
+            fontWeight: 600,
+            textAlign: "center",
+            color: "common.white",
+          }}
+        >
+          {name}
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: "0.78rem",
+            color: (theme) => theme.palette.brand.railLabel,
+          }}
+        >
+          {POSITION}
+        </Typography>
+      </Stack>
 
-          return (
-            <ListItem
-              key={item.label}
-              disablePadding
-              sx={{ marginBottom: 0.25 }}
-            >
-              {item.to ? (
-                <ListItemButton
-                  component={Link}
-                  to={item.to}
-                  activeOptions={{ exact: true }}
-                  onClick={onNavigate}
-                  sx={itemStyle}
+      <Divider
+        sx={{
+          mt: 2,
+          marginInline: "1.4rem",
+          borderColor: (theme) => theme.palette.brand.railEdge,
+        }}
+      />
+
+      <Box component="nav" aria-label="Application" sx={{ paddingBottom: 2 }}>
+        {navGroups.map((group) => (
+          <List
+            key={group.label}
+            subheader={
+              <Typography
+                component="h2"
+                sx={{
+                  paddingInline: "1.5rem",
+                  paddingBottom: "0.35rem",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: (theme) => theme.palette.brand.railLabel,
+                }}
+              >
+                {group.label}
+              </Typography>
+            }
+            sx={{ paddingInline: "0.9rem", paddingBlock: "0.9rem 0" }}
+          >
+            {group.items.map((item) => {
+              const ItemIcon = item.icon;
+              const contents = (
+                <>
+                  <ListItemIcon sx={{ minWidth: 34, color: "inherit" }}>
+                    <ItemIcon size={20} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    slotProps={{
+                      primary: { sx: { fontSize: "0.92rem", fontWeight: 500 } },
+                    }}
+                  />
+                </>
+              );
+
+              return (
+                <ListItem
+                  key={item.label}
+                  disablePadding
+                  sx={{ marginBottom: 0.25 }}
                 >
-                  {contents}
-                </ListItemButton>
-              ) : (
-                /* Not built yet, and saying so is the whole point. */
-                <ListItemButton disabled sx={itemStyle}>
-                  {contents}
-                </ListItemButton>
-              )}
-            </ListItem>
-          );
-        })}
-      </List>
+                  {item.to ? (
+                    <ListItemButton
+                      component={Link}
+                      to={item.to}
+                      activeOptions={{ exact: true }}
+                      onClick={onNavigate}
+                      sx={itemStyle}
+                    >
+                      {contents}
+                    </ListItemButton>
+                  ) : (
+                    /* Not built yet, and saying so is the whole point. */
+                    <ListItemButton disabled sx={itemStyle}>
+                      {contents}
+                    </ListItemButton>
+                  )}
+                </ListItem>
+              );
+            })}
+          </List>
+        ))}
+      </Box>
     </>
   );
 }
 
 /* Shared by the linked item and the disabled ones, so the row they sit in is
- * the same shape whether or not there is a page behind it. */
+ * the same shape whether or not there is a page behind it. The page you are
+ * on is a teal pill -- the charts' third series -- written in the card's ink,
+ * because white on that teal is under the contrast text needs. */
 const itemStyle: SxProps<Theme> = {
   borderRadius: 999,
-  paddingBlock: "0.6rem",
+  paddingBlock: "0.55rem",
   paddingInline: "0.9rem",
   color: (theme) => theme.palette.brand.railInk,
   "&:hover": { backgroundColor: (theme) => theme.palette.brand.railActive },
   "&.Mui-disabled": { opacity: 0.62 },
   '&[data-status="active"]': {
-    color: "common.white",
-    backgroundColor: (theme) => theme.palette.brand.railActive,
+    color: (theme) => theme.palette.brand.railSelectedInk,
+    backgroundColor: (theme) => theme.palette.brand.railSelected,
+    "&:hover": {
+      backgroundColor: (theme) => theme.palette.brand.railSelected,
+    },
   },
 };
 
@@ -156,12 +271,15 @@ export function AppSidebar({
   onClose: () => void;
 }) {
   /* One set of paper styles for both drawers: the accent itself, square at
-   * the edge it is fixed to, and no border where the field would show. */
+   * the edge it is fixed to, and no border where the field would show. The
+   * rail scrolls rather than clipping when three groups and a profile do not
+   * fit a short window. */
   const paper: SxProps<Theme> = {
     width: RAIL_WIDTH,
     border: "none",
     backgroundImage: (theme) => theme.palette.brand.rail,
     color: "common.white",
+    overflowY: "auto",
   };
 
   return (

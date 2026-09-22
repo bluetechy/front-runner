@@ -49,9 +49,29 @@ the edge and takes its own column out of the flow, and a **temporary** one
 below that, opened by the hamburger in the top bar. Both drawers draw the same
 paper, so the rail is one thing described once.
 
-Only **Dashboard** has a route behind it. The other eight items name the
-sections this product is going to have and are disabled until they exist,
-because a nav link that goes nowhere is worse than one that says so.
+Down it: the logo, then whoever is signed in — their initials, their name and
+what they are here as — then the nav in three named groups.
+
+| Group     | Items                                                      |
+| --------- | ---------------------------------------------------------- |
+| Dashboard | **Command Center**, Schedule, Achievements, Certifications |
+| Account   | Profile, Settings                                          |
+| Support   | Tutorials, Customer Service                                |
+
+Only **Command Center** has a route behind it — it is this page. The other
+seven name the sections this product is going to have and are disabled until
+they exist, because a nav link that goes nowhere is worse than one that says
+so. The page you are on is marked with a **teal pill**, the same teal the
+charts' third series is drawn in; the two are one constant in the theme.
+
+White on that teal is 3.1:1, which is under what text needs, so the selected
+item is written in the card's ink — the same dark violet everything else on
+white paper is written in, and 5.9:1 against the pill.
+
+The picture in the profile block is the person's initials. The token carries
+no photograph, and neither the token nor the `me` query carries a title, so
+the line under the name is a placeholder constant in `app-sidebar.tsx` — the
+nearest real thing either of them has is the account's admin flag.
 
 ## Colour
 
