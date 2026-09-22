@@ -87,7 +87,7 @@ churn; operation/argument names use camelCase.
 
 Validation rejects malformed UUIDs, invalid names and page bounds. Arguments
 with a handful of fields are checked by a pipe of their own (`UUID`, `Name`,
-`Email`, `Page`); the profile input has sixteen and is checked against a zod
+`Email`, `Page`); the profile input has fifteen and is checked against a zod
 schema through `ZodPipe`, which reports every failing field at once rather
 than the first, because a form that has to be submitted once per mistake is a
 form nobody finishes. The pipe passes on what the schema parsed, so trimming

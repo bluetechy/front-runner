@@ -2,7 +2,6 @@ import type { FC } from "react";
 import GithubIcon from "@/shared/icons/GithubIcon";
 import type IconProps from "@/shared/icons/IconProps";
 import LinkedInIcon from "@/shared/icons/LinkedInIcon";
-import PortfolioIcon from "@/shared/icons/PortfolioIcon";
 import TwitterIcon from "@/shared/icons/TwitterIcon";
 import type { Profile } from "./profile-schema";
 
@@ -51,7 +50,6 @@ export function linksOf(profile: Profile): readonly ProfileLink[] {
     { label: "GitHub", handle: profile.Github, icon: GithubIcon },
     { label: "Twitter", handle: profile.Twitter, icon: TwitterIcon },
     { label: "LinkedIn", handle: profile.LinkedIn, icon: LinkedInIcon },
-    { label: "Website", handle: profile.Website, icon: PortfolioIcon },
   ];
 
   return candidates

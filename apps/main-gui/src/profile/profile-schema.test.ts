@@ -19,7 +19,6 @@ const valid = {
   BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
-  Website: "marcus.example",
   Twitter: "twitter.com/marcus",
   Facebook: "",
   LinkedIn: "linkedin.com/in/marcus",
@@ -45,7 +44,6 @@ describe("what the profile form accepts", () => {
         BirthDate: "",
         Phone: "",
         Address: "",
-        Website: "",
         Twitter: "",
         LinkedIn: "",
         Github: "",
@@ -62,7 +60,6 @@ describe("what the profile form accepts", () => {
   it.each([
     ["FirstName", "M".repeat(65)],
     ["Biography", "b".repeat(2001)],
-    ["Website", "not a website"],
     ["Github", "github com/marcus"],
     ["Phone", "no"],
     ["Language", "kl-KL"],
@@ -79,8 +76,8 @@ describe("what the profile form accepts", () => {
   // about every field at once rather than the first one.
   it("names every field that failed, not just the first", () => {
     expect(
-      Object.keys(errorsOf({ ...valid, Website: "nope", Phone: "no" })),
-    ).toEqual(expect.arrayContaining(["Website", "Phone"]));
+      Object.keys(errorsOf({ ...valid, Twitter: "nope", Phone: "no" })),
+    ).toEqual(expect.arrayContaining(["Twitter", "Phone"]));
   });
 
   // "Not given" is a real answer for a date and there is no date that means

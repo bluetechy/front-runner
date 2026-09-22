@@ -4,7 +4,7 @@ import { z } from "zod";
  * What a profile is allowed to contain.
  *
  * The rules are here rather than spread through the resolver because there
- * are sixteen of them and because the browser has to enforce the same ones --
+ * are fifteen of them and because the browser has to enforce the same ones --
  * main-gui carries its own copy of this schema, and the two are meant to say
  * the same thing. This one is the authority: a request that reaches the
  * mutation is checked here whatever the form did or did not do.
@@ -111,7 +111,6 @@ export const profileSchema = z.object({
   BirthDate: birthDate,
   Phone: phone,
   Address: text(255, "Address"),
-  Website: address("Website"),
   Twitter: address("Twitter address"),
   Facebook: address("Facebook address"),
   LinkedIn: address("LinkedIn address"),

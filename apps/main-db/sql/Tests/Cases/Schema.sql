@@ -95,15 +95,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Columns folded in from sql/Drafts. Most have no function reading them yet,
--- so nothing else in the suite would notice one being dropped -- this list is
--- what holds them in place until a reader exists. See SCHEMA-NOTES.md.
+-- Columns with no function reading them yet -- most folded in from sql/Drafts,
+-- and one, Organizations."Website", put there when the profile page stopped
+-- offering a website of a person's own. Nothing else in the suite would notice
+-- one being dropped, so this list is what holds them in place until a reader
+-- exists. See SCHEMA-NOTES.md.
 CREATE FUNCTION "test"."TestSchema_DraftColumnsExist" () RETURNS void AS $$
 DECLARE
     _Missing text;
 BEGIN
     SELECT string_agg(format('%s.%s', "Expected"."Table", "Expected"."Column"), ', ' ORDER BY "Expected"."Table", "Expected"."Column") INTO _Missing
     FROM (VALUES
+        ('Organizations', 'Website',          'character varying'),
         ('Points',      'ExpirationDuration', 'interval'),
         ('Points',      'ResetCondition',     'text'),
         ('UserBadges',  'EarnedAt',           'timestamp with time zone'),

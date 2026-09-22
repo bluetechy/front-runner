@@ -99,17 +99,26 @@ card's ink for text, and square-ish corners — a page of pills reads as a page
 of buttons. `FieldRow` puts the label beside the control from `sm` up and
 above it below that, and that is all it does.
 
+## No website of a person's own
+
+The form offers no website field, and `dbo.UserProfiles` has no column for
+one. A website belongs to a company rather than to one of its people, so the
+value has a single home: `dbo.Organizations."Website"`, waiting for the
+organization page that will offer it. The social handles stay here, because a
+GitHub or LinkedIn address is a person's.
+
 ## What is real and what is placeholder
 
-| Piece                                    | State                                      |
-| ---------------------------------------- | ------------------------------------------ |
-| Name, user name, email                   | **Real** — from the session's token        |
-| First and last name                      | Real, split at the last space in the name  |
-| The picture                              | Initials — the account has no photograph   |
-| Designation, bio, tallies, links, skills | **Placeholder** — all in `details.ts`      |
-| Phone, address, website, social handles  | **Placeholder** — seeded in `profile-form` |
-| Typing in any field                      | Works, and is kept until the page reloads  |
-| "Update profile", and the camera button  | Say plainly that nothing is saved yet      |
+| Piece                                   | State                                                          |
+| --------------------------------------- | -------------------------------------------------------------- |
+| Name, user name, email                  | **Real** — from the session's token                            |
+| First and last name                     | Real — stored; seeded from the token's name on the first visit |
+| The picture                             | Initials — the account has no photograph                       |
+| Designation, bio, gender, date of birth | **Real** — stored, and read back through `profile`             |
+| Phone, address, social handles          | **Real** — stored; the summary links the handles that are set  |
+| Tallies and skills                      | **Placeholder** — in `details.ts`                              |
+| "Update profile"                        | Saves, and says so                                             |
+| The camera button                       | Says plainly that a photograph cannot be kept yet              |
 
 Two things the page can be asked to do and cannot: keep a photograph, and
 count a tally. Both say so rather than accepting the click quietly — the

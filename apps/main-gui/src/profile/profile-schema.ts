@@ -112,7 +112,6 @@ export const profileSchema = z.object({
   BirthDate: birthDate,
   Phone: phone,
   Address: text(255, "Address"),
-  Website: address("Website"),
   Twitter: address("Twitter address"),
   Facebook: address("Facebook address"),
   LinkedIn: address("LinkedIn address"),

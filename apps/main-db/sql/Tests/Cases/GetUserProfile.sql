@@ -30,7 +30,7 @@ BEGIN
     PERFORM "dbo"."SetUserProfile"(
         'member', 'Marcus', 'Member', 'Marc', 'Programme manager',
         'Runs the scoreboard.', 'en-GB', 'Male', '1990-04-17',
-        '+1 555 0134', 'San Francisco, CA', 'marcus.example',
+        '+1 555 0134', 'San Francisco, CA',
         'twitter.com/marcus', 'facebook.com/marcus',
         'linkedin.com/in/marcus', 'github.com/marcus', false, true
     );
@@ -57,7 +57,7 @@ DECLARE
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
         'member', '', '', '', '', '', 'en-US', 'Not specified', '1990-04-17',
-        '', '', '', '', '', '', '', true, false
+        '', '', '', '', '', '', true, false
     );
 
     SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('member');
@@ -73,7 +73,7 @@ DECLARE
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
         'member', 'Marcus', 'Member', '', 'Programme manager', '', 'en-US',
-        'Male', '1990-04-17', '', '', '', '', '', '', '', true, false
+        'Male', '1990-04-17', '', '', '', '', '', '', true, false
     );
 
     SELECT * INTO _Other FROM "dbo"."GetUserProfile"('owner');

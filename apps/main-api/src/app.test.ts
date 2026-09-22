@@ -60,7 +60,6 @@ const userProfile = {
   BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
-  Website: "alice.example",
   Twitter: "",
   Facebook: "",
   LinkedIn: "",
@@ -567,7 +566,6 @@ describe("GraphQL application", () => {
         "1990-04-17",
         "+1 555 0134",
         "San Francisco, CA",
-        "alice.example",
         "",
         "",
         "",
@@ -587,13 +585,13 @@ describe("GraphQL application", () => {
         profile: {
           ...userProfile,
           UserUUID: undefined,
-          Website: "not a website",
+          Twitter: "not a twitter address",
           Biography: "b".repeat(2001),
         },
       },
     );
     expect(response.body.errors[0].extensions.code).toBe("BAD_REQUEST");
-    expect(response.body.errors[0].message).toContain("Website");
+    expect(response.body.errors[0].message).toContain("Twitter");
     expect(response.body.errors[0].message).toContain("Biography");
     expect(
       query.mock.calls.some(([sql]) => sql.includes("SetUserProfile")),

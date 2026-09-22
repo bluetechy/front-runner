@@ -27,7 +27,6 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
     _BirthDate varchar(10),
     _Phone varchar(32),
     _Address varchar(255),
-    _Website varchar(255),
     _Twitter varchar(255),
     _Facebook varchar(255),
     _LinkedIn varchar(255),
@@ -46,7 +45,6 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
     "BirthDate" varchar(10),
     "Phone" varchar(32),
     "Address" varchar(255),
-    "Website" varchar(255),
     "Twitter" varchar(255),
     "Facebook" varchar(255),
     "LinkedIn" varchar(255),
@@ -92,7 +90,7 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
         -- ON CONFLICT is ambiguous. See apps/main-db/CLAUDE.md.
         INSERT INTO "dbo"."UserProfiles" (
             "UserUUID", "FirstName", "LastName", "NickName", "Designation",
-            "Biography", "Language", "Gender", "BirthDate", "Phone", "Address", "Website",
+            "Biography", "Language", "Gender", "BirthDate", "Phone", "Address",
             "Twitter", "Facebook", "LinkedIn", "Github",
             "WantsAwardEmails", "WantsDigestEmails", "CreatedBy"
         )
@@ -108,7 +106,6 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
             _Birth,
             btrim(COALESCE(_Phone, '')),
             btrim(COALESCE(_Address, '')),
-            btrim(COALESCE(_Website, '')),
             btrim(COALESCE(_Twitter, '')),
             btrim(COALESCE(_Facebook, '')),
             btrim(COALESCE(_LinkedIn, '')),
@@ -128,7 +125,6 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
             "BirthDate" = EXCLUDED."BirthDate",
             "Phone" = EXCLUDED."Phone",
             "Address" = EXCLUDED."Address",
-            "Website" = EXCLUDED."Website",
             "Twitter" = EXCLUDED."Twitter",
             "Facebook" = EXCLUDED."Facebook",
             "LinkedIn" = EXCLUDED."LinkedIn",

@@ -399,6 +399,12 @@ filters on both — otherwise adding the columns would have quietly started repo
 unearned badges as held. `GetBadges` also returns `EarnedAt` and `EarnedDescription`
 now; main-api selects `*` from it, so both reach the API response.
 
+**One column on that list is not from the drafts.** `dbo.Organizations."Website"`
+was added when the profile page dropped the website of a person's own: a website
+belongs to a company rather than to one of its people, so the value has one home,
+and it is on `Organizations` waiting for the page that will offer it. Nothing
+returns it yet, which is why it is held by the same list.
+
 **Nothing reads the other nine yet.** `ExpirationDuration` and `ResetCondition` are
 policy that no function enforces — expiry is still per-row on
 `UserPoints."ExpiresAt"`. Same for the two limits and for `Reason`/`Details`.

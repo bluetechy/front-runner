@@ -16,7 +16,6 @@ const valid: ProfileInput = {
   BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
-  Website: "marcus.example",
   Twitter: "twitter.com/marcus",
   Facebook: "",
   LinkedIn: "linkedin.com/in/marcus",
@@ -50,7 +49,7 @@ describe("the profile a caller may read and write", () => {
     await expect(service.get("nobody")).resolves.toBeNull();
   });
 
-  // The order of sixteen positional parameters is the kind of thing that is
+  // The order of fifteen positional parameters is the kind of thing that is
   // wrong once and then wrong forever, so it is pinned here.
   it("passes the whole profile in the order the function declares", async () => {
     const { service, query } = setup([{ UserUUID: "user-id" }]);
@@ -69,7 +68,6 @@ describe("the profile a caller may read and write", () => {
         "1990-04-17",
         "+1 555 0134",
         "San Francisco, CA",
-        "marcus.example",
         "twitter.com/marcus",
         "",
         "linkedin.com/in/marcus",
@@ -105,12 +103,11 @@ describe("what a profile is allowed to contain", () => {
       BirthDate: "",
       Phone: "",
       Address: "",
-      Website: "",
       Twitter: "",
       LinkedIn: "",
       Github: "",
     });
-    expect(empty.Website).toBe("");
+    expect(empty.Twitter).toBe("");
   });
 
   it("trims what it is given, so the database is not asked to", () => {
@@ -122,7 +119,6 @@ describe("what a profile is allowed to contain", () => {
   it.each([
     ["FirstName", "M".repeat(65)],
     ["Biography", "b".repeat(2001)],
-    ["Website", "not a website"],
     ["Github", "github com/marcus"],
     ["Phone", "no"],
     ["Language", "kl-KL"],
@@ -172,14 +168,14 @@ describe("the pipe the resolver validates through", () => {
   // field is named at once.
   it("reports every field that failed, each by name", () => {
     expect(() =>
-      pipe.transform({ ...valid, Website: "nope", Phone: "no" }),
+      pipe.transform({ ...valid, Twitter: "nope", Phone: "no" }),
     ).toThrow(BadRequestException);
 
     try {
-      pipe.transform({ ...valid, Website: "nope", Phone: "no" });
+      pipe.transform({ ...valid, Twitter: "nope", Phone: "no" });
     } catch (failure) {
       const message = (failure as BadRequestException).message;
-      expect(message).toContain("Website");
+      expect(message).toContain("Twitter");
       expect(message).toContain("Phone");
     }
   });

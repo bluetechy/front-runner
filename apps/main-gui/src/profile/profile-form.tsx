@@ -43,7 +43,6 @@ const EMPTY: Profile = {
   BirthDate: "",
   Phone: "",
   Address: "",
-  Website: "",
   Twitter: "",
   Facebook: "",
   LinkedIn: "",
@@ -241,15 +240,6 @@ export function ProfileForm({
               onChange={() => undefined}
               readOnly
               hint="Your sign-in address. Change it where you sign in."
-            />
-          </FieldRow>
-          <FieldRow label="Website" htmlFor="profile-website">
-            <CardField
-              id="profile-website"
-              value={form.Website}
-              onChange={(value) => set("Website", value)}
-              error={errors.Website}
-              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Phone" htmlFor="profile-phone">

@@ -38,8 +38,6 @@ export class UserProfile {
   @Field(() => String)
   Address!: string;
   @Field(() => String)
-  Website!: string;
-  @Field(() => String)
   Twitter!: string;
   @Field(() => String)
   Facebook!: string;
@@ -80,8 +78,6 @@ export class UserProfileInput {
   Phone!: string;
   @Field(() => String)
   Address!: string;
-  @Field(() => String)
-  Website!: string;
   @Field(() => String)
   Twitter!: string;
   @Field(() => String)

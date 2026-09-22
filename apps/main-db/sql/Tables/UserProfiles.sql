@@ -43,7 +43,6 @@ CREATE TABLE "dbo"."UserProfiles" (
     "BirthDate" date,
     "Phone" varchar(32) NOT NULL DEFAULT '',
     "Address" varchar(255) NOT NULL DEFAULT '',
-    "Website" varchar(255) NOT NULL DEFAULT '',
     "Twitter" varchar(255) NOT NULL DEFAULT '',
     "Facebook" varchar(255) NOT NULL DEFAULT '',
     "LinkedIn" varchar(255) NOT NULL DEFAULT '',
