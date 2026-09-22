@@ -18,8 +18,8 @@ docker compose -p front-runner-dev -f docker-compose-dev.yml up -d --build main-
 docker compose -p front-runner-dev -f docker-compose-dev.yml logs -f main-gui
 ```
 
-The published port is **5173** (`GUI_PUBLISHED_PORT`), so the app is at
-<http://localhost:5173>. That origin is already in `CORS_ORIGINS`, so the browser
+The published port is **80** (`GUI_PUBLISHED_PORT`), so the app is at
+<http://localhost>. That origin is already in `CORS_ORIGINS`, so the browser
 can call `main-api` on port 30000 once the app starts doing so.
 
 The `development` target runs `vite` and bind-mounts the whole of

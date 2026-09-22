@@ -36,7 +36,7 @@ their mounted source changes. See
 [API setup, design decisions, and migration](apps/main-api/docs/README.md) and
 [GUI setup and codebase structure](apps/main-gui/docs/README.md).
 
-- GUI — <http://localhost:5173>
+- GUI — <http://localhost>
 - GraphQL — <http://localhost:30000/graphql>
 - Mail inbox — <http://localhost:30004> (Mailpit; catches Keycloak's mail)
 

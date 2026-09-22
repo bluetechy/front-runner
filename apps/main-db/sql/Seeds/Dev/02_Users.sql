@@ -6,7 +6,7 @@
 -- committed so a clone comes up with something to sign in as. Nothing in this
 -- file should ever reach a real installation.
 --
--- Sign in with any of them at http://localhost:5173. Passwords live in
+-- Sign in with any of them at http://localhost. Passwords live in
 -- Keycloak, not here, and the convention there is that THE PASSWORD IS THE
 -- LOGIN NAME -- "jdoe" signs in with "jdoe". Either the login name or the
 -- email works in the dialog's Email box.
