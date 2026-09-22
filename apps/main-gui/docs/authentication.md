@@ -99,7 +99,7 @@ flipping `enabled` is the whole activation — see
 src/authentication/
   keycloak.ts          every Keycloak URL and token-endpoint call
   session.tsx          SessionProvider / useSession: who is signed in
-  login-prompt.tsx     the one dialog instance, and "offer it once per tab"
+  login-prompt.tsx     the one dialog instance, and who may open it
   login-dialog.tsx     the mock-up's card
   storage.ts           localStorage/sessionStorage that cannot throw
 src/signed-in/         where a completed sign-in lands

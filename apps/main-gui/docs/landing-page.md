@@ -21,7 +21,7 @@ Button with layout in `sx`.
 | "Login"                                     | Real — opens the sign-in dialog; see [signing in](authentication.md) |
 | Search button                               | Styled and labelled; does nothing                                    |
 | About / Features / Implementation / Contact | Real routes, rendering `coming-soon`                                 |
-| The sign-in dialog                          | Real — offered once per tab to a signed-out visitor                  |
+| The sign-in dialog                          | Real — opens on "Login", and on nothing else                         |
 
 ## Type
 

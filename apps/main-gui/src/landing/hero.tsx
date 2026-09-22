@@ -4,21 +4,9 @@ import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useEffect } from "react";
-import { useSession, useLoginPrompt } from "../authentication";
 import heroPlaceholder from "./hero-placeholder.png";
 
 export function Hero() {
-  const { status } = useSession();
-  const loginPrompt = useLoginPrompt();
-
-  useEffect(() => {
-    /* Not while a remembered session is still being restored: that resolves
-     * to signed in often enough that asking first would be wrong. */
-    if (status !== "signed-out") return;
-    loginPrompt.offerOnce();
-  }, [status, loginPrompt]);
-
   return (
     <Container
       component="section"

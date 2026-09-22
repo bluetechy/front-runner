@@ -64,11 +64,11 @@ routes need it. When a second page needs something the landing page owns, it
 moves out into a vertical of its own rather than being imported across.
 
 `authentication/` is the same rule applied to something less page-shaped: the
-header needs to know who is signed in, the landing page needs to offer the
-dialog, and `signed-in/` needs a token to call the API with, so the session is
-a vertical rather than a thing any one of them owns. The `me` query it uses is
-still inside `signed-in/`, because that is the only page making it — it earns
-a vertical of its own when a second one does.
+header needs to know who is signed in and to open the dialog, and `signed-in/`
+needs a token to call the API with, so the session is a vertical rather than a
+thing any one of them owns. The `me` query it uses is still inside
+`signed-in/`, because that is the only page making it — it earns a vertical of
+its own when a second one does.
 
 ## Adding a page
 
