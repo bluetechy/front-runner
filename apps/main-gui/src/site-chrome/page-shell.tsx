@@ -1,13 +1,25 @@
+import Box from "@mui/material/Box";
 import type { ReactNode } from "react";
 import { SiteHeader } from "./site-header";
-import "./page-shell.css";
 
 /* The violet field and header every route is rendered inside. */
 export function PageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="page-shell">
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100dvh",
+        backgroundImage: (theme) => theme.palette.brand.field,
+      }}
+    >
       <SiteHeader />
-      <main className="page-shell__main">{children}</main>
-    </div>
+      <Box
+        component="main"
+        sx={{ display: "flex", flex: 1, flexDirection: "column" }}
+      >
+        {children}
+      </Box>
+    </Box>
   );
 }

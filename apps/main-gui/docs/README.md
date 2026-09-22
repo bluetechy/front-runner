@@ -1,6 +1,7 @@
 # Main GUI
 
-Vite + React 19 + TanStack Router, in TypeScript, running on **Node 24.21.0**.
+Vite + React 19 + MUI 9 + TanStack Router, in TypeScript, running on
+**Node 24.21.0**.
 This app replaced the Create React App / webpack 4 front end that used to live
 here; nothing was carried over from it. See
 [codebase structure](codebase-structure.md) for how the source is organized and
@@ -62,6 +63,17 @@ declares `"engines": { "node": ">=24 <25" }`. npm only warns on a mismatch, so a
 newer Node on the host installs and runs anyway — the image is the version that
 counts.
 
+## UI
+
+MUI 9 with its default Emotion styling engine (`@emotion/react`,
+`@emotion/styled`), plus `@mui/icons-material`. There is one theme, in
+`src/design-system/theme.ts`, applied by the single `ThemeProvider` in
+`main.tsx` alongside `CssBaseline`. The app has no stylesheets of its own —
+see [codebase structure](codebase-structure.md) for what that means in practice.
+
+The theme is dark-only: the design is a violet field, and no light scheme is
+defined.
+
 ## Routing
 
 Routes are files under `src/routes`, and
@@ -84,6 +96,10 @@ it resolves to a real route rather than a 404.
   show one version, deduped. The same failure then reappeared _only inside the
   container_, because Vite's pre-bundle cache in the anonymous volume had been
   built against the old copy — hence `--renew-anon-volumes` above.
+- **MUI 9 no longer takes system props on `Grid` and `Stack`.** `alignItems`,
+  `justifyContent` and friends are `sx` keys now, not props; passing them as
+  props is a type error rather than a silent no-op, so `tsc --noEmit` catches
+  it.
 - **Headless Chrome clamps windows to 500px wide on macOS.** Screenshots taken
   at `--window-size=420,…` are 420px crops of a 500px layout, which looks
   exactly like a broken responsive header. Render the page in a 390px `<iframe>`

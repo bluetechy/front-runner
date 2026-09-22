@@ -40,6 +40,7 @@ node_modules
 **/.turbo
 
 # Build output
+/apps/*/build/
 /apps/*/dist/
 
 # Claude Code

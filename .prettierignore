@@ -4,6 +4,7 @@ package-lock.json
 apps/main-gui/src/routeTree.gen.ts
 node_modules/
 dist/
+build/
 coverage/
 .test-dist/
 .turbo/

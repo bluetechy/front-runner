@@ -1,5 +1,12 @@
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import Toolbar from "@mui/material/Toolbar";
 import { Link } from "@tanstack/react-router";
-import "./site-header.css";
 
 const navItems = [
   { to: "/", label: "Home" },
@@ -11,57 +18,104 @@ const navItems = [
 
 export function SiteHeader() {
   return (
-    <header className="site-header">
-      <div className="shell site-header__inner">
-        <Link to="/" className="site-header__logo">
-          YourLogo
-        </Link>
-
-        <nav className="site-nav" aria-label="Main">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="site-nav__link"
-              activeOptions={{ exact: true }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="site-header__actions">
-          {/* Sign-in goes to Keycloak once the flow is wired up. */}
-          <a className="site-header__signin" href="#sign-in">
-            Sign In
-          </a>
-          <button
-            type="button"
-            className="site-header__search"
-            aria-label="Search"
+    <AppBar>
+      <Container>
+        <Toolbar
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            flexWrap: { xs: "wrap", md: "nowrap" },
+            justifyContent: { xs: "space-between", md: "flex-start" },
+          }}
+        >
+          <Box
+            component={Link}
+            to="/"
+            sx={{
+              fontFamily: (theme) => theme.typography.h1.fontFamily,
+              fontStyle: "italic",
+              fontWeight: 700,
+              fontSize: "1.35rem",
+              letterSpacing: "0.01em",
+              textDecoration: "none",
+              backgroundImage: "linear-gradient(92deg, #f04fb6, #c451ec)",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
           >
-            <SearchIcon />
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}
+            YourLogo
+          </Box>
 
-function SearchIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <circle cx="10.5" cy="10.5" r="6.5" />
-      <path d="m15.5 15.5 4.5 4.5" />
-    </svg>
+          <Stack
+            component="nav"
+            aria-label="Main"
+            direction="row"
+            sx={{
+              /* Below md the nav takes a row of its own under the logo. */
+              order: { xs: 3, md: 0 },
+              flexBasis: { xs: "100%", md: "auto" },
+              flexGrow: 1,
+              flexWrap: "wrap",
+              justifyContent: { xs: "flex-start", md: "center" },
+              columnGap: { xs: "1.4rem", md: "clamp(1.25rem, 3vw, 2.6rem)" },
+              rowGap: "0.6rem",
+            }}
+          >
+            {navItems.map((item) => (
+              <Button
+                key={item.to}
+                component={Link}
+                to={item.to}
+                activeOptions={{ exact: true }}
+                variant="text"
+                disableRipple
+                sx={{
+                  position: "relative",
+                  paddingBottom: "0.35rem",
+                  borderRadius: 0,
+                  fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                  /* TanStack Router marks the current route for us. */
+                  '&[data-status="active"]': {
+                    color: "text.primary",
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      insetInline: 0,
+                      bottom: 0,
+                      height: 2,
+                      borderRadius: 2,
+                      backgroundColor: "primary.light",
+                    },
+                  },
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </Stack>
+
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+            {/* Sign-in goes to Keycloak once the flow is wired up. */}
+            <Button href="#sign-in" variant="text" disableRipple>
+              Sign In
+            </Button>
+            <IconButton
+              aria-label="Search"
+              sx={{
+                width: 40,
+                height: 40,
+                color: "text.primary",
+                backgroundImage: (theme) => theme.palette.brand.buttonGradient,
+                boxShadow: "0 8px 20px rgba(224, 52, 159, 0.35)",
+                "&:hover": { transform: "scale(1.06)" },
+              }}
+            >
+              <SearchRoundedIcon sx={{ fontSize: 19 }} />
+            </IconButton>
+          </Stack>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 }

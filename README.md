@@ -6,7 +6,7 @@ A Turborepo monorepo.
 
 - `apps/main-api` — NestJS/TypeScript GraphQL API
 - `apps/main-db` — Postgres image and schema
-- `apps/main-gui` — Vite/React 19 front end, routed with TanStack Router
+- `apps/main-gui` — Vite/React 19/MUI front end, routed with TanStack Router
 - `apps/keycloak-idp` — Keycloak, the identity provider
 - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
 - `.env` — configuration shared by every Compose service
