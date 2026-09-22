@@ -1,13 +1,22 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "ignorePatterns": [
-    "apps/main-gui/**",
+    "apps/main-gui/src/routeTree.gen.ts",
     "**/dist/**",
     "**/build/**",
     "**/.test-dist/**",
     "**/coverage/**"
   ],
-  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "node"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+    "node",
+    "react",
+    "jsx-a11y"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -27,6 +36,13 @@
     {
       "files": ["**/*.test.ts", "apps/main-db/test/**"],
       "env": { "jest": true }
+    },
+    {
+      "files": ["apps/main-gui/**"],
+      "env": { "browser": true },
+      "rules": {
+        "react/react-in-jsx-scope": "off"
+      }
     }
   ]
 }

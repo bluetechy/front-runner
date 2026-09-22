@@ -1,9 +1,7 @@
-# Third-party code, kept byte-identical to upstream.
-apps/main-gui/vendor/
-
 # Generated or tool-owned. Prettier only reads the root .gitignore, so build
 # output declared in a nested one (apps/main-api/.gitignore) must be repeated.
 package-lock.json
+apps/main-gui/src/routeTree.gen.ts
 node_modules/
 dist/
 build/

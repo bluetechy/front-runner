@@ -1,0 +1,27 @@
+/*
+ * The palette and type scale every vertical draws from, taken from the
+ * gamification mock-up: a deep violet field, lit from behind the artwork,
+ * with magenta as the only accent.
+ */
+:root {
+  --violet-950: #1f0538;
+  --violet-900: #2a0847;
+  --violet-800: #3a0d63;
+  --violet-700: #4d1580;
+
+  --accent: #e34fc4;
+  --accent-strong: #e0349f;
+  --accent-deep: #8f3ce0;
+
+  --text: #ffffff;
+  --text-muted: #bda7d6;
+  --text-nav: #d7c6ec;
+
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --shell-width: 1240px;
+  --shell-gutter: clamp(1.25rem, 4vw, 3.5rem);
+
+  color-scheme: dark;
+}

@@ -1,0 +1,28 @@
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background:
+    radial-gradient(
+      120% 95% at 66% 42%,
+      rgba(140, 45, 200, 0.55),
+      transparent 62%
+    ),
+    radial-gradient(
+      85% 65% at 100% 0%,
+      rgba(200, 62, 214, 0.28),
+      transparent 58%
+    ),
+    linear-gradient(
+      158deg,
+      var(--violet-900) 0%,
+      var(--violet-800) 48%,
+      var(--violet-950) 100%
+    );
+}
+
+.page-shell__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}

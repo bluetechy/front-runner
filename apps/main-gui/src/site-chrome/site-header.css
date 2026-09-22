@@ -1,0 +1,120 @@
+.site-header {
+  padding-block: 1.6rem;
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.site-header__logo {
+  background-image: linear-gradient(92deg, #f04fb6, #c451ec);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.site-nav {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: clamp(1.25rem, 3vw, 2.6rem);
+}
+
+.site-nav__link {
+  position: relative;
+  padding-bottom: 0.35rem;
+  color: var(--text-nav);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-style: italic;
+  transition: color 150ms ease;
+}
+
+.site-nav__link:hover,
+.site-nav__link[data-status="active"] {
+  color: var(--text);
+}
+
+/* The mock-up marks the current page with a short magenta rule. */
+.site-nav__link[data-status="active"]::after {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background-color: var(--accent);
+  content: "";
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.site-header__signin {
+  color: var(--text-nav);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-style: italic;
+  transition: color 150ms ease;
+}
+
+.site-header__signin:hover {
+  color: var(--text);
+}
+
+.site-header__search {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-image: linear-gradient(
+    135deg,
+    var(--accent-strong),
+    var(--accent-deep)
+  );
+  box-shadow: 0 8px 20px rgba(224, 52, 159, 0.35);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.site-header__search:hover {
+  transform: scale(1.06);
+}
+
+/* Narrow enough that the nav needs a row of its own under the logo. */
+@media (max-width: 860px) {
+  .site-header__inner {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .site-nav {
+    order: 3;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.6rem 1.4rem;
+  }
+}
+
+/* Narrower still: the five links no longer fit on one row at full size. */
+@media (max-width: 560px) {
+  .site-nav__link {
+    padding-bottom: 0.25rem;
+    font-size: 0.85rem;
+  }
+}

@@ -6,7 +6,7 @@ A Turborepo monorepo.
 
 - `apps/main-api` — NestJS/TypeScript GraphQL API
 - `apps/main-db` — Postgres image and schema
-- `apps/main-gui` — React frontend
+- `apps/main-gui` — Vite/React 19 front end, routed with TanStack Router
 - `apps/keycloak-idp` — Keycloak, the identity provider
 - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
 - `.env` — configuration shared by every Compose service
@@ -29,11 +29,14 @@ development defaults and are not used anywhere else.
 
 ## Service graph
 
-Run these from the repository root. `main-api`, `main-db`, `main-kvs` and
-`keycloak-idp` are enabled in `docker-compose-dev.yml`; `main-gui` remains
-commented out. The API uses Node 24 and reloads when its mounted TypeScript
-source changes. See
-[API setup, design decisions, and migration](apps/main-api/docs/README.md).
+Run these from the repository root. Every service is enabled in
+`docker-compose-dev.yml`. The API and the GUI both use Node 24 and reload when
+their mounted source changes. See
+[API setup, design decisions, and migration](apps/main-api/docs/README.md) and
+[GUI setup and codebase structure](apps/main-gui/docs/README.md).
+
+- GUI — <http://localhost:5173>
+- GraphQL — <http://localhost:30000/graphql>
 
 To startup the service graph:
 

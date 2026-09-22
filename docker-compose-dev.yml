@@ -31,8 +31,10 @@ services:
     restart: unless-stopped
   main-api:
     build:
-      context: ./apps/main-api
-      dockerfile: Dockerfile
+      # The whole repository, because the install is a workspace install
+      # driven by the root package-lock.json.
+      context: .
+      dockerfile: ./apps/main-api/Dockerfile
       target: development
     env_file:
       - .env
@@ -83,21 +85,34 @@ services:
       # `make db-rebuild` picks it up without a docker build.
       - "./apps/main-db/sql:/sql:ro"
       - "./apps/main-db/bin:/opt/main-db/bin:ro"
-  # main-gui:
-  #   build:
-  #     context: ./apps/main-gui
-  #     dockerfile: Dockerfile
-  #     target: stage2
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - service-mesh
-  #   ports:
-  #     - ${GUI_PUBLISHED_PORT}:${GUI_PORT}
-  #   restart: always
-  #   stdin_open: true
-  #   volumes:
-  #     - "./apps/main-gui/src:/app/src"
+  main-gui:
+    build:
+      # The whole repository, because the install is a workspace install
+      # driven by the root package-lock.json.
+      context: .
+      dockerfile: ./apps/main-gui/Dockerfile
+      target: development
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      # Docker Desktop bind mounts do not deliver inotify events reliably,
+      # so Vite polls for changes inside the container instead.
+      VITE_WATCH_POLLING: "true"
+    depends_on:
+      - main-api
+    networks:
+      - service-mesh
+    ports:
+      - "${GUI_PUBLISHED_PORT}:${GUI_PORT}"
+    restart: unless-stopped
+    init: true
+    volumes:
+      # Read-write: the TanStack Router plugin regenerates
+      # src/routeTree.gen.ts on every route change.
+      - "./apps/main-gui:/app/apps/main-gui"
+      # Shield the container's hoisted install from anything on the host.
+      - "/app/apps/main-gui/node_modules"
   main-kvs:
     image: redis:8.10.1
     networks:
