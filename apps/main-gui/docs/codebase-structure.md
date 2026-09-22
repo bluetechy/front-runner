@@ -32,6 +32,7 @@ src/
   notifications/        the bell in the top bar, and the panel behind it
   card-surface/         the white card those are all made of
   avatar/               the circle that stands in for somebody's face
+  toast/                what a page says back when it has finished doing something
   shared/icons/         every icon, wrapping whatever library supplies it
   shared/lib/           small predicates shared inside shared/
   coming-soon/          the placeholder the unbuilt routes render
@@ -87,6 +88,12 @@ and the gradient circle around it were a private copy in `app-chrome/` and
 another in `profile/`, and when a notification wanted the same face it moved
 out rather than becoming a third. There are no photographs in this product
 yet; when there are, that is the one file that learns about it.
+
+`toast/` is the rule being got ahead of by one: the profile page and the
+wallet each had the same `Snackbar` and `Alert` written out inside them, and
+the profile page's moved out when it was asked for a corner and two colours of
+its own. The wallet still has its copy, and adopting this is the whole of what
+is left to do about that — see [the profile page](profile-page.md#saying-so).
 
 `browser-storage/` and `language/` are the same rule again, and the second
 caused the first: the language somebody picks in the top bar is remembered in

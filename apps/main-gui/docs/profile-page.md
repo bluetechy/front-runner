@@ -14,9 +14,12 @@ are **points, badges and certificates**, not the mock-up's followers and
 posts, because those are what this product keeps.
 
 **Right — `profile-form.tsx`.** The same profile as fields, in the mock-up's
-six sections: personal information, name, contact info, social info, about
-yourself, email preferences. Google+ is not among the social fields; it has
-been dead since 2019 and the mock-up simply has not noticed.
+six sections: name, contact info, personal information, social info, about
+yourself, email preferences. Personal information — gender and date of birth —
+is the one that has moved: the mock-up opens with it, and it sits above the
+social fields here because a form opens better on somebody's name than on
+their gender. Google+ is not among the social fields; it has been dead since
+2019 and the mock-up simply has not noticed.
 
 Both columns are `CardSurface` — the white card the dashboard uses, which
 moved into `src/card-surface` when this page turned out to want the same
@@ -73,7 +76,17 @@ The date of birth is the one thing on the profile that can be **absent**
 rather than empty. Every text column reads an unanswered field as `''`, but
 there is no date that means "not given" — an epoch or a zero is a date
 somebody was born on — so the column is nullable and the API sends `null`.
-The form shows it as an empty date field and says it may be left that way.
+The form shows it as an empty field and says it may be left that way.
+
+It is **shown** as `1990/04/17` and **stored** as `1990-04-17`. The field is
+an ordinary text field with `YYYY/MM/DD` written in it while it is empty, not
+`<input type="date">`: a native date field is written the way the browser's
+locale writes one — `mm/dd/yyyy` on this machine — and cannot be told to write
+one any other way. `profile-form.tsx` swaps the separator on the way in and on
+the way out, and does the same to the schema's `Write the date as YYYY-MM-DD`,
+because a message that names a format the field is not showing is worse than
+no message. Everything behind the form still sees dashes: the schema, the
+mutation, the column, and both copies of the rules.
 
 It travels as text, `1990-04-17`, rather than as a timestamp: a date that
 becomes a timestamp is midnight somewhere and the day before that somewhere
@@ -81,6 +94,32 @@ else, and a birthday is the same day everywhere. `GetUserProfile` formats it
 on the way out and `SetUserProfile` parses it on the way in, where the 31st of
 February is refused with a sentence rather than the driver's complaint about
 input syntax.
+
+## Saying so
+
+Every answer the page gives — saved, refused, or a field that needs another
+look — is one toast in the bottom right corner, from `src/toast`. The page
+holds a single notice and hands it to `<Toast>`; the summary card and the form
+both report through the same `onNotice`.
+
+It is **teal when the profile was written and pink when it was not**, and the
+tone is never the whole message: each toast carries Material's icon for its
+severity and a sentence that reads the same in grey. The two colours are
+`brand.toastSuccess` and `brand.toastFailure`, a step deeper than the teal and
+the magenta they belong to so that white clears 4.5:1 on them — see
+[the style guide](style-guide.md#contrast).
+
+Nothing is announced **until the API has answered**. `submit()` awaits `save`
+before it says "Profile saved.", so the sentence is about a round trip that
+finished rather than one that started; a refusal is shown in the API's own
+words, which is the same reasoning as the field messages above.
+`profile-form.save.test.tsx` pins both halves — that the page is told nothing
+while the save is in flight, and that it is told, in the failing tone, when
+the save is refused.
+
+The wallet says the same kinds of thing through its own copy of the Snackbar,
+in the bottom centre. It has not moved onto this component yet; when it does,
+the two pages agree on where a notice appears.
 
 ## Two fields nobody here may edit
 
@@ -130,7 +169,7 @@ GitHub or LinkedIn address is a person's.
 | Designation, bio, gender, date of birth | **Real** — stored, and read back through `profile`             |
 | Phone, address, social handles          | **Real** — stored; the summary links the handles that are set  |
 | Tallies and skills                      | **Placeholder** — in `details.ts`                              |
-| "Update profile"                        | Saves, and says so                                             |
+| "Update profile"                        | Saves, waits for the answer, and toasts what it was            |
 | The camera button                       | Says plainly that a photograph cannot be kept yet              |
 | Every label on the page                 | **Real** — English and Spanish, from the top bar's flag        |
 

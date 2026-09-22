@@ -194,6 +194,17 @@ const brand = {
   chromeSelectedInk: "#ffffff",
   /* The fade a face is drawn on. */
   avatarGradient: `linear-gradient(95deg, ${tealLit}, ${tealDeep})`,
+  /*
+   * The toast a page throws in the bottom corner when something it was asked
+   * to do has finished: teal when it was done, pink when it was refused.
+   *
+   * Both are written in white, and both are a step deeper than the hue they
+   * belong to, because a sentence needs 4.5:1: `teal` itself gives 3.1:1 and
+   * `accentStrong` 4.1:1, against 4.7:1 and 4.8:1 here. The pink is not the
+   * accent being spent -- a toast offers nothing, it says what happened.
+   */
+  toastSuccess: tealLit,
+  toastFailure: accentPill,
   /* What this app writes on a surface painted in the accent -- the
    * notification panel's heading, and the control in it that has nothing
    * left to do. */

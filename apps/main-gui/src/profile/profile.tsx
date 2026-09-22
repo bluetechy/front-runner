@@ -1,11 +1,10 @@
-import Alert from "@mui/material/Alert";
 import Grid from "@mui/material/Grid";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Toast, type Notice, type ToastTone } from "../toast";
 import { ProfileForm } from "./profile-form";
 import { ProfileSummary } from "./profile-summary";
 
@@ -18,7 +17,11 @@ import { ProfileSummary } from "./profile-summary";
  * is the two blocks nothing counts -- see `details.ts`.
  *
  * `notice` is how the page says something back: that it saved, that a field
- * needs another look, or that the API refused. Nothing here fails quietly.
+ * needs another look, or that the API refused. It is thrown as a toast into
+ * the bottom right corner -- teal when the profile was written, pink when it
+ * was not -- and it is only ever thrown once the API has answered, so the
+ * page never says "saved" about a save still in flight. Nothing here fails
+ * quietly.
  *
  * This is the first page inside the chrome to be translated -- the heading,
  * the breadcrumb, every label on the form, and the card down the left switch
@@ -27,16 +30,12 @@ import { ProfileSummary } from "./profile-summary";
  * and a validation message is the API's words. See docs/language.md.
  */
 
-type Tone = "success" | "info" | "error";
 export function Profile() {
   const { t } = useTranslation();
-  const [notice, setNotice] = useState<{
-    message: string;
-    tone: Tone;
-  } | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   const notify = useCallback(
-    (message: string, tone: Tone = "info") => setNotice({ message, tone }),
+    (message: string, tone: ToastTone = "info") => setNotice({ message, tone }),
     [],
   );
 
@@ -93,34 +92,7 @@ export function Profile() {
         </Grid>
       </Grid>
 
-      <Snackbar
-        open={notice !== null}
-        autoHideDuration={6000}
-        onClose={() => setNotice(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          severity={notice?.tone ?? "info"}
-          variant="filled"
-          onClose={() => setNotice(null)}
-          sx={{
-            borderRadius: 2,
-            /* Material's "info" is a blue this product does not own. The
-             * other two keep their colours: green and red mean the same
-             * thing everywhere, and saying so is the point. */
-            ...(notice?.tone === "info"
-              ? {
-                  backgroundColor: (theme) => theme.palette.brand.panel,
-                  border: (theme) =>
-                    `1px solid ${theme.palette.brand.panelEdge}`,
-                  color: "common.white",
-                }
-              : {}),
-          }}
-        >
-          {notice?.message}
-        </Alert>
-      </Snackbar>
+      <Toast notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

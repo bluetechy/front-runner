@@ -13,6 +13,7 @@ import MobileIcon from "@/shared/icons/MobileIcon";
 import { InitialsAvatar } from "../avatar";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession } from "../authentication";
+import type { ToastTone } from "../toast";
 import { linksOf, placeholderSkills, placeholderTallies } from "./details";
 import { useProfile } from "./profile-api";
 
@@ -36,7 +37,7 @@ const BIO_PREVIEW = 180;
 export function ProfileSummary({
   onNotice,
 }: {
-  onNotice: (message: string, tone?: "success" | "info" | "error") => void;
+  onNotice: (message: string, tone?: ToastTone) => void;
 }) {
   const { identity } = useSession();
   const { profile, loading } = useProfile();

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession, type Identity } from "../authentication";
+import type { ToastTone } from "../toast";
 import { CardField, FieldRow } from "./card-field";
 import { useProfile, type StoredProfile } from "./profile-api";
 import {
@@ -57,6 +58,22 @@ const EMPTY: Profile = {
 };
 
 /*
+ * The date of birth is held, checked and sent the way the API writes it --
+ * `1990-04-17` -- and shown the way this form was asked to show it. The
+ * separator is the whole of the difference between the two, so they convert
+ * by swapping it, and a half-typed date crosses unchanged: the schema stays
+ * the one thing that says whether what is in the field is a day.
+ *
+ * The mask is not translated, for the same reason the message it echoes is
+ * not: it stands for four digits and two pairs of them, and a person typing
+ * a date types the same characters in either language.
+ */
+const BIRTH_DATE_MASK = "YYYY/MM/DD";
+
+const shownDate = (birthDate: string) => birthDate.replaceAll("-", "/");
+const storedDate = (typed: string) => typed.replaceAll("/", "-");
+
+/*
  * What the form opens with: the stored profile, with one exception. A profile
  * nobody has saved has no first or last name, and the token carries one name
  * for both -- so the first visit is offered the token's name split at its last
@@ -81,7 +98,7 @@ function seed(stored: StoredProfile, identity: Identity | null): Profile {
 export function ProfileForm({
   onNotice,
 }: {
-  onNotice: (message: string, tone?: "success" | "info" | "error") => void;
+  onNotice: (message: string, tone?: ToastTone) => void;
 }) {
   const { identity } = useSession();
   const { profile, loading, save } = useProfile();
@@ -115,7 +132,10 @@ export function ProfileForm({
     const found = errorsOf(form);
     setErrors(found);
     if (Object.keys(found).length > 0) {
-      onNotice(t("Some fields need another look — see the messages on them."));
+      onNotice(
+        t("Some fields need another look — see the messages on them."),
+        "error",
+      );
       return;
     }
 
@@ -133,6 +153,7 @@ export function ProfileForm({
         failure instanceof Error
           ? failure.message
           : t("The profile was not saved."),
+        "error",
       );
     } finally {
       setSaving(false);
@@ -150,38 +171,6 @@ export function ProfileForm({
           void submit();
         }}
       >
-        <Section label={t("Personal information")}>
-          <FieldRow label={t("Gender")} htmlFor="profile-gender">
-            <CardField
-              id="profile-gender"
-              value={form.Gender}
-              /* The select offers exactly these four, so the cast is saying
-               * what the control already guarantees -- and the schema checks
-               * it again on the way out regardless. */
-              onChange={(value) => set("Gender", value as Profile["Gender"])}
-              /* The value is what the column holds and the schema checks;
-               * only what is read off the screen is translated. */
-              options={genders.map((gender) => ({
-                value: gender,
-                label: t(gender),
-              }))}
-              error={errors.Gender}
-              loading={loading}
-            />
-          </FieldRow>
-          <FieldRow label={t("Date of birth")} htmlFor="profile-birth-date">
-            <CardField
-              id="profile-birth-date"
-              type="date"
-              value={form.BirthDate}
-              onChange={(value) => set("BirthDate", value)}
-              error={errors.BirthDate}
-              hint={t("Leave it empty if you would rather not say.")}
-              loading={loading}
-            />
-          </FieldRow>
-        </Section>
-
         <Section label={t("Name")}>
           <FieldRow label={t("User name")} htmlFor="profile-user-name">
             <CardField
@@ -257,6 +246,40 @@ export function ProfileForm({
               value={form.Address}
               onChange={(value) => set("Address", value)}
               error={errors.Address}
+              loading={loading}
+            />
+          </FieldRow>
+        </Section>
+
+        <Section label={t("Personal information")}>
+          <FieldRow label={t("Gender")} htmlFor="profile-gender">
+            <CardField
+              id="profile-gender"
+              value={form.Gender}
+              /* The select offers exactly these four, so the cast is saying
+               * what the control already guarantees -- and the schema checks
+               * it again on the way out regardless. */
+              onChange={(value) => set("Gender", value as Profile["Gender"])}
+              /* The value is what the column holds and the schema checks;
+               * only what is read off the screen is translated. */
+              options={genders.map((gender) => ({
+                value: gender,
+                label: t(gender),
+              }))}
+              error={errors.Gender}
+              loading={loading}
+            />
+          </FieldRow>
+          <FieldRow label={t("Date of birth")} htmlFor="profile-birth-date">
+            <CardField
+              id="profile-birth-date"
+              value={shownDate(form.BirthDate)}
+              onChange={(value) => set("BirthDate", storedDate(value))}
+              placeholder={BIRTH_DATE_MASK}
+              /* The schema's message names the format the API stores, and
+               * this field is not showing the format the API stores. */
+              error={errors.BirthDate?.replace("YYYY-MM-DD", BIRTH_DATE_MASK)}
+              hint={t("Leave it empty if you would rather not say.")}
               loading={loading}
             />
           </FieldRow>

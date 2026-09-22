@@ -83,8 +83,14 @@ drawn on (`brand.avatarGradient`, in `avatar/`). A face is deliberately neither
 the accent nor card paper: an avatar that wore the button's fade was one more
 magenta circle in a bar that already had a bell and a button in it.
 
+`brand.toastSuccess` is the third thing in it: the toast a page throws when
+something it was asked to do was done. It is `tealLit` rather than `teal`,
+because a sentence in white needs 4.5:1 — see [contrast](#contrast).
+
 Teal is not a second accent. Nothing is offered in it, nothing is selected in
-it, and no button is painted with it.
+it, and no button is painted with it. A toast is not an offer: it says what
+happened, and the pink one beside it (`brand.toastFailure`, `accentPill`) is
+not the accent being spent either.
 
 ## Contrast
 
@@ -106,6 +112,8 @@ Measured, against the surface each sits on:
 | The selected pill against the chrome             | 3.6:1         |
 | White initials, light end of the avatar's fade   | 4.7:1         |
 | White initials, deep end of the avatar's fade    | 7.3:1         |
+| White on the teal toast (`toastSuccess`)         | 4.7:1         |
+| White on the pink toast (`toastFailure`)         | 4.8:1         |
 | `cardInk` on card paper                          | 18.5:1        |
 | `cardInkMuted` on card paper                     | 6.5:1         |
 

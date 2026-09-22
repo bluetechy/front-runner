@@ -66,6 +66,7 @@ export function CardField({
   options,
   rows,
   type = "text",
+  placeholder,
   error,
   hint,
   readOnly = false,
@@ -79,7 +80,13 @@ export function CardField({
   /* Given, the field takes newlines and is at least that many rows tall,
    * growing rather than hiding the end of a long answer behind a scrollbar. */
   rows?: number;
-  type?: "text" | "email" | "tel" | "url" | "date";
+  /* No "date": the one date on this form is written the way this product
+   * writes dates, and a native date field is written the way the browser's
+   * locale does. See the form. */
+  type?: "text" | "email" | "tel" | "url";
+  /* Shown in an empty field: the shape of what goes in it, where the shape
+   * is not obvious. It is not a label and never says what the field is. */
+  placeholder?: string;
   /* What is wrong with what is in it, from the same rules the API applies. */
   error?: string;
   /* Said under the field when nothing is wrong: what it is for, or who owns
@@ -100,6 +107,7 @@ export function CardField({
       multiline={rows !== undefined}
       minRows={rows}
       type={type}
+      placeholder={placeholder}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       error={error !== undefined}
@@ -130,6 +138,13 @@ export function CardField({
         "& .MuiInputBase-input": {
           padding: "0.72rem 0.9rem",
           fontSize: "0.9rem",
+          /* The theme's placeholder is a violet for the dark panel's hollow;
+           * on card paper it is 3.2:1, which is under what a sentence needs.
+           * The card's own muted ink is 6.5:1. */
+          "&::placeholder": {
+            color: (theme) => theme.palette.brand.cardInkMuted,
+            opacity: 1,
+          },
         },
         "& .MuiFormHelperText-root": {
           marginLeft: "0.15rem",
