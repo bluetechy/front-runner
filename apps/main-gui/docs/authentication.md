@@ -102,15 +102,16 @@ src/authentication/
   login-prompt.tsx     the one dialog instance, and who may open it
   login-dialog.tsx     the mock-up's card
   storage.ts           localStorage/sessionStorage that cannot throw
-src/signed-in/         where a completed sign-in lands
+src/dashboard/         where a completed sign-in lands
 src/routes/
-  signed-in.tsx        /signed-in
-  auth.callback.tsx    /auth/callback — the redirect round trip
+  dashboard.tsx        /dashboard
+  _site.auth.callback.tsx  /auth/callback — the redirect round trip
 ```
 
 `SessionProvider` is in `main.tsx`, outside the router, because it is not a
 page. `LoginPromptProvider` is in `PageShell`, inside the router, because the
-dialog navigates when a sign-in completes.
+dialog navigates when a sign-in completes — to `/dashboard`, which is the one
+page that is not inside `PageShell`; see [the dashboard](dashboard.md).
 
 ## Colour
 

@@ -108,7 +108,7 @@ export function SiteHeader() {
               <>
                 <Typography
                   component={Link}
-                  to="/signed-in"
+                  to="/dashboard"
                   variant="body2"
                   sx={{
                     display: { xs: "none", sm: "block" },

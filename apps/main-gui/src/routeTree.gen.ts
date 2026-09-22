@@ -9,180 +9,204 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as FeaturesRouteImport } from './routes/features'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as SignedInRouteImport } from './routes/signed-in'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as SiteRouteImport } from './routes/_site'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as SiteIndexRouteImport } from './routes/_site.index'
+import { Route as SiteAboutRouteImport } from './routes/_site.about'
+import { Route as SiteContactRouteImport } from './routes/_site.contact'
+import { Route as SiteFeaturesRouteImport } from './routes/_site.features'
+import { Route as SitePricingRouteImport } from './routes/_site.pricing'
+import { Route as SiteAuthCallbackRouteImport } from './routes/_site.auth.callback'
 
-const IndexRoute = IndexRouteImport.update({
+const SiteRoute = SiteRouteImport.update({
+  id: '/_site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SiteIndexRoute = SiteIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const AboutRoute = AboutRouteImport.update({
+const SiteAboutRoute = SiteAboutRouteImport.update({
   id: '/about',
   path: '/about',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const ContactRoute = ContactRouteImport.update({
+const SiteContactRoute = SiteContactRouteImport.update({
   id: '/contact',
   path: '/contact',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const FeaturesRoute = FeaturesRouteImport.update({
+const SiteFeaturesRoute = SiteFeaturesRouteImport.update({
   id: '/features',
   path: '/features',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const PricingRoute = PricingRouteImport.update({
+const SitePricingRoute = SitePricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
-const SignedInRoute = SignedInRouteImport.update({
-  id: '/signed-in',
-  path: '/signed-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
+const SiteAuthCallbackRoute = SiteAuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => SiteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/contact': typeof ContactRoute
-  '/features': typeof FeaturesRoute
-  '/pricing': typeof PricingRoute
-  '/signed-in': typeof SignedInRoute
-  '/auth/callback': typeof AuthCallbackRoute
+  '/': typeof SiteIndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/about': typeof SiteAboutRoute
+  '/contact': typeof SiteContactRoute
+  '/features': typeof SiteFeaturesRoute
+  '/pricing': typeof SitePricingRoute
+  '/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/contact': typeof ContactRoute
-  '/features': typeof FeaturesRoute
-  '/pricing': typeof PricingRoute
-  '/signed-in': typeof SignedInRoute
-  '/auth/callback': typeof AuthCallbackRoute
+  '/dashboard': typeof DashboardRoute
+  '/about': typeof SiteAboutRoute
+  '/contact': typeof SiteContactRoute
+  '/features': typeof SiteFeaturesRoute
+  '/pricing': typeof SitePricingRoute
+  '/': typeof SiteIndexRoute
+  '/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/contact': typeof ContactRoute
-  '/features': typeof FeaturesRoute
-  '/pricing': typeof PricingRoute
-  '/signed-in': typeof SignedInRoute
-  '/auth/callback': typeof AuthCallbackRoute
+  '/_site': typeof SiteRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/_site/about': typeof SiteAboutRoute
+  '/_site/contact': typeof SiteContactRoute
+  '/_site/features': typeof SiteFeaturesRoute
+  '/_site/pricing': typeof SitePricingRoute
+  '/_site/': typeof SiteIndexRoute
+  '/_site/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
     | '/about'
     | '/contact'
     | '/features'
     | '/pricing'
-    | '/signed-in'
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/dashboard'
     | '/about'
     | '/contact'
     | '/features'
     | '/pricing'
-    | '/signed-in'
+    | '/'
     | '/auth/callback'
   id:
     | '__root__'
-    | '/'
-    | '/about'
-    | '/contact'
-    | '/features'
-    | '/pricing'
-    | '/signed-in'
-    | '/auth/callback'
+    | '/_site'
+    | '/dashboard'
+    | '/_site/about'
+    | '/_site/contact'
+    | '/_site/features'
+    | '/_site/pricing'
+    | '/_site/'
+    | '/_site/auth/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  ContactRoute: typeof ContactRoute
-  FeaturesRoute: typeof FeaturesRoute
-  PricingRoute: typeof PricingRoute
-  SignedInRoute: typeof SignedInRoute
-  AuthCallbackRoute: typeof AuthCallbackRoute
+  SiteRoute: typeof SiteRouteWithChildren
+  DashboardRoute: typeof DashboardRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_site': {
+      id: '/_site'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_site/': {
+      id: '/_site/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteIndexRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/about': {
-      id: '/about'
+    '/_site/about': {
+      id: '/_site/about'
       path: '/about'
       fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteAboutRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/contact': {
-      id: '/contact'
+    '/_site/contact': {
+      id: '/_site/contact'
       path: '/contact'
       fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteContactRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/features': {
-      id: '/features'
+    '/_site/features': {
+      id: '/_site/features'
       path: '/features'
       fullPath: '/features'
-      preLoaderRoute: typeof FeaturesRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteFeaturesRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/pricing': {
-      id: '/pricing'
+    '/_site/pricing': {
+      id: '/_site/pricing'
       path: '/pricing'
       fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SitePricingRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/signed-in': {
-      id: '/signed-in'
-      path: '/signed-in'
-      fullPath: '/signed-in'
-      preLoaderRoute: typeof SignedInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
+    '/_site/auth/callback': {
+      id: '/_site/auth/callback'
       path: '/auth/callback'
       fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof SiteAuthCallbackRouteImport
+      parentRoute: typeof SiteRoute
     }
   }
 }
 
+interface SiteRouteChildren {
+  SiteAboutRoute: typeof SiteAboutRoute
+  SiteContactRoute: typeof SiteContactRoute
+  SiteFeaturesRoute: typeof SiteFeaturesRoute
+  SitePricingRoute: typeof SitePricingRoute
+  SiteIndexRoute: typeof SiteIndexRoute
+  SiteAuthCallbackRoute: typeof SiteAuthCallbackRoute
+}
+
+const SiteRouteChildren: SiteRouteChildren = {
+  SiteAboutRoute: SiteAboutRoute,
+  SiteContactRoute: SiteContactRoute,
+  SiteFeaturesRoute: SiteFeaturesRoute,
+  SitePricingRoute: SitePricingRoute,
+  SiteIndexRoute: SiteIndexRoute,
+  SiteAuthCallbackRoute: SiteAuthCallbackRoute,
+}
+
+const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  ContactRoute: ContactRoute,
-  FeaturesRoute: FeaturesRoute,
-  PricingRoute: PricingRoute,
-  SignedInRoute: SignedInRoute,
-  AuthCallbackRoute: AuthCallbackRoute,
+  SiteRoute: SiteRouteWithChildren,
+  DashboardRoute: DashboardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

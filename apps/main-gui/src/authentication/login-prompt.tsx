@@ -9,7 +9,7 @@ import { LoginDialog } from "./login-dialog";
  * that could both be on screen.
  *
  * This sits inside the router rather than beside it, because the dialog
- * navigates to /signed-in when a sign-in completes.
+ * navigates to /dashboard when a sign-in completes.
  */
 
 interface LoginPrompt {

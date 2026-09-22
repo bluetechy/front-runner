@@ -72,7 +72,7 @@ export function LoginDialog({
     try {
       await login(email.trim(), password, remember);
       onClose();
-      await navigate({ to: "/signed-in" });
+      await navigate({ to: "/dashboard" });
     } catch (failure) {
       setError(
         failure instanceof SignInError

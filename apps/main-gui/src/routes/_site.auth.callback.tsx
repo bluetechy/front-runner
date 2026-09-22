@@ -14,7 +14,7 @@ import {
  * registration form, and the password reset. Keycloak puts an authorization
  * code on the URL; this trades it for tokens and gets out of the way.
  */
-export const Route = createFileRoute("/auth/callback")({
+export const Route = createFileRoute("/_site/auth/callback")({
   component: AuthCallback,
   validateSearch: (
     search: Record<string, unknown>,
@@ -70,7 +70,7 @@ function AuthCallback() {
         /* A redirect flow crossed a page load to get here, so it only makes
          * sense as a remembered session. */
         adoptTokens(tokens, true);
-        await navigate({ to: "/signed-in", replace: true });
+        await navigate({ to: "/dashboard", replace: true });
       } catch (reason: unknown) {
         if (!cancelled)
           setFailure(

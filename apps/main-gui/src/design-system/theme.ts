@@ -47,6 +47,27 @@ const cardInk = violet[950];
 const cardInkMuted = "#6a5581";
 const cardRule = "rgba(31, 5, 56, 0.12)";
 
+/*
+ * The chrome behind the login. The marketing pages are the field with a
+ * transparent header laid over it; the application has two surfaces of its
+ * own -- a rail down the left edge, which is the accent itself, and a bar
+ * along the top, which is the card's paper stretched across the window.
+ */
+const rail = `linear-gradient(176deg, ${accent}, ${accentStrong})`;
+const railInk = "rgba(255, 255, 255, 0.86)";
+const railActive = "rgba(255, 255, 255, 0.2)";
+const railEdge = "rgba(255, 255, 255, 0.28)";
+
+/*
+ * Series colours for the dashboard's charts, drawn on card paper rather than
+ * on the field. The first two are the accent pair every button is painted
+ * with; the third is a teal chosen to stay separable from both for a
+ * colour-blind reader -- the worst adjacent pair is 11.4 apart under
+ * protanopia, against a floor of 8. They are assigned in this order and never
+ * cycled: a fourth series is not a fourth hue, it is a different chart.
+ */
+const chartSeries = [accentStrong, accentDeep, "#1f9fb5"] as const;
+
 const brand = {
   /* The field every page is rendered on. */
   field: [
@@ -70,6 +91,24 @@ const brand = {
   cardInk,
   cardInkMuted,
   cardRule,
+  /* The rail behind the login, and the ink on it. */
+  rail,
+  railInk,
+  railActive,
+  railEdge,
+  /* A hollow in card paper, the way `inputField` is one in the panel: the
+   * top bar's search field, which on white would otherwise be white. */
+  cardField: "rgba(31, 5, 56, 0.05)",
+  /* The tint a stat tile's icon sits in. */
+  cardTint: "rgba(227, 79, 196, 0.12)",
+  /* A figure that moved the right way, and one that did not. Both are read
+   * on card paper, so neither comes from the dark palette. */
+  rise: "#1f8a5f",
+  fall: "#c2344d",
+  chartSeries,
+  /* Gridlines, and the unfilled part of a progress track. */
+  chartGrid: "rgba(31, 5, 56, 0.1)",
+  chartTrack: "rgba(31, 5, 56, 0.07)",
   /* The track a segmented control's selected pill slides along. */
   segmentTrack: "rgba(255, 255, 255, 0.06)",
   gutter,
