@@ -21,7 +21,7 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "redirectUris": [
         "http://localhost/*",
@@ -259,6 +259,84 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "testuser",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "test.user@northwind.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "testuser",
+          "temporary": false
+        }
+      ]
     }
-  ]
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "displayName": "Google",
+      "providerId": "google",
+      "enabled": false,
+      "trustEmail": true,
+      "storeToken": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "replace-with-your-google-client-id",
+        "clientSecret": "replace-with-your-google-client-secret"
+      }
+    },
+    {
+      "alias": "facebook",
+      "displayName": "Facebook",
+      "providerId": "facebook",
+      "enabled": false,
+      "trustEmail": true,
+      "storeToken": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "replace-with-your-facebook-client-id",
+        "clientSecret": "replace-with-your-facebook-client-secret"
+      }
+    },
+    {
+      "alias": "apple",
+      "displayName": "Apple ID",
+      "providerId": "oidc",
+      "enabled": false,
+      "trustEmail": true,
+      "storeToken": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "replace-with-your-apple-client-id",
+        "clientSecret": "replace-with-your-apple-client-secret",
+        "authorizationUrl": "https://appleid.apple.com/auth/authorize",
+        "tokenUrl": "https://appleid.apple.com/auth/token",
+        "jwksUrl": "https://appleid.apple.com/auth/keys",
+        "issuer": "https://appleid.apple.com",
+        "useJwksUrl": "true",
+        "defaultScope": "openid name email",
+        "clientAuthMethod": "client_secret_post",
+        "prompt": "none"
+      }
+    }
+  ],
+  "smtpServer": {
+    "host": "main-mail",
+    "port": "1025",
+    "from": "no-reply@northwind.test",
+    "fromDisplayName": "Front Runner",
+    "replyTo": "",
+    "envelopeFrom": "",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
+  }
 }

@@ -8,6 +8,7 @@ A Turborepo monorepo.
 - `apps/main-db` — Postgres image and schema
 - `apps/main-gui` — Vite/React 19/MUI front end, routed with TanStack Router
 - `apps/keycloak-idp` — Keycloak, the identity provider
+- `main-mail` — Mailpit, a development mail sink for Keycloak's reset links
 - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
 - `.env` — configuration shared by every Compose service
 
@@ -37,6 +38,7 @@ their mounted source changes. See
 
 - GUI — <http://localhost:5173>
 - GraphQL — <http://localhost:30000/graphql>
+- Mail inbox — <http://localhost:30004> (Mailpit; catches Keycloak's mail)
 
 To startup the service graph:
 
@@ -71,6 +73,26 @@ and has no login operation.
 - Realm — `front-runner`, imported on first start from
   `apps/keycloak-idp/realm`, with an account per seeded user whose password is
   their username
+
+The GUI signs in through the dialog on the landing page. Email and password
+complete in the page; **Sign Up**, **Forgot Password** and the three social
+buttons are flows Keycloak hosts, so they leave the site and come back to
+`/auth/callback`. How that works, and what enabling the password grant costs,
+is in [signing in](apps/main-gui/docs/authentication.md).
+
+### The test account
+
+Seeded in Keycloak _and_ in the database, for exercising the login dialog:
+
+| Email                      | Username   | Password   |
+| -------------------------- | ---------- | ---------- |
+| `test.user@northwind.test` | `testuser` | `testuser` |
+
+It is an ordinary member of Northwind Trading and holds the fixed UUID
+`b0000000-0000-4000-8000-00000000000d`, so `dbo.ProvisionUser` claims the
+seeded row on first sign-in rather than making a second one beside it. Every
+other seeded account works the same way, with its password equal to its
+username.
 
 An account is yours and belongs to nothing on its own. Organization membership
 works the way it does on GitHub or Cloudflare: an owner invites an email

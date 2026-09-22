@@ -1,6 +1,8 @@
 --
 -- Membership. matthewm owns Northwind Trading, jdoe owns Bluetechy Labs,
 -- and pkowalski belongs to neither so there is an outsider to test against.
+-- testuser is an ordinary member of Northwind Trading, so signing in with it
+-- lands on an account that can actually see something.
 --
 
 INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "IsOwner", "CreatedBy") VALUES
@@ -17,7 +19,8 @@ INSERT INTO "dbo"."UserOrganizations" ("UserUUID", "OrganizationUUID", "IsOwner"
     ('b0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000002', true,  'seed'),
     ('b0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000002', false, 'seed'),
     ('b0000000-0000-4000-8000-00000000000a', 'a0000000-0000-4000-8000-000000000002', false, 'seed'),
-    ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000003', true,  'seed')
+    ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000003', true,  'seed'),
+    ('b0000000-0000-4000-8000-00000000000d', 'a0000000-0000-4000-8000-000000000001', false, 'seed')
 ON CONFLICT ("UserUUID", "OrganizationUUID") DO UPDATE SET
     "IsOwner" = EXCLUDED."IsOwner",
     "UpdatedBy" = 'seed';

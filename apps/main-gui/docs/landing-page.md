@@ -12,15 +12,16 @@ Button with layout in `sx`.
 
 ## What is real and what is placeholder
 
-| Piece                                       | State                                                          |
-| ------------------------------------------- | -------------------------------------------------------------- |
-| Layout, palette, type                       | Final, from the mock-up                                        |
-| Heading and body copy                       | Placeholder — heading is the mock-up's, body is lorem ipsum    |
-| `landing/hero-placeholder.png`              | Placeholder — to be replaced with the real illustration        |
-| "More details" / "View demo"                | Buttons are styled; the hrefs are `#` anchors                  |
-| "Sign In"                                   | An `#` anchor. Keycloak owns sign-in; the flow is not wired up |
-| Search button                               | Styled and labelled; does nothing                              |
-| About / Features / Implementation / Contact | Real routes, rendering `coming-soon`                           |
+| Piece                                       | State                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| Layout, palette, type                       | Final, from the mock-up                                              |
+| Heading and body copy                       | Placeholder — heading is the mock-up's, body is lorem ipsum          |
+| `landing/hero-placeholder.png`              | Placeholder — to be replaced with the real illustration              |
+| "More details" / "View demo"                | Buttons are styled; the hrefs are `#` anchors                        |
+| "Sign In"                                   | Real — opens the sign-in dialog; see [signing in](authentication.md) |
+| Search button                               | Styled and labelled; does nothing                                    |
+| About / Features / Implementation / Contact | Real routes, rendering `coming-soon`                                 |
+| The sign-in dialog                          | Real — offered once per tab to a signed-out visitor                  |
 
 ## Type
 

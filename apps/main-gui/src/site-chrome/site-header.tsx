@@ -6,7 +6,9 @@ import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
+import { useSession, useSignInPrompt } from "../authentication";
 
 const navItems = [
   { to: "/", label: "Home" },
@@ -17,6 +19,9 @@ const navItems = [
 ] as const;
 
 export function SiteHeader() {
+  const { status, identity, signOut } = useSession();
+  const signIn = useSignInPrompt();
+
   return (
     <AppBar>
       <Container>
@@ -96,10 +101,43 @@ export function SiteHeader() {
           </Stack>
 
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-            {/* Sign-in goes to Keycloak once the flow is wired up. */}
-            <Button href="#sign-in" variant="text" disableRipple>
-              Sign In
-            </Button>
+            {/* "loading" is the moment a remembered session is being
+             * restored; showing "Sign In" through it would make an already
+             * signed-in visitor flicker as though they were not. */}
+            {status === "signed-in" ? (
+              <>
+                <Typography
+                  component={Link}
+                  to="/signed-in"
+                  variant="body2"
+                  sx={{
+                    display: { xs: "none", sm: "block" },
+                    color: "text.secondary",
+                    textDecoration: "none",
+                    fontSize: "0.85rem",
+                    "&:hover": { color: "text.primary" },
+                  }}
+                >
+                  {identity?.name}
+                </Typography>
+                <Button
+                  variant="text"
+                  disableRipple
+                  onClick={() => void signOut()}
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="text"
+                disableRipple
+                disabled={status === "loading"}
+                onClick={signIn.open}
+              >
+                Sign In
+              </Button>
+            )}
             <IconButton
               aria-label="Search"
               sx={{

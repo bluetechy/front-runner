@@ -21,6 +21,8 @@ src/
   design-system/        the MUI theme: palette, type, component defaults
   site-chrome/          the shell every route renders inside: header, nav
   landing/              the marketing landing page
+  authentication/       the sign-in dialog, and who is signed in
+  signed-in/            where a completed sign-in lands
   coming-soon/          the placeholder the unbuilt routes render
 ```
 
@@ -46,6 +48,13 @@ a vertical. Anything longer than that belongs in the vertical, not in
 **Shared code becomes its own vertical.** `coming-soon/` exists because four
 routes need it. When a second page needs something the landing page owns, it
 moves out into a vertical of its own rather than being imported across.
+
+`authentication/` is the same rule applied to something less page-shaped: the
+header needs to know who is signed in, the landing page needs to offer the
+dialog, and `signed-in/` needs a token to call the API with, so the session is
+a vertical rather than a thing any one of them owns. The `me` query it uses is
+still inside `signed-in/`, because that is the only page making it — it earns
+a vertical of its own when a second one does.
 
 ## Adding a page
 

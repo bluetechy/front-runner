@@ -3,6 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { SessionProvider } from "./authentication";
 import { theme } from "./design-system";
 import { routeTree } from "./routeTree.gen";
 
@@ -23,7 +24,9 @@ createRoot(rootElement).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <RouterProvider router={router} />
+      <SessionProvider>
+        <RouterProvider router={router} />
+      </SessionProvider>
     </ThemeProvider>
   </StrictMode>,
 );

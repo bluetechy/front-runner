@@ -4,8 +4,9 @@ Vite + React 19 + MUI 9 + TanStack Router, in TypeScript, running on
 **Node 24.21.0**.
 This app replaced the Create React App / webpack 4 front end that used to live
 here; nothing was carried over from it. See
-[codebase structure](codebase-structure.md) for how the source is organized and
-[the landing page](landing-page.md) for what is built so far.
+[codebase structure](codebase-structure.md) for how the source is organized,
+[the landing page](landing-page.md) for what is built so far, and
+[signing in](authentication.md) for the login dialog and its Keycloak flows.
 
 ## Development with Docker Compose
 
@@ -73,6 +74,18 @@ see [codebase structure](codebase-structure.md) for what that means in practice.
 
 The theme is dark-only: the design is a violet field, and no light scheme is
 defined.
+
+## Configuration
+
+The browser's addresses — Keycloak, the realm, the client id, the GraphQL
+endpoint — come from `VITE_`-prefixed keys in the **repository root `.env`**,
+which `vite.config.ts` points `envDir` at. That is the same file Compose hands
+every other service, so there is one list of addresses rather than two. Only
+`VITE_`-prefixed keys reach the bundle; nothing else in `.env` does.
+
+Compose also passes `.env` to the container as `env_file`, which Vite reads
+too — so adding a key there needs the container **recreated**, not restarted:
+`env_file` is read when the container is made.
 
 ## Routing
 

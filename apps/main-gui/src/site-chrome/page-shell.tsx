@@ -1,25 +1,28 @@
 import Box from "@mui/material/Box";
 import type { ReactNode } from "react";
+import { SignInPromptProvider } from "../authentication";
 import { SiteHeader } from "./site-header";
 
 /* The violet field and header every route is rendered inside. */
 export function PageShell({ children }: { children: ReactNode }) {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100dvh",
-        backgroundImage: (theme) => theme.palette.brand.field,
-      }}
-    >
-      <SiteHeader />
+    <SignInPromptProvider>
       <Box
-        component="main"
-        sx={{ display: "flex", flex: 1, flexDirection: "column" }}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100dvh",
+          backgroundImage: (theme) => theme.palette.brand.field,
+        }}
       >
-        {children}
+        <SiteHeader />
+        <Box
+          component="main"
+          sx={{ display: "flex", flex: 1, flexDirection: "column" }}
+        >
+          {children}
+        </Box>
       </Box>
-    </Box>
+    </SignInPromptProvider>
   );
 }

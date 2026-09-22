@@ -24,6 +24,8 @@ services:
     depends_on:
       main-db:
         condition: service_healthy
+      main-mail:
+        condition: service_started
     networks:
       - service-mesh
     ports:
@@ -113,6 +115,16 @@ services:
       - "./apps/main-gui:/app/apps/main-gui"
       # Shield the container's hoisted install from anything on the host.
       - "/app/apps/main-gui/node_modules"
+  main-mail:
+    # Mailpit accepts every message and delivers none of them: Keycloak's
+    # password-reset mail stops at the web inbox on 30004. Development only --
+    # a real deployment points KC_SMTP at a real server.
+    image: axllent/mailpit:v1.28
+    networks:
+      - service-mesh
+    ports:
+      - "${MAIL_UI_PUBLISHED_PORT}:${MAIL_UI_PORT}"
+    restart: unless-stopped
   main-kvs:
     image: redis:8.10.1
     networks:

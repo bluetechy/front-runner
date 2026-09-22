@@ -22,6 +22,18 @@ const bodyFont =
 /* Gutters and the content width, shared by the header and every page. */
 const gutter = "clamp(1.25rem, 4vw, 3.5rem)";
 
+/*
+ * The sign-in dialog's surfaces. The supplied mock-up draws this card in
+ * slate with a blue button; those are the only colours in it that do not
+ * belong to this product, so the card is rebuilt here in the violet field's
+ * own palette and the button takes the same magenta gradient as every other
+ * contained button in the app.
+ */
+const panel = "#2c0a52";
+const panelEdge = "rgba(227, 79, 196, 0.22)";
+const inputField = "rgba(255, 255, 255, 0.07)";
+const placeholder = "#9c86b6";
+
 const brand = {
   /* The field every page is rendered on. */
   field: [
@@ -33,6 +45,12 @@ const brand = {
   glow: `radial-gradient(circle, rgba(180, 70, 240, 0.5), transparent 70%)`,
   buttonGradient: `linear-gradient(95deg, ${accentStrong}, ${accentDeep})`,
   navText: "#d7c6ec",
+  /* A panel raised off the field: the sign-in dialog, and whatever follows. */
+  panel,
+  panelEdge,
+  panelGlow: "0 30px 80px rgba(10, 2, 24, 0.7)",
+  /* Inputs are a hollow of the panel rather than a surface of their own. */
+  inputField,
   gutter,
 } as const;
 
@@ -145,6 +163,49 @@ export const theme = createTheme({
             color: "#ffffff",
             backgroundColor: "transparent",
           },
+        },
+      },
+    },
+    /* Pill fields: a hollow in the panel rather than a box on top of it. */
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 999,
+          backgroundColor: inputField,
+          "& fieldset": { borderColor: "transparent" },
+          "&:hover fieldset": { borderColor: panelEdge },
+          "&.Mui-focused fieldset": { borderColor: accent, borderWidth: 1 },
+        },
+        input: {
+          padding: "0.85rem 1.3rem",
+          fontSize: "0.9rem",
+          "&::placeholder": { color: placeholder, opacity: 1 },
+        },
+      },
+    },
+    MuiInputLabel: {
+      /* The mock-up labels each field above it rather than inside it. */
+      defaultProps: { shrink: true, disableAnimation: true },
+      styleOverrides: {
+        root: {
+          position: "static",
+          transform: "none",
+          marginBottom: "0.5rem",
+          fontSize: "0.85rem",
+          fontWeight: 500,
+          color: "#ffffff",
+          "&.Mui-focused": { color: "#ffffff" },
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundImage: "none",
+          backgroundColor: panel,
+          border: `1px solid ${panelEdge}`,
+          borderRadius: 20,
+          boxShadow: "0 30px 80px rgba(10, 2, 24, 0.7)",
         },
       },
     },
