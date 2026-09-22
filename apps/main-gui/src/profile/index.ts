@@ -1,2 +1,2 @@
 export { Profile } from "./profile";
-export { placeholderPosition } from "./details";
+export { ProfileProvider, useProfile } from "./profile-api";

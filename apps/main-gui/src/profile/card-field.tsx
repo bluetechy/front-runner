@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -53,6 +54,11 @@ export function FieldRow({
   );
 }
 
+export interface Option {
+  value: string;
+  label: string;
+}
+
 export function CardField({
   id,
   value,
@@ -60,19 +66,32 @@ export function CardField({
   options,
   rows,
   type = "text",
-  required = false,
+  error,
+  hint,
+  readOnly = false,
+  loading = false,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
   /* Given, the field is a select of exactly these. */
-  options?: readonly string[];
+  options?: readonly Option[];
   /* Given, the field takes newlines and is at least that many rows tall,
    * growing rather than hiding the end of a long answer behind a scrollbar. */
   rows?: number;
   type?: "text" | "email" | "tel" | "url";
-  required?: boolean;
+  /* What is wrong with what is in it, from the same rules the API applies. */
+  error?: string;
+  /* Said under the field when nothing is wrong: what it is for, or who owns
+   * it. An error replaces it, because the error is the more urgent of the two. */
+  hint?: string;
+  /* Shown, but not this application's to change -- see the form. */
+  readOnly?: boolean;
+  /* The profile has not arrived yet; the field stands in for itself. */
+  loading?: boolean;
 }) {
+  if (loading) return <Skeleton height={44} sx={{ transform: "none" }} />;
+
   return (
     <TextField
       id={id}
@@ -81,26 +100,42 @@ export function CardField({
       multiline={rows !== undefined}
       minRows={rows}
       type={type}
-      required={required}
       value={value}
       onChange={(event) => onChange(event.target.value)}
+      error={error !== undefined}
+      helperText={error ?? hint}
+      slotProps={{ input: { readOnly } }}
       sx={{
         "& .MuiOutlinedInput-root": {
           borderRadius: "0.7rem",
-          backgroundColor: (theme) => theme.palette.brand.card,
-          color: (theme) => theme.palette.brand.cardInk,
+          backgroundColor: (theme) =>
+            readOnly ? theme.palette.brand.cardField : theme.palette.brand.card,
+          color: (theme) =>
+            readOnly
+              ? theme.palette.brand.cardInkMuted
+              : theme.palette.brand.cardInk,
           padding: rows === undefined ? 0 : "0.2rem 0.3rem",
           "& fieldset": {
             borderColor: (theme) => theme.palette.brand.cardRule,
           },
           "&:hover fieldset": {
-            borderColor: (theme) => theme.palette.brand.cardInkMuted,
+            borderColor: (theme) =>
+              readOnly
+                ? theme.palette.brand.cardRule
+                : theme.palette.brand.cardInkMuted,
           },
           "&.Mui-focused fieldset": { borderColor: "primary.main" },
+          "&.Mui-error fieldset": { borderColor: "error.main" },
         },
         "& .MuiInputBase-input": {
           padding: "0.72rem 0.9rem",
           fontSize: "0.9rem",
+        },
+        "& .MuiFormHelperText-root": {
+          marginLeft: "0.15rem",
+          fontSize: "0.76rem",
+          color: (theme) => theme.palette.brand.cardInkMuted,
+          "&.Mui-error": { color: "error.main" },
         },
         /* The select's chevron is drawn by MUI and would otherwise be the
          * dark palette's white. */
@@ -110,8 +145,12 @@ export function CardField({
       }}
     >
       {options?.map((option) => (
-        <MenuItem key={option} value={option} sx={{ fontSize: "0.9rem" }}>
-          {option}
+        <MenuItem
+          key={option.value}
+          value={option.value}
+          sx={{ fontSize: "0.9rem" }}
+        >
+          {option.label}
         </MenuItem>
       ))}
     </TextField>

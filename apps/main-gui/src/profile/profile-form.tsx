@@ -1,118 +1,153 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession, type Identity } from "../authentication";
 import { CardField, FieldRow } from "./card-field";
-import { languages, placeholderBio, placeholderPosition } from "./details";
+import { useProfile, type StoredProfile } from "./profile-api";
+import {
+  errorsOf,
+  languages,
+  type FieldErrors,
+  type Profile,
+} from "./profile-schema";
 
 /*
- * The right-hand column: the profile as a form.
+ * The profile as a form: what is loaded from the API, edited here, checked
+ * against the same rules the API enforces, and written back.
  *
- * Three of the fields are real -- the user name, the email address and the
- * two halves of the name come off the token -- and the rest are placeholder,
- * because there is nothing behind them. Nothing here saves: main-api has no
- * profile mutation, so the button says so rather than pretending, and the
- * edits stay on the page until it is reloaded.
+ * Two fields are shown and not editable. "User name" and "Email" belong to
+ * Keycloak -- dbo.ProvisionUser copies them out of the token on every sign-in
+ * -- so a value typed here would last until the next sign-in and no longer.
+ * They are on the form because a profile that did not show them would look
+ * like it had lost them.
  */
 
-interface Form {
-  language: string;
-  userName: string;
-  firstName: string;
-  lastName: string;
-  nickName: string;
-  designation: string;
-  email: string;
-  website: string;
-  phone: string;
-  address: string;
-  twitter: string;
-  facebook: string;
-  linkedIn: string;
-  github: string;
-  biography: string;
-  wantsUpdates: boolean;
-  wantsDigest: boolean;
-}
+/* The blank the form starts from before the API answers. */
+const EMPTY: Profile = {
+  FirstName: "",
+  LastName: "",
+  NickName: "",
+  Designation: "",
+  Biography: "",
+  Language: languages[0].tag,
+  Phone: "",
+  Address: "",
+  Website: "",
+  Twitter: "",
+  Facebook: "",
+  LinkedIn: "",
+  Github: "",
+  WantsAwardEmails: true,
+  WantsDigestEmails: false,
+};
 
-/* The token carries one name. Everything before the last space is the first
- * name, which is wrong for some people and is why this is what a form is
- * for: it is the starting point, not the record. */
-function seed(identity: Identity | null): Form {
+/*
+ * What the form opens with: the stored profile, with one exception. A profile
+ * nobody has saved has no first or last name, and the token carries one name
+ * for both -- so the first visit is offered the token's name split at its last
+ * space, which is a starting point rather than a record. Anything already
+ * stored wins over it.
+ */
+function seed(stored: StoredProfile, identity: Identity | null): Profile {
   const whole = (identity?.name ?? "").trim();
   const cut = whole.lastIndexOf(" ");
+  const { UserUUID: _ignored, ...profile } = stored;
 
   return {
-    language: languages[0],
-    userName: identity?.loginName ?? "",
-    firstName: cut === -1 ? whole : whole.slice(0, cut),
-    lastName: cut === -1 ? "" : whole.slice(cut + 1),
-    nickName: "",
-    designation: placeholderPosition,
-    email: identity?.email ?? "",
-    website: "testuser.example",
-    phone: "+1 555 0134",
-    address: "San Francisco, CA",
-    twitter: "twitter.com/testuser",
-    facebook: "facebook.com/testuser",
-    linkedIn: "linkedin.com/in/testuser",
-    github: "github.com/testuser",
-    biography: placeholderBio,
-    wantsUpdates: true,
-    wantsDigest: false,
+    ...profile,
+    FirstName: profile.FirstName || (cut === -1 ? whole : whole.slice(0, cut)),
+    LastName: profile.LastName || (cut === -1 ? "" : whole.slice(cut + 1)),
   };
 }
 
 export function ProfileForm({
   onNotice,
 }: {
-  onNotice: (message: string) => void;
+  onNotice: (message: string, tone?: "success" | "info" | "error") => void;
 }) {
   const { identity } = useSession();
-  const [form, setForm] = useState<Form>(() => seed(identity));
+  const { profile, loading, save } = useProfile();
+  const [form, setForm] = useState<Profile>(EMPTY);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [saving, setSaving] = useState(false);
 
-  /* A remembered session is restored a moment after this mounts, so the
-   * fields are seeded again the first time an identity arrives -- once, so
-   * that it cannot overwrite something already typed. */
-  const seeded = useRef(identity !== null);
+  /* Seeded once, when the profile first arrives: doing it on every change
+   * would throw away what is being typed while a save is in flight. */
+  const seeded = useRef(false);
   useEffect(() => {
-    if (seeded.current || !identity) return;
+    if (seeded.current || !profile) return;
     seeded.current = true;
-    setForm(seed(identity));
-  }, [identity]);
+    setForm(seed(profile, identity));
+  }, [profile, identity]);
 
-  function set<Field extends keyof Form>(field: Field, value: Form[Field]) {
+  function set<Field extends keyof Profile>(
+    field: Field,
+    value: Profile[Field],
+  ) {
     setForm((current) => ({ ...current, [field]: value }));
+    /* A field stops complaining as soon as it is touched; it is checked
+     * again on submit. */
+    setErrors((current) =>
+      current[field] ? { ...current, [field]: undefined } : current,
+    );
+  }
+
+  async function submit() {
+    const found = errorsOf(form);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      onNotice("Some fields need another look — see the messages on them.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await save(form);
+      onNotice("Profile saved.", "success");
+    } catch (failure: unknown) {
+      /* The API is the authority. If it refused something this form let
+       * through, its message is the one worth showing. */
+      onNotice(
+        failure instanceof Error
+          ? failure.message
+          : "The profile was not saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <CardSurface
-      sx={{
-        padding: { xs: "1.5rem 1.25rem", sm: "1.75rem 1.9rem" },
-      }}
+      sx={{ padding: { xs: "1.5rem 1.25rem", sm: "1.75rem 1.9rem" } }}
     >
       <Box
         component="form"
         onSubmit={(event) => {
           event.preventDefault();
-          onNotice(
-            "Nothing is saved yet — main-api has no profile to write to. These edits stay on this page.",
-          );
+          void submit();
         }}
       >
         <Section label="Personal information">
           <FieldRow label="Language" htmlFor="profile-language">
             <CardField
               id="profile-language"
-              value={form.language}
-              onChange={(value) => set("language", value)}
-              options={languages}
+              value={form.Language}
+              onChange={(value) => set("Language", value)}
+              options={languages.map((language) => ({
+                value: language.tag,
+                label: language.label,
+              }))}
+              error={errors.Language}
+              loading={loading}
             />
           </FieldRow>
         </Section>
@@ -121,87 +156,87 @@ export function ProfileForm({
           <FieldRow label="User name" htmlFor="profile-user-name">
             <CardField
               id="profile-user-name"
-              value={form.userName}
-              onChange={(value) => set("userName", value)}
+              value={identity?.loginName ?? ""}
+              onChange={() => undefined}
+              readOnly
+              hint="Your sign-in name. Change it where you sign in."
             />
           </FieldRow>
           <FieldRow label="First name" htmlFor="profile-first-name">
             <CardField
               id="profile-first-name"
-              value={form.firstName}
-              onChange={(value) => set("firstName", value)}
+              value={form.FirstName}
+              onChange={(value) => set("FirstName", value)}
+              error={errors.FirstName}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Last name" htmlFor="profile-last-name">
             <CardField
               id="profile-last-name"
-              value={form.lastName}
-              onChange={(value) => set("lastName", value)}
+              value={form.LastName}
+              onChange={(value) => set("LastName", value)}
+              error={errors.LastName}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Nickname" htmlFor="profile-nickname">
             <CardField
               id="profile-nickname"
-              value={form.nickName}
-              onChange={(value) => set("nickName", value)}
+              value={form.NickName}
+              onChange={(value) => set("NickName", value)}
+              error={errors.NickName}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Designation" htmlFor="profile-designation">
             <CardField
               id="profile-designation"
-              value={form.designation}
-              onChange={(value) => set("designation", value)}
+              value={form.Designation}
+              onChange={(value) => set("Designation", value)}
+              error={errors.Designation}
+              loading={loading}
             />
           </FieldRow>
         </Section>
 
         <Section label="Contact info">
-          <FieldRow
-            label={
-              <>
-                Email{" "}
-                <Box
-                  component="span"
-                  sx={{
-                    fontStyle: "italic",
-                    color: (theme) => theme.palette.brand.cardInkMuted,
-                  }}
-                >
-                  (required)
-                </Box>
-              </>
-            }
-            htmlFor="profile-email"
-          >
+          <FieldRow label="Email" htmlFor="profile-email">
             <CardField
               id="profile-email"
-              type="email"
-              required
-              value={form.email}
-              onChange={(value) => set("email", value)}
+              value={identity?.email ?? ""}
+              onChange={() => undefined}
+              readOnly
+              hint="Your sign-in address. Change it where you sign in."
             />
           </FieldRow>
           <FieldRow label="Website" htmlFor="profile-website">
             <CardField
               id="profile-website"
-              value={form.website}
-              onChange={(value) => set("website", value)}
+              value={form.Website}
+              onChange={(value) => set("Website", value)}
+              error={errors.Website}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Phone" htmlFor="profile-phone">
             <CardField
               id="profile-phone"
               type="tel"
-              value={form.phone}
-              onChange={(value) => set("phone", value)}
+              value={form.Phone}
+              onChange={(value) => set("Phone", value)}
+              error={errors.Phone}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Address" htmlFor="profile-address">
             <CardField
               id="profile-address"
               rows={2}
-              value={form.address}
-              onChange={(value) => set("address", value)}
+              value={form.Address}
+              onChange={(value) => set("Address", value)}
+              error={errors.Address}
+              loading={loading}
             />
           </FieldRow>
         </Section>
@@ -210,29 +245,37 @@ export function ProfileForm({
           <FieldRow label="Twitter" htmlFor="profile-twitter">
             <CardField
               id="profile-twitter"
-              value={form.twitter}
-              onChange={(value) => set("twitter", value)}
+              value={form.Twitter}
+              onChange={(value) => set("Twitter", value)}
+              error={errors.Twitter}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="Facebook" htmlFor="profile-facebook">
             <CardField
               id="profile-facebook"
-              value={form.facebook}
-              onChange={(value) => set("facebook", value)}
+              value={form.Facebook}
+              onChange={(value) => set("Facebook", value)}
+              error={errors.Facebook}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="LinkedIn" htmlFor="profile-linkedin">
             <CardField
               id="profile-linkedin"
-              value={form.linkedIn}
-              onChange={(value) => set("linkedIn", value)}
+              value={form.LinkedIn}
+              onChange={(value) => set("LinkedIn", value)}
+              error={errors.LinkedIn}
+              loading={loading}
             />
           </FieldRow>
           <FieldRow label="GitHub" htmlFor="profile-github">
             <CardField
               id="profile-github"
-              value={form.github}
-              onChange={(value) => set("github", value)}
+              value={form.Github}
+              onChange={(value) => set("Github", value)}
+              error={errors.Github}
+              loading={loading}
             />
           </FieldRow>
         </Section>
@@ -242,38 +285,48 @@ export function ProfileForm({
             <CardField
               id="profile-biography"
               rows={4}
-              value={form.biography}
-              onChange={(value) => set("biography", value)}
+              value={form.Biography}
+              onChange={(value) => set("Biography", value)}
+              error={errors.Biography}
+              loading={loading}
             />
           </FieldRow>
         </Section>
 
         <Section label="Email preferences" last>
           <FieldRow label="Send me">
-            <Stack sx={{ gap: 0.5 }}>
-              <Preference
-                checked={form.wantsUpdates}
-                onChange={(next) => set("wantsUpdates", next)}
-                label="Email when a badge or a level is awarded to me"
-              />
-              <Preference
-                checked={form.wantsDigest}
-                onChange={(next) => set("wantsDigest", next)}
-                label="A weekly digest of the programme's scoreboard"
-              />
-            </Stack>
+            {loading ? (
+              <Skeleton sx={{ maxWidth: 280 }} />
+            ) : (
+              <Stack sx={{ gap: 0.5 }}>
+                <Preference
+                  checked={form.WantsAwardEmails}
+                  onChange={(next) => set("WantsAwardEmails", next)}
+                  label="Email when a badge or a level is awarded to me"
+                />
+                <Preference
+                  checked={form.WantsDigestEmails}
+                  onChange={(next) => set("WantsDigestEmails", next)}
+                  label="A weekly digest of the programme's scoreboard"
+                />
+              </Stack>
+            )}
           </FieldRow>
         </Section>
 
         <Divider
-          sx={{
-            my: 3,
-            borderColor: (theme) => theme.palette.brand.cardRule,
-          }}
+          sx={{ my: 3, borderColor: (theme) => theme.palette.brand.cardRule }}
         />
 
-        <Button type="submit" variant="contained">
-          Update profile
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={loading || saving}
+          startIcon={
+            saving ? <CircularProgress size={16} color="inherit" /> : undefined
+          }
+        >
+          {saving ? "Saving…" : "Update profile"}
         </Button>
       </Box>
     </CardSurface>

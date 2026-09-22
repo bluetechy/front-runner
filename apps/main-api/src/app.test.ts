@@ -10,6 +10,7 @@ import {
 } from "@jest/globals";
 import { Test } from "@nestjs/testing";
 import { GraphQLSchemaHost } from "@nestjs/graphql";
+import { isInputObjectType } from "graphql";
 import {
   BadRequestException,
   ForbiddenException,
@@ -46,6 +47,24 @@ const profile = {
   LoginName: "alice",
   Email: "alice@example.test",
   IsAdmin: false,
+};
+const userProfile = {
+  UserUUID: userId,
+  FirstName: "Alice",
+  LastName: "Example",
+  NickName: "Al",
+  Designation: "Programme manager",
+  Biography: "Runs the scoreboard.",
+  Language: "en-US",
+  Phone: "+1 555 0134",
+  Address: "San Francisco, CA",
+  Website: "alice.example",
+  Twitter: "",
+  Facebook: "",
+  LinkedIn: "",
+  Github: "github.com/alice",
+  WantsAwardEmails: true,
+  WantsDigestEmails: false,
 };
 const organization = {
   OrganizationUUID: orgId,
@@ -139,6 +158,7 @@ describe("GraphQL application", () => {
       if (sql.includes('"ProvisionUser"')) return [account];
       if (sql.includes('"GetUser"') || sql.includes('"GetUsers"'))
         return [profile];
+      if (/"(GetUserProfile|SetUserProfile)"/.test(sql)) return [userProfile];
       if (
         sql.includes('"IsOwnerOfOrganization"') &&
         !sql.includes('FROM dbo."Teams"')
@@ -505,6 +525,73 @@ describe("GraphQL application", () => {
     ).toBe(false);
   });
 
+  // The profile is the one thing a person may write about themselves, and it
+  // is always their own: the mutation takes no user, so the login name in the
+  // parameters can only be the token's.
+  it("reads and writes the signed-in account's own profile", async () => {
+    const read = await execute("{ profile { Designation Language } }");
+    expect(read.body.errors).toBeUndefined();
+    expect(read.body.data.profile).toEqual({
+      Designation: "Programme manager",
+      Language: "en-US",
+    });
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('dbo."GetUserProfile"'),
+      ["alice"],
+    );
+
+    const written = await execute(
+      `mutation Save($profile: UserProfileInput!) {
+        updateProfile(profile: $profile) { Designation }
+      }`,
+      { profile: { ...userProfile, UserUUID: undefined } },
+    );
+    expect(written.body.errors).toBeUndefined();
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining('dbo."SetUserProfile"'),
+      [
+        "alice",
+        "Alice",
+        "Example",
+        "Al",
+        "Programme manager",
+        "Runs the scoreboard.",
+        "en-US",
+        "+1 555 0134",
+        "San Francisco, CA",
+        "alice.example",
+        "",
+        "",
+        "",
+        "github.com/alice",
+        true,
+        false,
+      ],
+    );
+  });
+
+  it("rejects a profile field it could not store, naming every one of them", async () => {
+    const response = await execute(
+      `mutation Save($profile: UserProfileInput!) {
+        updateProfile(profile: $profile) { Designation }
+      }`,
+      {
+        profile: {
+          ...userProfile,
+          UserUUID: undefined,
+          Website: "not a website",
+          Biography: "b".repeat(2001),
+        },
+      },
+    );
+    expect(response.body.errors[0].extensions.code).toBe("BAD_REQUEST");
+    expect(response.body.errors[0].message).toContain("Website");
+    expect(response.body.errors[0].message).toContain("Biography");
+    expect(
+      query.mock.calls.some(([sql]) => sql.includes("SetUserProfile")),
+    ).toBe(false);
+  });
+
   // First sign-in: the subject is unknown, so the account is created from the
   // verified claims rather than from anything the client sent.
   it("provisions an account the first time a verified subject appears", async () => {
@@ -652,13 +739,24 @@ describe("GraphQL application", () => {
     const roots = [schema.getQueryType(), schema.getMutationType()].filter(
       (root) => !!root,
     );
-    const placeholder = (type: unknown) => {
-      const named = String(type).replace(/[[\]!]/g, "");
-      return named === "Boolean"
-        ? "false"
-        : named === "Int"
-          ? "1"
-          : `"${orgId}"`;
+    // A literal of the right shape for any argument the schema declares.
+    // Input objects are written out field by field, because an operation
+    // whose argument will not even parse fails validation before the guard
+    // this test is about ever runs.
+    const placeholder = (type: unknown): string => {
+      const name = String(type).replace(/[[\]!]/g, "");
+      const declared = schema.getType(name);
+      if (isInputObjectType(declared)) {
+        const fields = Object.values(declared.getFields())
+          .filter(
+            (field) =>
+              String(field.type).endsWith("!") &&
+              field.defaultValue === undefined,
+          )
+          .map((field) => `${field.name}: ${placeholder(field.type)}`);
+        return `{ ${fields.join(", ")} }`;
+      }
+      return name === "Boolean" ? "false" : name === "Int" ? "1" : `"${orgId}"`;
     };
     const operations = roots.flatMap((root) =>
       Object.values(root.getFields()).map((field) => {

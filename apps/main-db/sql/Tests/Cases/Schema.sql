@@ -25,8 +25,8 @@ BEGIN
         ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
         ('Surveys'), ('TaskComments'), ('TaskDependencies'), ('TaskHistory'),
         ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
-        ('UserPointLevels'), ('UserPoints'), ('UserRoles'), ('UserTallies'), ('UserTeams'),
-        ('Users')
+        ('UserPointLevels'), ('UserPoints'), ('UserProfiles'), ('UserRoles'), ('UserTallies'),
+        ('UserTeams'), ('Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (SELECT 1 FROM pg_tables WHERE "schemaname" = 'dbo' AND "tablename" = "Expected"."Name");
 
@@ -48,7 +48,7 @@ BEGIN
             'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
             'TaskComments', 'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks',
             'Teams', 'UserBadges', 'UserOrganizations', 'UserPointLevels', 'UserPoints',
-            'UserRoles', 'UserTallies', 'UserTeams', 'Users'
+            'UserProfiles', 'UserRoles', 'UserTallies', 'UserTeams', 'Users'
         );
 
     PERFORM "test"."AssertEquals"(_Unexpected, NULL::text, 'tables in dbo that this test does not know about -- add them here and to test.InsertOneRowIntoEveryTable');
@@ -72,7 +72,7 @@ BEGIN
         ('GetPointLeaderboard'), ('GetPointMultiplier'), ('GetPointRedemptions'),
         ('GetPointStatistics'), ('GetPointTotals'), ('GetPointTransfers'), ('GetPoints'),
         ('GetOrganization'), ('GetOrganizationMembers'),
-        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserInvitations'),
+        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserInvitations'), ('GetUserProfile'),
         ('GetUserUUID'), ('GetUsers'), ('InviteToOrganization'),
         ('IsLastOwnerOfOrganization'), ('IsManagerOfTeam'),
         ('IsMemberOfOrganization'), ('IsMemberOfTeam'),
@@ -81,7 +81,7 @@ BEGIN
         ('RenameOrganization'), ('ReorderTasks'),
         ('RequestPointRedemption'), ('RequestPointTransfer'), ('ReverseUserPoints'),
         ('RevokeOrganizationInvitation'), ('SetOrganizationEnabled'),
-        ('SetOrganizationRole'), ('SettlePointRedemption'),
+        ('SetOrganizationRole'), ('SetUserProfile'), ('SettlePointRedemption'),
         ('SettlePointTransfer'), ('calculate_tallies'), ('insert_modified_info'),
         ('update_modified_info')
     ) AS "Expected" ("Name")
@@ -231,7 +231,8 @@ BEGIN
         ('FK_Tasks_Organizations'), ('FK_Tasks_Roadmaps'), ('FK_Tasks_Users'),
         ('FK_UserBadges_Badges'), ('FK_UserBadges_Organizations'), ('FK_UserBadges_Users'),
         ('FK_UserPointLevels_Organizations'), ('FK_UserPointLevels_PointLevels'),
-        ('FK_UserPointLevels_Users'), ('FK_UserRoles_Roles'), ('FK_UserRoles_Users')
+        ('FK_UserPointLevels_Users'), ('FK_UserProfiles_Users'),
+        ('FK_UserRoles_Roles'), ('FK_UserRoles_Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
         SELECT 1 FROM pg_constraint

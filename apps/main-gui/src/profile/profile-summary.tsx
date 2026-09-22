@@ -3,27 +3,26 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
 import Link from "@mui/material/Link";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import CameraIcon from "@/shared/icons/CameraIcon";
+import LocationIcon from "@/shared/icons/LocationIcon";
+import MobileIcon from "@/shared/icons/MobileIcon";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession } from "../authentication";
-import {
-  placeholderBio,
-  placeholderContact,
-  placeholderLinks,
-  placeholderPosition,
-  placeholderSkills,
-  placeholderTallies,
-} from "./details";
+import { linksOf, placeholderSkills, placeholderTallies } from "./details";
+import { useProfile } from "./profile-api";
 
 /*
  * The left-hand column: who this is, what they have earned, where else they
  * are, what they are good at, and how to reach them.
  *
- * The name and the initials are the session's; everything else on this side
- * is placeholder from `details.ts`.
+ * The name and the initials are the session's; the designation, the bio, the
+ * links and the contact lines are the saved profile's, so editing the form
+ * beside it changes this the moment it saves. The tallies and the skill bars
+ * are still placeholder -- see `details.ts`.
  */
 
 /* Enough of the bio to see what it is, until it is asked for in full. */
@@ -32,12 +31,16 @@ const BIO_PREVIEW = 180;
 export function ProfileSummary({
   onNotice,
 }: {
-  onNotice: (message: string) => void;
+  onNotice: (message: string, tone?: "success" | "info" | "error") => void;
 }) {
   const { identity } = useSession();
+  const { profile, loading } = useProfile();
   const [bioOpen, setBioOpen] = useState(false);
+
   const name = identity?.name ?? "—";
-  const long = placeholderBio.length > BIO_PREVIEW;
+  const bio = profile?.Biography ?? "";
+  const long = bio.length > BIO_PREVIEW;
+  const links = profile ? linksOf(profile) : [];
 
   return (
     <Stack sx={{ gap: { xs: 2, md: 2.5 } }}>
@@ -89,48 +92,47 @@ export function ProfileSummary({
         >
           {name}
         </Typography>
-        <Typography
-          sx={{
-            fontSize: "0.85rem",
-            color: (theme) => theme.palette.brand.cardInkMuted,
-          }}
-        >
-          {placeholderPosition}
-        </Typography>
+        <Muted>{profile?.Designation || "No designation yet"}</Muted>
 
         <Typography sx={{ mt: 2.5, fontSize: "0.85rem", fontWeight: 600 }}>
           Bio
         </Typography>
-        <Typography
-          sx={{
-            mt: 0.5,
-            fontSize: "0.85rem",
-            lineHeight: 1.7,
-            color: (theme) => theme.palette.brand.cardInkMuted,
-          }}
-        >
-          {bioOpen || !long
-            ? placeholderBio
-            : `${placeholderBio.slice(0, BIO_PREVIEW).trimEnd()}… `}
-          {long ? (
-            <Box
-              component="button"
-              type="button"
-              onClick={() => setBioOpen(!bioOpen)}
-              sx={{
-                padding: 0,
-                border: "none",
-                background: "none",
-                cursor: "pointer",
-                fontSize: "inherit",
-                fontWeight: 600,
-                color: "primary.main",
-              }}
-            >
-              {bioOpen ? "Less" : "More"}
-            </Box>
-          ) : null}
-        </Typography>
+        {loading ? (
+          <Skeleton sx={{ mt: 1 }} />
+        ) : (
+          <Typography
+            sx={{
+              mt: 0.5,
+              fontSize: "0.85rem",
+              lineHeight: 1.7,
+              color: (theme) => theme.palette.brand.cardInkMuted,
+            }}
+          >
+            {bio === ""
+              ? "Nothing here yet — the form beside this is where it goes."
+              : bioOpen || !long
+                ? bio
+                : `${bio.slice(0, BIO_PREVIEW).trimEnd()}… `}
+            {long ? (
+              <Box
+                component="button"
+                type="button"
+                onClick={() => setBioOpen(!bioOpen)}
+                sx={{
+                  padding: 0,
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "inherit",
+                  fontWeight: 600,
+                  color: "primary.main",
+                }}
+              >
+                {bioOpen ? "Less" : "More"}
+              </Box>
+            ) : null}
+          </Typography>
+        )}
 
         <Stack
           direction="row"
@@ -166,59 +168,47 @@ export function ProfileSummary({
 
         <Box sx={{ mt: 3 }}>
           <CardLabel>Social</CardLabel>
-          <Stack component="ul" sx={{ gap: 1.75, p: 0, m: 0, mt: 1.5 }}>
-            {placeholderLinks.map((link) => {
-              const LinkIcon = link.icon;
-              return (
-                <Stack
-                  key={link.label}
-                  component="li"
-                  direction="row"
-                  sx={{ gap: 1.5, alignItems: "center", listStyle: "none" }}
-                >
-                  <Box
-                    aria-hidden
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 38,
-                      height: 38,
-                      flexShrink: 0,
-                      borderRadius: "50%",
-                      color: "primary.main",
-                      backgroundColor: (theme) => theme.palette.brand.cardTint,
-                    }}
+          {links.length === 0 ? (
+            <Box sx={{ mt: 1 }}>
+              <Muted>
+                {loading ? <Skeleton sx={{ maxWidth: 180 }} /> : "None saved"}
+              </Muted>
+            </Box>
+          ) : (
+            <Stack component="ul" sx={{ gap: 1.75, p: 0, m: 0, mt: 1.5 }}>
+              {links.map((link) => {
+                const LinkIcon = link.icon;
+                return (
+                  <Stack
+                    key={link.label}
+                    component="li"
+                    direction="row"
+                    sx={{ gap: 1.5, alignItems: "center", listStyle: "none" }}
                   >
-                    <LinkIcon size={17} />
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography
-                      sx={{
-                        fontSize: "0.8rem",
-                        color: (theme) => theme.palette.brand.cardInkMuted,
-                      }}
-                    >
-                      {link.label}
-                    </Typography>
-                    <Link
-                      href={link.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      sx={{
-                        fontSize: "0.85rem",
-                        color: "primary.main",
-                        textDecorationColor: "currentColor",
-                        wordBreak: "break-all",
-                      }}
-                    >
-                      {link.handle}
-                    </Link>
-                  </Box>
-                </Stack>
-              );
-            })}
-          </Stack>
+                    <Badge>
+                      <LinkIcon size={17} />
+                    </Badge>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Muted>{link.label}</Muted>
+                      <Link
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        sx={{
+                          fontSize: "0.85rem",
+                          color: "primary.main",
+                          textDecorationColor: "currentColor",
+                          wordBreak: "break-all",
+                        }}
+                      >
+                        {link.handle}
+                      </Link>
+                    </Box>
+                  </Stack>
+                );
+              })}
+            </Stack>
+          )}
         </Box>
 
         <Box sx={{ mt: 3 }}>
@@ -233,14 +223,7 @@ export function ProfileSummary({
                   <Typography sx={{ fontSize: "0.85rem", fontWeight: 500 }}>
                     {skill.label}
                   </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: "0.82rem",
-                      color: (theme) => theme.palette.brand.cardInkMuted,
-                    }}
-                  >
-                    {skill.percent}%
-                  </Typography>
+                  <Muted>{skill.percent}%</Muted>
                 </Stack>
                 <LinearProgress
                   variant="determinate"
@@ -266,50 +249,91 @@ export function ProfileSummary({
 
       <CardSurface title="Contact">
         <Stack component="ul" sx={{ gap: 2, p: 0, m: 0 }}>
-          {placeholderContact.map((line) => {
-            const LineIcon = line.icon;
-            return (
-              <Stack
-                key={line.label}
-                component="li"
-                direction="row"
-                sx={{ gap: 1.5, alignItems: "center", listStyle: "none" }}
-              >
-                <Box
-                  aria-hidden
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 38,
-                    height: 38,
-                    flexShrink: 0,
-                    borderRadius: "50%",
-                    color: "primary.main",
-                    backgroundColor: (theme) => theme.palette.brand.cardTint,
-                  }}
-                >
-                  <LineIcon size={17} />
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{
-                      fontSize: "0.8rem",
-                      color: (theme) => theme.palette.brand.cardInkMuted,
-                    }}
-                  >
-                    {line.label}
-                  </Typography>
-                  <Typography sx={{ fontSize: "0.88rem", fontWeight: 600 }}>
-                    {line.value}
-                  </Typography>
-                </Box>
-              </Stack>
-            );
-          })}
+          <ContactLine
+            label="Mobile"
+            value={profile?.Phone ?? ""}
+            loading={loading}
+          >
+            <MobileIcon size={17} />
+          </ContactLine>
+          <ContactLine
+            label="Current address"
+            value={profile?.Address ?? ""}
+            loading={loading}
+          >
+            <LocationIcon size={17} />
+          </ContactLine>
         </Stack>
       </CardSurface>
     </Stack>
+  );
+}
+
+function ContactLine({
+  label,
+  value,
+  loading,
+  children,
+}: {
+  label: string;
+  value: string;
+  loading: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Stack
+      component="li"
+      direction="row"
+      sx={{ gap: 1.5, alignItems: "center", listStyle: "none" }}
+    >
+      <Badge>{children}</Badge>
+      <Box sx={{ minWidth: 0 }}>
+        <Muted>{label}</Muted>
+        {loading ? (
+          <Skeleton sx={{ width: 140 }} />
+        ) : (
+          <Typography sx={{ fontSize: "0.88rem", fontWeight: 600 }}>
+            {value || "Not set"}
+          </Typography>
+        )}
+      </Box>
+    </Stack>
+  );
+}
+
+/* The tinted disc an icon sits in, beside a link or a contact line. */
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 38,
+        height: 38,
+        flexShrink: 0,
+        borderRadius: "50%",
+        color: "primary.main",
+        backgroundColor: (theme) => theme.palette.brand.cardTint,
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function Muted({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      component="div"
+      sx={{
+        fontSize: "0.8rem",
+        color: (theme) => theme.palette.brand.cardInkMuted,
+      }}
+    >
+      {children}
+    </Typography>
   );
 }
 

@@ -23,7 +23,7 @@ import ScheduleIcon from "@/shared/icons/ScheduleIcon";
 import SettingsIcon from "@/shared/icons/SettingsIcon";
 import TutorialsIcon from "@/shared/icons/TutorialsIcon";
 import { useSession } from "../authentication";
-import { placeholderPosition } from "../profile";
+import { useProfile } from "../profile";
 
 /*
  * The rail down the left edge of the application. It is fixed there rather
@@ -112,6 +112,7 @@ function initialsOf(name: string): string {
 
 function RailContents({ onNavigate }: { onNavigate: () => void }) {
   const { identity } = useSession();
+  const { profile } = useProfile();
   const name = identity?.name ?? "—";
 
   return (
@@ -176,13 +177,14 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
         </Typography>
         <Typography
           sx={{
+            minHeight: "1.2rem",
             fontSize: "0.78rem",
             color: (theme) => theme.palette.brand.railLabel,
           }}
         >
-          {/* Placeholder, and the profile page's own -- one constant, so
-           * the rail and that page cannot say different things. */}
-          {placeholderPosition}
+          {/* What they are here as, from their profile. Blank until they
+           * fill it in, rather than a title invented for them. */}
+          {profile?.Designation ?? ""}
         </Typography>
       </Stack>
 

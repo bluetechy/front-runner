@@ -24,7 +24,8 @@ src/
   app.module.ts               # Composition root
   main.ts                     # HTTP bootstrap
   app.test.ts                 # Cross-feature HTTP contract tests
-  users/                      # Login, profile, directory
+  users/                      # Login, account, directory
+  profiles/                   # The profile a person writes about themselves
   organizations/              # Organization lifecycle and membership
   teams/                      # Team lifecycle and membership
   badges/                     # Earned badges
@@ -84,7 +85,15 @@ lose precision for valid ledger amounts. Dates use `GraphQLISODateTime`; nullabl
 database values have nullable fields. PascalCase response fields reduce migration
 churn; operation/argument names use camelCase.
 
-Validation rejects malformed UUIDs, invalid names and page bounds. Queries are
+Validation rejects malformed UUIDs, invalid names and page bounds. Arguments
+with a handful of fields are checked by a pipe of their own (`UUID`, `Name`,
+`Email`, `Page`); the profile input has sixteen and is checked against a zod
+schema through `ZodPipe`, which reports every failing field at once rather
+than the first, because a form that has to be submitted once per mistake is a
+form nobody finishes. The pipe passes on what the schema parsed, so trimming
+happens once and before the service sees it. main-gui carries a copy of that
+schema so the browser can say the same things sooner; this one is the
+authority, and the two are tested against the same cases at either end. Queries are
 limited to depth 10 and 100 expanded field selections, counting aliases and
 fragment expansion. Standard introspection selections are exempt from those
 application limits and available only outside production. HTTP batching is off,

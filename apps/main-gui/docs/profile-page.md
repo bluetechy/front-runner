@@ -22,6 +22,53 @@ Both columns are `CardSurface` — the white card the dashboard uses, which
 moved into `src/card-surface` when this page turned out to want the same
 surface. See [the dashboard](dashboard.md#colour) for what that card is.
 
+## Where the profile comes from
+
+`profile-api.tsx` reads it and writes it, through two GraphQL operations that
+main-api added for this page:
+
+| Operation                                   | What it does                       |
+| ------------------------------------------- | ---------------------------------- |
+| `profile`                                   | the signed-in person's profile     |
+| `updateProfile(profile: UserProfileInput!)` | replaces all of it, and returns it |
+
+Neither takes a user. The login name comes from the verified token inside the
+API, so a caller cannot read or write somebody else's profile by naming them,
+and there is nothing to authorize on this page beyond being signed in.
+
+It is fetched **once**, by a provider the `_app` route mounts, because the rail
+wants it too — the designation under the name in the rail is this profile's.
+Saving updates what the provider holds, which is why the rail changes the
+moment the form is submitted.
+
+Behind the API: `dbo.UserProfiles`, one row per account, written by
+`dbo.SetUserProfile` and read by `dbo.GetUserProfile`. An account that has
+never saved reads as a full row of empties rather than as nothing, which is
+what a first visit should see.
+
+## Validation, twice
+
+The rules live in `profile-schema.ts` as a [zod](https://zod.dev) schema, and
+again in main-api's `profiles.schema.ts`. **The API's copy is the authority**;
+this one exists so the form can say which field is wrong while the person is
+still looking at it, rather than after a round trip. Both name every failing
+field at once.
+
+The two are a copy rather than a shared module on purpose: each app's image
+installs only its own workspace (`npm ci --workspace main-gui`), so a shared
+schema would need a new package plus Dockerfile and Compose changes in both
+apps. The cost of the copy is one message arriving a moment later when they
+disagree — the form shows what the API said — and both ends carry the same
+test cases to make a drift visible.
+
+## Two fields nobody here may edit
+
+**User name** and **Email** are shown, greyed, with a line saying where to
+change them. They belong to Keycloak: `dbo.ProvisionUser` copies them out of
+the token on every sign-in, so a value typed here would last until the next
+sign-in and no longer. They are on the form because a profile page that did
+not show them would look like it had lost them.
+
 ## The fields
 
 `card-field.tsx` holds them. The theme's own field is a pill hollowed out of
@@ -43,11 +90,10 @@ above it below that, and that is all it does.
 | Typing in any field                      | Works, and is kept until the page reloads  |
 | "Update profile", and the camera button  | Say plainly that nothing is saved yet      |
 
-`main-api` has no profile to write to — `me` reads five fields and there is no
-mutation behind them — so the button does not pretend. It opens a notice
-saying so, which is the same thing the camera button does. When there is
-somewhere to write, that handler and `details.ts` are what change.
+Two things the page can be asked to do and cannot: keep a photograph, and
+count a tally. Both say so rather than accepting the click quietly — the
+camera opens a notice, and the tallies and skills are described here as what
+they are. Everything else on the page is stored.
 
-The designation is one constant, `placeholderPosition`, exported from this
-vertical and also read by the rail, so the two cannot end up saying different
-things about the same person.
+The email preferences are honest in a smaller way: they are saved, and nothing
+reads them yet, because nothing in this installation sends mail.

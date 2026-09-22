@@ -25,7 +25,8 @@
     "@tanstack/react-router": "1.170.38",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-icons": "5.7.0"
+    "react-icons": "5.7.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@tanstack/router-plugin": "1.168.40",

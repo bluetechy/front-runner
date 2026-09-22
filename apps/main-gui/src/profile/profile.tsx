@@ -4,7 +4,7 @@ import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ProfileForm } from "./profile-form";
 import { ProfileSummary } from "./profile-summary";
 
@@ -12,13 +12,25 @@ import { ProfileSummary } from "./profile-summary";
  * The profile page, at /profile. Built from a supplied mock-up: who this is
  * down the left, and the same profile as a form down the right.
  *
- * Almost all of it is placeholder -- see `details.ts` for the left and the
- * seed in `profile-form.tsx` for the right. Where the page cannot do what it
- * appears to offer, it says so in as many words rather than accepting the
- * click quietly; that is what `notice` is.
+ * The profile itself is real: read through `profile-api.tsx` when the page
+ * opens, written back when the form is submitted. What is still placeholder
+ * is the two blocks nothing counts -- see `details.ts`.
+ *
+ * `notice` is how the page says something back: that it saved, that a field
+ * needs another look, or that the API refused. Nothing here fails quietly.
  */
+
+type Tone = "success" | "info" | "error";
 export function Profile() {
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{
+    message: string;
+    tone: Tone;
+  } | null>(null);
+
+  const notify = useCallback(
+    (message: string, tone: Tone = "info") => setNotice({ message, tone }),
+    [],
+  );
 
   return (
     <>
@@ -66,10 +78,10 @@ export function Profile() {
         sx={{ alignItems: "flex-start" }}
       >
         <Grid size={{ xs: 12, lg: 4 }}>
-          <ProfileSummary onNotice={setNotice} />
+          <ProfileSummary onNotice={notify} />
         </Grid>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ProfileForm onNotice={setNotice} />
+          <ProfileForm onNotice={notify} />
         </Grid>
       </Grid>
 
@@ -80,12 +92,25 @@ export function Profile() {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          severity="info"
+          severity={notice?.tone ?? "info"}
           variant="filled"
           onClose={() => setNotice(null)}
-          sx={{ borderRadius: 2 }}
+          sx={{
+            borderRadius: 2,
+            /* Material's "info" is a blue this product does not own. The
+             * other two keep their colours: green and red mean the same
+             * thing everywhere, and saying so is the point. */
+            ...(notice?.tone === "info"
+              ? {
+                  backgroundColor: (theme) => theme.palette.brand.panel,
+                  border: (theme) =>
+                    `1px solid ${theme.palette.brand.panelEdge}`,
+                  color: "common.white",
+                }
+              : {}),
+          }}
         >
-          {notice}
+          {notice?.message}
         </Alert>
       </Snackbar>
     </>

@@ -35,6 +35,7 @@ DECLARE
 BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
+    INSERT INTO "dbo"."UserProfiles" ("UserUUID", "Designation", "CreatedBy") VALUES (_UserUUID, 'Smoke Designation', _By);
     INSERT INTO "dbo"."Teams" ("OrganizationUUID", "Name", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Team', _By) RETURNING "TeamUUID" INTO _TeamUUID;
     INSERT INTO "dbo"."Points" ("Name", "Description", "CreatedBy") VALUES ('Smoke Points', 'Smoke test point type.', _By) RETURNING "PointUUID" INTO _PointUUID;
     INSERT INTO "dbo"."BadgeCategories" ("Name", "CreatedBy") VALUES ('Smoke Category', _By) RETURNING "BadgeCategoryUUID" INTO _BadgeCategoryUUID;
