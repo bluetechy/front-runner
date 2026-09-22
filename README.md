@@ -19,6 +19,14 @@ A Turborepo monorepo.
 
 Filter a single app with `npx turbo run build --filter=main-api`.
 
+## Tests
+
+**Every source file under an app's `src/` has a test beside it** — per file,
+not per folder. `npm run lint:tests` enforces it, and `npm run lint` runs
+that. A file that genuinely cannot be tested says so in its own header with
+`@no-test` and a reason. See [testing](docs/testing.md) for the practice, the
+house style, and what is outside the rule.
+
 ## Configuration
 
 Every credential, port and address lives in `.env` at the repository root. It is

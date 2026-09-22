@@ -1,9 +1,14 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import { BadRequestException } from "@nestjs/common";
-import { DatabaseService } from "../database/index.js";
 import { ZodPipe } from "../graphql/index.js";
 import { profileSchema, type ProfileInput } from "./profiles.schema.js";
-import { ProfilesService } from "./profiles.service.js";
+
+/*
+ * What a profile is allowed to contain, and what the resolver's pipe does
+ * with one that is not. The schema is the API's own answer rather than the
+ * browser's: the form mirrors it, and neither is allowed to be the only one
+ * checking.
+ */
 
 const valid: ProfileInput = {
   FirstName: "Marcus",
@@ -23,69 +28,6 @@ const valid: ProfileInput = {
   WantsAwardEmails: true,
   WantsDigestEmails: false,
 };
-
-function setup(rows: unknown[] = []) {
-  const query = jest
-    .fn<DatabaseService["query"]>()
-    .mockResolvedValue(rows as never);
-  return {
-    query,
-    service: new ProfilesService({ query } as unknown as DatabaseService),
-  };
-}
-
-describe("the profile a caller may read and write", () => {
-  it("asks the database for the signed-in account's profile", async () => {
-    const { service, query } = setup([{ UserUUID: "user-id" }]);
-    await service.get("marcus");
-    expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('"GetUserProfile"'),
-      ["marcus"],
-    );
-  });
-
-  it("answers null when the account has no row at all", async () => {
-    const { service } = setup([]);
-    await expect(service.get("nobody")).resolves.toBeNull();
-  });
-
-  // The order of seventeen positional parameters is the kind of thing that is
-  // wrong once and then wrong forever, so it is pinned here.
-  it("passes the whole profile in the order the function declares", async () => {
-    const { service, query } = setup([{ UserUUID: "user-id" }]);
-    await service.set("marcus", valid);
-    expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('"SetUserProfile"'),
-      [
-        "marcus",
-        "Marcus",
-        "Member",
-        "Marc",
-        "Programme manager",
-        "Runs the scoreboard.",
-        "Male",
-        "1990-04-17",
-        "+1 555 0134",
-        "San Francisco, CA",
-        "",
-        "github.com/marcus",
-        "linkedin.com/in/marcus",
-        "tiktok.com/@marcus",
-        "twitter.com/marcus",
-        true,
-        false,
-      ],
-    );
-  });
-
-  // The login name is the token's, so a caller cannot write somebody else's
-  // profile by naming them.
-  it("writes the profile of the caller the token names", async () => {
-    const { service, query } = setup([{ UserUUID: "user-id" }]);
-    await service.set("marcus", { ...valid, FirstName: "Somebody" });
-    expect(query.mock.calls[0]?.[1]?.[0]).toBe("marcus");
-  });
-});
 
 describe("what a profile is allowed to contain", () => {
   it("accepts a filled-in profile", () => {

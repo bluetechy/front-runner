@@ -58,6 +58,13 @@ leaking into each other.
 a vertical. Anything longer than that belongs in the vertical, not in
 `src/routes`.
 
+**Every file has a test beside it.** `toast.tsx` has `toast.test.tsx`;
+`index.ts` has `index.test.ts`, which is where a vertical's public surface is
+written down. It is per file rather than per folder, so "is this covered?" is
+a directory listing rather than a coverage report, and `npm run lint:tests`
+fails on a file that has neither a test nor a written reason. See
+[testing](../../../docs/testing.md).
+
 **There are two shells, and the route says which one.** `__root.tsx` is an
 outlet and nothing else. The marketing pages sit under the pathless `_site`
 layout route, which wraps them in `site-chrome`; the pages behind the login

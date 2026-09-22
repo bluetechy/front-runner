@@ -2,7 +2,9 @@
 
 NestJS + TypeScript + Apollo GraphQL, running on **Node 24.21.0**. The application
 is organized by functionality, with feature-local resolvers, services, models,
-modules, and tests. See [design decisions](design-decisions.md) and
+modules, and tests — one test file per source file, which is the practice
+[testing](../../../docs/testing.md) sets out and `npm run lint:tests`
+enforces. See [design decisions](design-decisions.md) and
 [client migration](migration.md).
 
 ## Development with Docker Compose

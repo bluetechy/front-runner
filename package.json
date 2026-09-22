@@ -17,7 +17,8 @@
     "format:check": "prettier --check .",
     "lint:js": "oxlint",
     "lint:fix": "oxlint --fix",
-    "lint": "npm run format:check && npm run lint:js && turbo run lint"
+    "lint:tests": "node scripts/check-tests.mjs",
+    "lint": "npm run format:check && npm run lint:js && npm run lint:tests && turbo run lint"
   },
   "devDependencies": {
     "oxlint": "^1.83.0",

@@ -1,18 +1,19 @@
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import { BadRequestException } from "@nestjs/common";
-import type { ConfigService } from "@nestjs/config";
-import { DatabaseService } from "../database/index.js";
 import { ZodPipe } from "../graphql/index.js";
-import { PaymentMethodKind } from "./wallet.model.js";
 import {
   bankAccountSchema,
   creditCardSchema,
   type BankAccountFields,
   type CreditCardFields,
 } from "./wallet.schema.js";
-import { WalletService } from "./wallet.service.js";
 
-const KEY = "test-wallet-key-long-enough";
+/*
+ * What a card and a bank account are allowed to contain, and what the
+ * resolver's pipe does with one that is not. The browser mirrors these rules
+ * so that a mistake is caught before a round trip; these are the ones that
+ * decide.
+ */
 
 /* Far enough out that this file does not start failing on a date. */
 const nextYear = new Date().getFullYear() + 2;
@@ -38,108 +39,6 @@ const validAccount = {
   RoutingNumber: "021000021",
   Number: "000123456789",
 };
-
-function setup(rows: unknown[] = []) {
-  const query = jest
-    .fn<DatabaseService["query"]>()
-    .mockResolvedValue(rows as never);
-  const config = { getOrThrow: () => KEY } as unknown as ConfigService;
-  return {
-    query,
-    service: new WalletService({ query } as unknown as DatabaseService, config),
-  };
-}
-
-describe("the wallet a caller may read and write", () => {
-  it("asks the database for the signed-in account's methods", async () => {
-    const { service, query } = setup([]);
-    await service.list("member");
-    expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('"GetPaymentMethods"'),
-      ["member"],
-    );
-  });
-
-  // Eleven positional parameters is the kind of thing that is wrong once and
-  // then wrong forever, so the order is pinned here.
-  it("passes a card in the order the function declares", async () => {
-    const { service, query } = setup([]);
-    await service.addCreditCard("member", creditCardSchema.parse(validCard));
-    expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('"AddCreditCard"'),
-      [
-        "member",
-        "Matthew Mattson",
-        "4111111111111111",
-        4,
-        nextYear,
-        "2896 S 9150 W",
-        "Magna",
-        "UT",
-        "84044",
-        "United States",
-        KEY,
-      ],
-    );
-  });
-
-  it("passes a bank account in the order the function declares", async () => {
-    const { service, query } = setup([]);
-    await service.addBankAccount(
-      "member",
-      bankAccountSchema.parse(validAccount),
-    );
-    expect(query).toHaveBeenCalledWith(
-      expect.stringContaining('"AddBankAccount"'),
-      [
-        "member",
-        "Matthew Mattson",
-        "Checking",
-        "021000021",
-        "000123456789",
-        KEY,
-      ],
-    );
-  });
-
-  // The one thing this module must never do. A security code has no column to
-  // go in and no parameter to travel in; if one ever appears in a call, this
-  // is what says so.
-  it("never sends the security code to the database", async () => {
-    const { service, query } = setup([]);
-    await service.addCreditCard("member", creditCardSchema.parse(validCard));
-    expect(query.mock.calls[0]?.[1]).not.toContain("123");
-  });
-
-  // Keeping the key out of the database is the only thing that makes
-  // encrypting the column worth anything, so it travels per call.
-  it("hands the database the encryption key on every write", async () => {
-    const { service, query } = setup([]);
-    await service.addCreditCard("member", creditCardSchema.parse(validCard));
-    await service.addBankAccount(
-      "member",
-      bankAccountSchema.parse(validAccount),
-    );
-    for (const call of query.mock.calls) expect(call[1]).toContain(KEY);
-  });
-
-  // The login name is the token's, so a caller cannot reach into somebody
-  // else's wallet by naming a method in it.
-  it("acts on the wallet of the caller the token names", async () => {
-    const { service, query } = setup([]);
-    await service.setDefault(
-      "member",
-      PaymentMethodKind.BankAccount,
-      "11111111-0000-4000-8000-000000000001",
-    );
-    await service.remove(
-      "member",
-      PaymentMethodKind.CreditCard,
-      "11111111-0000-4000-8000-000000000001",
-    );
-    for (const call of query.mock.calls) expect(call[1]?.[0]).toBe("member");
-  });
-});
 
 describe("what a card is allowed to contain", () => {
   it("accepts a filled-in card", () => {

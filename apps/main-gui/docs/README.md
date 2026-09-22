@@ -12,8 +12,10 @@ and its Keycloak flows, [the dashboard](dashboard.md),
 what is behind the login, [notifications](notifications.md) for the bell in the
 top bar, the page behind it and the TanStack Query under both, [language](language.md) for the flag
 beside it and the i18next behind that, [icons](shared/icons.md) for how
-every icon is wrapped, and [the style guide](style-guide.md) for the surfaces,
-the ink each one carries, and what a colour has to clear before it goes in.
+every icon is wrapped, [the style guide](style-guide.md) for the surfaces,
+the ink each one carries, and what a colour has to clear before it goes in,
+and [testing](../../../docs/testing.md) for why every file in `src/` has a
+`*.test.*` beside it.
 
 ## Development with Docker Compose
 

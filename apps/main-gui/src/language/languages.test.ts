@@ -36,7 +36,7 @@ describe("the languages the interface offers", () => {
  */
 describe("the locale files", () => {
   it("say the same things in both languages", () => {
-    expect(Object.keys(esMX).sort()).toEqual(Object.keys(enUS).sort());
+    expect(Object.keys(esMX).toSorted()).toEqual(Object.keys(enUS).toSorted());
   });
 
   it("keep the English file's keys as their own translation", () => {
