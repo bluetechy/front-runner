@@ -6,5 +6,4 @@
 !apps/main-gui/**
 apps/main-gui/node_modules
 apps/main-gui/dist
-apps/main-gui/coverage
 apps/main-gui/.env*
