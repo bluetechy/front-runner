@@ -130,7 +130,8 @@ chart should follow too:
 | The "Your account" card          | **Real** — Keycloak's identity and main-api's `me`     |
 | Who is signed in, in the top bar | Real — from the session                                |
 | Logout, in the account menu      | Real                                                   |
-| Search and notifications         | Styled and labelled; they do nothing                   |
+| Search, in the top bar           | Styled and labelled; it does nothing                   |
+| The bell                         | **Real** — see [notifications](notifications.md)       |
 | The language flag                | **Real** — remembers the choice, translates the chrome |
 | "Create KPI"                     | Styled; there is nothing to create yet                 |
 | The eight unbuilt nav items      | Disabled on purpose                                    |

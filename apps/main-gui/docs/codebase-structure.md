@@ -29,6 +29,7 @@ src/
   dashboard/            where a completed sign-in lands
   profile/              the profile page, and the form that edits it
   wallet/               saved cards and bank accounts, and the dialogs that add them
+  notifications/        the bell in the top bar, and the panel behind it
   card-surface/         the white card those are all made of
   shared/icons/         every icon, wrapping whatever library supplies it
   shared/lib/           small predicates shared inside shared/
@@ -84,6 +85,18 @@ either of them.
 caused the first: the language somebody picks in the top bar is remembered in
 `localStorage`, and the guarded wrapper around it had been `authentication`'s
 private file until there were two callers. See [language](language.md).
+
+`notifications/` is a vertical rather than part of `app-chrome/` for the same
+reason: the top bar mounts the bell, but what the bell holds is a slice of the
+product with its own API, its own icons and its own clock. `app-chrome/` owns
+the bar; it does not own what hangs off it.
+
+It is also the one vertical reading the API through TanStack Query so far, and
+it carries a **third copy** of the GraphQL `fetch` that `profile/` and
+`wallet/` each have. That is the rule above not yet being applied: those two
+fetch in a `useEffect`, and rewriting them was not part of adding a bell. When
+the second vertical moves onto Query, the three copies become one `graphql/`
+vertical. See [notifications](notifications.md#tanstack-query).
 
 `authentication/` is the same rule applied to something less page-shaped: the
 header needs to know who is signed in and to open the dialog, and `dashboard/`

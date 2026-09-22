@@ -9,9 +9,10 @@ here; nothing was carried over from it. See
 for what is built so far, [signing in](authentication.md) for the login dialog
 and its Keycloak flows, [the dashboard](dashboard.md),
 [the profile page](profile-page.md) and [the wallet page](wallet-page.md) for
-what is behind the login, [language](language.md) for the flag in the top bar
-and the i18next behind it, and [icons](shared/icons.md) for how every icon is
-wrapped.
+what is behind the login, [notifications](notifications.md) for the bell in the
+top bar and the TanStack Query behind it, [language](language.md) for the flag
+beside it and the i18next behind that, and [icons](shared/icons.md) for how
+every icon is wrapped.
 
 ## Development with Docker Compose
 

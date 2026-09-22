@@ -72,5 +72,15 @@
   "Programme design": "Diseño de programas",
   "Facilitation": "Facilitación",
   "Data literacy": "Cultura de datos",
-  "Community building": "Creación de comunidad"
+  "Community building": "Creación de comunidad",
+  "You are all caught up.": "Estás al día.",
+  "Mark all read": "Marcar todo como leído",
+  "Loading your notifications…": "Cargando tus notificaciones…",
+  "Your notifications could not be loaded.": "No se pudieron cargar tus notificaciones.",
+  "You have no notifications yet.": "Todavía no tienes notificaciones.",
+  "{{message}} — unread. Mark as read.": "{{message}} — sin leer. Marcar como leída.",
+  "View all": "Ver todas",
+  "Notifications: {{unread}} unread": "Notificaciones: {{unread}} sin leer",
+  "You have 1 unread notification.": "Tienes 1 notificación sin leer.",
+  "You have {{unread}} unread notifications.": "Tienes {{unread}} notificaciones sin leer."
 }

@@ -16,6 +16,7 @@ import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppCertificationsRouteImport } from './routes/_app.certifications'
 import { Route as AppCustomerServiceRouteImport } from './routes/_app.customer-service'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppScheduleRouteImport } from './routes/_app.schedule'
 import { Route as AppSecurityRouteImport } from './routes/_app.security'
@@ -60,6 +61,11 @@ const AppCustomerServiceRoute = AppCustomerServiceRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/certifications': typeof AppCertificationsRoute
   '/customer-service': typeof AppCustomerServiceRoute
   '/dashboard': typeof AppDashboardRoute
+  '/notifications': typeof AppNotificationsRoute
   '/profile': typeof AppProfileRoute
   '/schedule': typeof AppScheduleRoute
   '/security': typeof AppSecurityRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/certifications': typeof AppCertificationsRoute
   '/customer-service': typeof AppCustomerServiceRoute
   '/dashboard': typeof AppDashboardRoute
+  '/notifications': typeof AppNotificationsRoute
   '/profile': typeof AppProfileRoute
   '/schedule': typeof AppScheduleRoute
   '/security': typeof AppSecurityRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_app/certifications': typeof AppCertificationsRoute
   '/_app/customer-service': typeof AppCustomerServiceRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/notifications': typeof AppNotificationsRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/security': typeof AppSecurityRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/customer-service'
     | '/dashboard'
+    | '/notifications'
     | '/profile'
     | '/schedule'
     | '/security'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/customer-service'
     | '/dashboard'
+    | '/notifications'
     | '/profile'
     | '/schedule'
     | '/security'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/_app/certifications'
     | '/_app/customer-service'
     | '/_app/dashboard'
+    | '/_app/notifications'
     | '/_app/profile'
     | '/_app/schedule'
     | '/_app/security'
@@ -299,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/profile': {
@@ -394,6 +413,7 @@ interface AppRouteChildren {
   AppCertificationsRoute: typeof AppCertificationsRoute
   AppCustomerServiceRoute: typeof AppCustomerServiceRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSecurityRoute: typeof AppSecurityRoute
@@ -408,6 +428,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCertificationsRoute: AppCertificationsRoute,
   AppCustomerServiceRoute: AppCustomerServiceRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
   AppProfileRoute: AppProfileRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSecurityRoute: AppSecurityRoute,

@@ -80,6 +80,46 @@ const teal = "#1f9fb5";
  */
 const chartSeries = [accentStrong, accentDeep, teal] as const;
 
+/*
+ * A figure that moved the right way, and one that did not. Both are read on
+ * card paper, so neither comes from the dark palette. They are constants
+ * rather than literals in `brand` because the notification tints below reuse
+ * them: a notification about money arriving is the same green as a figure
+ * that went up.
+ */
+const rise = "#1f8a5f";
+const fall = "#c2344d";
+
+/*
+ * The discs a notification's icon sits on in the bell's menu, named for what
+ * the notification is about rather than for the colour: the vertical maps a
+ * notification type onto one of these, so a type nobody has drawn an icon for
+ * still lands somewhere deliberate.
+ *
+ * Every one of them carries a white glyph on card paper, so every one clears
+ * 3:1 against white -- the floor for something that is drawn rather than
+ * written. That is what the amber is: the mock-up's `#f5a623` is 2.0:1 and
+ * unreadable, and this is the same hue taken down until it is 3.4:1.
+ */
+const amber = "#c77b14";
+
+const noticeTints = {
+  /* Work: a task assigned, a task past due. */
+  task: accentDeep,
+  /* Anything the programme awarded -- a badge, a level, points. */
+  reward: accentStrong,
+  /* Money moving: an order, a redemption. */
+  commerce: rise,
+  /* Something somebody wrote: a review, a mention. */
+  message: amber,
+  /* People arriving: registrations, an invitation, a welcome. */
+  people: accent,
+  /* Something that went wrong or needs an answer. */
+  alert: fall,
+  /* A type this app has not met. Deliberately the quietest of them. */
+  general: cardInkMuted,
+} as const;
+
 const brand = {
   /* The field every page is rendered on. */
   field: [
@@ -118,11 +158,11 @@ const brand = {
   cardField: "rgba(31, 5, 56, 0.05)",
   /* The tint a stat tile's icon sits in. */
   cardTint: "rgba(227, 79, 196, 0.12)",
-  /* A figure that moved the right way, and one that did not. Both are read
-   * on card paper, so neither comes from the dark palette. */
-  rise: "#1f8a5f",
-  fall: "#c2344d",
+  rise,
+  fall,
   chartSeries,
+  /* The disc a notification's icon sits on, by what it is about. */
+  noticeTints,
   /* Gridlines, and the unfilled part of a progress track. */
   chartGrid: "rgba(31, 5, 56, 0.1)",
   chartTrack: "rgba(31, 5, 56, 0.07)",

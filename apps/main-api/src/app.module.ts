@@ -11,6 +11,7 @@ import { BadgesModule } from "./badges/index.js";
 import { PointsModule } from "./points/index.js";
 import { TalliesModule } from "./tallies/index.js";
 import { WalletModule } from "./wallet/index.js";
+import { NotificationsModule } from "./notifications/index.js";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { WalletModule } from "./wallet/index.js";
     PointsModule,
     TalliesModule,
     WalletModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

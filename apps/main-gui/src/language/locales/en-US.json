@@ -72,5 +72,15 @@
   "Programme design": "Programme design",
   "Facilitation": "Facilitation",
   "Data literacy": "Data literacy",
-  "Community building": "Community building"
+  "Community building": "Community building",
+  "You are all caught up.": "You are all caught up.",
+  "Mark all read": "Mark all read",
+  "Loading your notifications…": "Loading your notifications…",
+  "Your notifications could not be loaded.": "Your notifications could not be loaded.",
+  "You have no notifications yet.": "You have no notifications yet.",
+  "{{message}} — unread. Mark as read.": "{{message}} — unread. Mark as read.",
+  "View all": "View all",
+  "Notifications: {{unread}} unread": "Notifications: {{unread}} unread",
+  "You have 1 unread notification.": "You have 1 unread notification.",
+  "You have {{unread}} unread notifications.": "You have {{unread}} unread notifications."
 }

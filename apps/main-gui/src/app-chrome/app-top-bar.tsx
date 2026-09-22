@@ -1,5 +1,4 @@
 import Avatar from "@mui/material/Avatar";
-import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -10,22 +9,23 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import BellIcon from "@/shared/icons/BellIcon";
 import ChevronDownIcon from "@/shared/icons/ChevronDownIcon";
 import LogoutIcon from "@/shared/icons/LogoutIcon";
 import MenuIcon from "@/shared/icons/MenuIcon";
 import SearchIcon from "@/shared/icons/SearchIcon";
 import { useSession } from "../authentication";
 import { LanguageMenu } from "../language";
+import { NotificationMenu } from "../notifications";
 
 /*
  * The bar along the top of the application: white paper, the same as a card,
  * so the rail is the only coloured surface in the chrome.
  *
- * The search field and the bell are the mock-up's and do nothing yet. What is
- * real is the language flag, which remembers what it is told; and what is on
- * the right: who is signed in, read from the session, and the menu that signs
- * them out.
+ * The search field is the mock-up's and does nothing yet. What is real is the
+ * language flag, which remembers what it is told; the bell, which reads the
+ * signed-in person's notifications and marks them read; and what is on the
+ * right: who is signed in, read from the session, and the menu that signs them
+ * out.
  */
 
 /* "Thomas John" -> "TJ". A login name with no space gives one letter, which
@@ -114,14 +114,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
       >
         <LanguageMenu />
 
-        <IconButton
-          aria-label={t("Notifications")}
-          sx={{ color: (theme) => theme.palette.brand.cardInkMuted }}
-        >
-          <Badge badgeContent={3} color="primary">
-            <BellIcon size={20} />
-          </Badge>
-        </IconButton>
+        <NotificationMenu />
 
         <Stack
           direction="row"
