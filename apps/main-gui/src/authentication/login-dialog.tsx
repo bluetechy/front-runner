@@ -1,7 +1,3 @@
-import AppleIcon from "@mui/icons-material/Apple";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import GoogleIcon from "@mui/icons-material/Google";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,6 +15,10 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useNavigate } from "@tanstack/react-router";
+import AppleIcon from "@/shared/icons/AppleIcon";
+import ArrowRightIcon from "@/shared/icons/ArrowRightIcon";
+import FacebookIcon from "@/shared/icons/FacebookIcon";
+import GoogleIcon from "@/shared/icons/GoogleIcon";
 import { useId, useState, type FormEvent } from "react";
 import {
   SignInError,
@@ -164,7 +164,7 @@ export function LoginDialog({
                   disabled={busy}
                   sx={{ color: "text.secondary", mr: -0.5 }}
                 >
-                  <ArrowForwardRoundedIcon sx={{ fontSize: 20 }} />
+                  <ArrowRightIcon size={20} />
                 </IconButton>
               </InputAdornment>
             }
@@ -226,7 +226,7 @@ export function LoginDialog({
               variant="outlined"
               fullWidth
               disabled={busy}
-              startIcon={<Icon sx={{ fontSize: 18 }} />}
+              startIcon={<Icon size={18} />}
               onClick={() => leaveFor({ kind: "login", idpHint: alias })}
             >
               {label}

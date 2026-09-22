@@ -6,7 +6,8 @@ This app replaced the Create React App / webpack 4 front end that used to live
 here; nothing was carried over from it. See
 [codebase structure](codebase-structure.md) for how the source is organized,
 [the landing page](landing-page.md) for what is built so far, and
-[signing in](authentication.md) for the login dialog and its Keycloak flows.
+[signing in](authentication.md) for the login dialog and its Keycloak flows,
+and [icons](shared/icons.md) for how every icon is wrapped.
 
 ## Development with Docker Compose
 

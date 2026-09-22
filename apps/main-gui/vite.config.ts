@@ -17,10 +17,16 @@ const usePolling = process.env.VITE_WATCH_POLLING === "true";
 // VITE_-prefixed keys are exposed, so nothing else in it reaches the bundle.
 const envDir = fileURLToPath(new URL("../..", import.meta.url));
 
+// "@/x" means "src/x". Declared here and in tsconfig.json, which have to
+// agree: this one resolves the import, that one type-checks it.
+// vitest.config.ts merges this file, so the tests resolve it the same way.
+const srcDir = fileURLToPath(new URL("./src", import.meta.url));
+
 // tanstackRouter generates src/routeTree.gen.ts from src/routes, and has to
 // run before the React plugin so the generated tree is transformed too.
 export default defineConfig({
   envDir,
+  resolve: { alias: { "@": srcDir } },
   plugins: [
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),

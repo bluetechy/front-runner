@@ -1,4 +1,3 @@
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -7,6 +6,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useNavigate } from "@tanstack/react-router";
+import CheckCircleIcon from "@/shared/icons/CheckCircleIcon";
 import { useEffect, useState } from "react";
 import { useSession } from "../authentication";
 
@@ -93,7 +93,7 @@ export function SignedIn() {
         spacing={1.5}
         sx={{ alignItems: "center", color: "primary.light" }}
       >
-        <CheckCircleRoundedIcon />
+        <CheckCircleIcon size={26} />
         <Typography variant="h2" sx={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
           You are logged in
         </Typography>

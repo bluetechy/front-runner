@@ -1,4 +1,3 @@
-import React from 'react';
 import { render } from '@testing-library/react';
 import { Icon } from '@/shared/icons/Icon';
 import { twoHorizontal } from '@/shared/icons/glyphs';
@@ -15,7 +14,7 @@ describe('icons/Icon', () => {
 
 		const paths = container.querySelectorAll('path');
 		expect(paths).toHaveLength(twoHorizontal.children.length);
-		expect(paths[0]).toHaveAttribute('d', twoHorizontal.children[0].attribs.d);
+		expect(paths[0]).toHaveAttribute('d', twoHorizontal.children[0]!.attribs.d);
 	});
 
 	test('carries the glyph viewBox onto the svg', () => {

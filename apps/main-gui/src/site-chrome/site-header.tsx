@@ -1,4 +1,3 @@
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -8,6 +7,7 @@ import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
+import SearchIcon from "@/shared/icons/SearchIcon";
 import { useSession, useSignInPrompt } from "../authentication";
 
 const navItems = [
@@ -149,7 +149,7 @@ export function SiteHeader() {
                 "&:hover": { transform: "scale(1.06)" },
               }}
             >
-              <SearchRoundedIcon sx={{ fontSize: 19 }} />
+              <SearchIcon size={19} />
             </IconButton>
           </Stack>
         </Toolbar>

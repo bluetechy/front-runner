@@ -7,3 +7,9 @@ dist/
 coverage/
 .test-dist/
 .turbo/
+
+# Hand-authored in a different house style -- tabs, and spaces around the
+# colon in object literals -- consistently across the folder. Prettier would
+# rewrite every line of it, which would bury the next real diff. Delete this
+# entry and run `npm run format` if the repository style should win instead.
+apps/main-gui/src/shared/

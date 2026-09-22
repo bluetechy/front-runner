@@ -52,7 +52,7 @@ export const SvgIcon: React.FC<SvgIconProps> = ({ size, icon, title = null }) =>
 	const { children = [], viewBox, attribs : svgAttribs = {}} = icon;
 
 	const camelCasedAttribs = Object.keys(svgAttribs).reduce( (partial: Record<string, string>, key) => {
-		partial[camelcase(key)] = svgAttribs[key];
+		partial[camelcase(key)] = svgAttribs[key]!;
 		return partial;
 	}, {});
 

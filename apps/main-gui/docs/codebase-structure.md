@@ -23,6 +23,8 @@ src/
   landing/              the marketing landing page
   authentication/       the sign-in dialog, and who is signed in
   signed-in/            where a completed sign-in lands
+  shared/icons/         every icon, wrapping whatever library supplies it
+  shared/lib/           small predicates shared inside shared/
   coming-soon/          the placeholder the unbuilt routes render
 ```
 
@@ -44,6 +46,18 @@ leaking into each other.
 **Routes stay thin.** A route file declares the route and renders one thing from
 a vertical. Anything longer than that belongs in the vertical, not in
 `src/routes`.
+
+**No file outside `shared/icons` imports an icon library.** Every icon is a
+wrapper in that folder taking `{ color, size }`, so a page asks for
+`SearchIcon` and never learns whether it came from MUI, `react-icons`, or
+glyph data we hold ourselves. Swapping a library is then a change to one file
+per icon and to nothing else. See [icons](shared/icons.md) — it is a
+convention, not a suggestion, and `grep icons-material src` outside that
+folder should stay empty.
+
+`shared/` is the exception to naming folders for what the code does: it is
+named for who may use it. It is also the exception to the no-CSS-of-its-own
+rule below, in that it is exempt from Prettier — see the icons page.
 
 **Shared code becomes its own vertical.** `coming-soon/` exists because four
 routes need it. When a second page needs something the landing page owns, it
