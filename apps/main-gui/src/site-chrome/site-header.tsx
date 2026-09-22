@@ -8,7 +8,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import SearchIcon from "@/shared/icons/SearchIcon";
-import { useSession, useSignInPrompt } from "../authentication";
+import { useSession, useLoginPrompt } from "../authentication";
 
 const navItems = [
   { to: "/", label: "Home" },
@@ -19,8 +19,8 @@ const navItems = [
 ] as const;
 
 export function SiteHeader() {
-  const { status, identity, signOut } = useSession();
-  const signIn = useSignInPrompt();
+  const { status, identity, logout } = useSession();
+  const loginPrompt = useLoginPrompt();
 
   return (
     <AppBar>
@@ -102,7 +102,7 @@ export function SiteHeader() {
 
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             {/* "loading" is the moment a remembered session is being
-             * restored; showing "Sign In" through it would make an already
+             * restored; showing "Login" through it would make an already
              * signed-in visitor flicker as though they were not. */}
             {status === "signed-in" ? (
               <>
@@ -123,9 +123,9 @@ export function SiteHeader() {
                 <Button
                   variant="text"
                   disableRipple
-                  onClick={() => void signOut()}
+                  onClick={() => void logout()}
                 >
-                  Sign Out
+                  Logout
                 </Button>
               </>
             ) : (
@@ -133,9 +133,9 @@ export function SiteHeader() {
                 variant="text"
                 disableRipple
                 disabled={status === "loading"}
-                onClick={signIn.open}
+                onClick={loginPrompt.open}
               >
-                Sign In
+                Login
               </Button>
             )}
             <IconButton

@@ -99,7 +99,7 @@ flipping `enabled` is the whole activation — see
 src/authentication/
   keycloak.ts          every Keycloak URL and token-endpoint call
   session.tsx          SessionProvider / useSession: who is signed in
-  sign-in-prompt.tsx   the one dialog instance, and "offer it once per tab"
+  login-prompt.tsx     the one dialog instance, and "offer it once per tab"
   login-dialog.tsx     the mock-up's card
   storage.ts           localStorage/sessionStorage that cannot throw
 src/signed-in/         where a completed sign-in lands
@@ -109,7 +109,7 @@ src/routes/
 ```
 
 `SessionProvider` is in `main.tsx`, outside the router, because it is not a
-page. `SignInPromptProvider` is in `PageShell`, inside the router, because the
+page. `LoginPromptProvider` is in `PageShell`, inside the router, because the
 dialog navigates when a sign-in completes.
 
 ## Colour

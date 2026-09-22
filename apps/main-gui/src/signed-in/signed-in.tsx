@@ -29,7 +29,7 @@ interface Account {
 const ME = `query Me { me { UserUUID Name LoginName Email IsAdmin } }`;
 
 export function SignedIn() {
-  const { status, identity, getAccessToken, signOut } = useSession();
+  const { status, identity, getAccessToken, logout } = useSession();
   const navigate = useNavigate();
   const [account, setAccount] = useState<Account | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,8 +145,8 @@ export function SignedIn() {
       </Box>
 
       <Box sx={{ mt: 4 }}>
-        <Button variant="outlined" onClick={() => void signOut()}>
-          Sign out
+        <Button variant="outlined" onClick={() => void logout()}>
+          Logout
         </Button>
       </Box>
     </Container>

@@ -44,10 +44,10 @@ interface Session {
   /* A valid access token, refreshed first if it is about to expire. Null when
    * nobody is signed in. */
   getAccessToken: () => Promise<string | null>;
-  signIn: (email: string, password: string, remember: boolean) => Promise<void>;
+  login: (email: string, password: string, remember: boolean) => Promise<void>;
   /* Used by the redirect callback, which has already done the exchange. */
   adoptTokens: (tokens: TokenSet, remember: boolean) => void;
-  signOut: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -144,14 +144,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return inFlight.current;
   }, [apply, clear]);
 
-  const signIn = useCallback(
+  const login = useCallback(
     async (email: string, password: string, remember: boolean) => {
       apply(await signInWithPassword(email, password), remember);
     },
     [apply],
   );
 
-  const signOut = useCallback(async () => {
+  const logout = useCallback(async () => {
     const current = tokens.current;
     /* Cleared first, so the UI is signed out even if Keycloak is slow. */
     clear();
@@ -163,11 +163,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       status,
       identity,
       getAccessToken,
-      signIn,
+      login,
       adoptTokens: apply,
-      signOut,
+      logout,
     }),
-    [status, identity, getAccessToken, signIn, apply, signOut],
+    [status, identity, getAccessToken, login, apply, logout],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

@@ -1,12 +1,12 @@
 import Box from "@mui/material/Box";
 import type { ReactNode } from "react";
-import { SignInPromptProvider } from "../authentication";
+import { LoginPromptProvider } from "../authentication";
 import { SiteHeader } from "./site-header";
 
 /* The violet field and header every route is rendered inside. */
 export function PageShell({ children }: { children: ReactNode }) {
   return (
-    <SignInPromptProvider>
+    <LoginPromptProvider>
       <Box
         sx={{
           display: "flex",
@@ -23,6 +23,6 @@ export function PageShell({ children }: { children: ReactNode }) {
           {children}
         </Box>
       </Box>
-    </SignInPromptProvider>
+    </LoginPromptProvider>
   );
 }

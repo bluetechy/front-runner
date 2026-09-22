@@ -52,7 +52,7 @@ export function LoginDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { signIn } = useSession();
+  const { login } = useSession();
   const navigate = useNavigate();
   const titleId = useId();
   const emailId = useId();
@@ -70,7 +70,7 @@ export function LoginDialog({
     setError(null);
     setBusy(true);
     try {
-      await signIn(email.trim(), password, remember);
+      await login(email.trim(), password, remember);
       onClose();
       await navigate({ to: "/signed-in" });
     } catch (failure) {

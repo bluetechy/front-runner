@@ -5,7 +5,7 @@ import { read, write } from "./storage";
 
 /*
  * One sign-in dialog for the whole app, opened from anywhere. The header's
- * "Sign In" opens it, and so does the landing page on a first visit; without
+ * "Login" opens it, and so does the landing page on a first visit; without
  * a single owner they would be two dialogs that could both be on screen.
  *
  * This sits inside the router rather than beside it, because the dialog
@@ -17,7 +17,7 @@ import { read, write } from "./storage";
  * be taking that answer. */
 const OFFERED_KEY = "front-runner.sign-in-offered";
 
-interface SignInPrompt {
+interface LoginPrompt {
   open: () => void;
   /* Opens only if this tab has not offered the dialog unprompted before. */
   offerOnce: () => void;
@@ -25,9 +25,9 @@ interface SignInPrompt {
   isOpen: boolean;
 }
 
-const SignInPromptContext = createContext<SignInPrompt | null>(null);
+const LoginPromptContext = createContext<LoginPrompt | null>(null);
 
-export function SignInPromptProvider({ children }: { children: ReactNode }) {
+export function LoginPromptProvider({ children }: { children: ReactNode }) {
   const [isOpen, setOpen] = useState(false);
 
   const open = useCallback(() => setOpen(true), []);
@@ -45,18 +45,18 @@ export function SignInPromptProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SignInPromptContext value={value}>
+    <LoginPromptContext value={value}>
       {children}
       <LoginDialog open={isOpen} onClose={close} />
-    </SignInPromptContext>
+    </LoginPromptContext>
   );
 }
 
-export function useSignInPrompt(): SignInPrompt {
-  const prompt = use(SignInPromptContext);
+export function useLoginPrompt(): LoginPrompt {
+  const prompt = use(LoginPromptContext);
   if (!prompt)
     throw new Error(
-      "useSignInPrompt was called outside a <SignInPromptProvider>",
+      "useLoginPrompt was called outside a <LoginPromptProvider>",
     );
   return prompt;
 }
