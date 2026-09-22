@@ -1,9 +1,30 @@
 --
--- Thirteen users. "admin" is the one account GetUsers recognises as privileged,
--- and "dretired" is disabled so the IsEnabled filters have something to drop.
--- "testuser" is the account the login dialog is exercised with; it carries no
--- SubjectId, so dbo.ProvisionUser claims this row on its first sign-in
--- instead of making a second one beside it.
+-- THESE ARE TEST ACCOUNTS. Every row here is fake demo data for local
+-- development: the names, the @northwind.test addresses and the matching
+-- Keycloak passwords are all invented, none of them belongs to a real person,
+-- and none of them is used anywhere outside a developer's machine. They are
+-- committed so a clone comes up with something to sign in as. Nothing in this
+-- file should ever reach a real installation.
+--
+-- Sign in with any of them at http://localhost:5173. Passwords live in
+-- Keycloak, not here, and the convention there is that THE PASSWORD IS THE
+-- LOGIN NAME -- "jdoe" signs in with "jdoe". Either the login name or the
+-- email works in the dialog's Email box.
+--
+--   testuser   test.user@northwind.test   the account the login dialog is
+--                                         meant to be exercised with
+--   admin      support@northwind.test     the one account GetUsers treats
+--                                         as privileged
+--   dretired   dana.retired@northwind.test  disabled, so the IsEnabled
+--                                         filters have something to drop,
+--                                         and so a refused sign-in can be
+--                                         seen on purpose
+--
+-- Every row carries a fixed UUID and no SubjectId, so dbo.ProvisionUser
+-- claims the row on that account's first sign-in rather than creating a
+-- second one beside it. See apps/keycloak-idp/realm/front-runner-realm.json
+-- for the matching Keycloak accounts, which have to agree with the login
+-- names here for that claiming to work.
 --
 
 INSERT INTO "dbo"."Users" ("UserUUID", "Name", "LoginName", "Email", "IsAdmin", "IsEnabled", "CreatedBy") VALUES
