@@ -61,6 +61,27 @@ apps. The cost of the copy is one message arriving a moment later when they
 disagree — the form shows what the API said — and both ends carry the same
 test cases to make a drift visible.
 
+## Gender and date of birth
+
+Gender is a dropdown of four — Male, Female, Transgender, Not specified —
+stored as it is shown, the way `dbo.OrganizationInvitations."Status"` is, and
+held to those four by a check constraint on the column. "Not specified" is the
+default and is an answer rather than the absence of one, so every profile has
+a gender and the field is never empty.
+
+The date of birth is the one thing on the profile that can be **absent**
+rather than empty. Every text column reads an unanswered field as `''`, but
+there is no date that means "not given" — an epoch or a zero is a date
+somebody was born on — so the column is nullable and the API sends `null`.
+The form shows it as an empty date field and says it may be left that way.
+
+It travels as text, `1990-04-17`, rather than as a timestamp: a date that
+becomes a timestamp is midnight somewhere and the day before that somewhere
+else, and a birthday is the same day everywhere. `GetUserProfile` formats it
+on the way out and `SetUserProfile` parses it on the way in, where the 31st of
+February is refused with a sentence rather than the driver's complaint about
+input syntax.
+
 ## Two fields nobody here may edit
 
 **User name** and **Email** are shown, greyed, with a line saying where to

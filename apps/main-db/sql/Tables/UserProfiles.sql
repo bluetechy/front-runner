@@ -31,6 +31,16 @@ CREATE TABLE "dbo"."UserProfiles" (
     -- A BCP 47 tag ("en-US"), not a language's name in itself: what is stored
     -- has to survive the interface being translated.
     "Language" varchar(32) NOT NULL DEFAULT 'en-US',
+    -- Stored as it is shown, the way dbo.OrganizationInvitations."Status" is,
+    -- and constrained to the four the form offers. "Not specified" is the
+    -- default because a profile nobody has filled in has not declined to
+    -- answer -- it has not been asked.
+    "Gender" varchar(20) NOT NULL DEFAULT 'Not specified',
+    -- The one nullable answer on the table. Every text column here reads an
+    -- unanswered field as '', but there is no date that means "not given",
+    -- and picking one -- an epoch, a zero -- would be a date somebody was
+    -- born on. NULL is the honest one.
+    "BirthDate" date,
     "Phone" varchar(32) NOT NULL DEFAULT '',
     "Address" varchar(255) NOT NULL DEFAULT '',
     "Website" varchar(255) NOT NULL DEFAULT '',
@@ -45,5 +55,6 @@ CREATE TABLE "dbo"."UserProfiles" (
     "UpdatedAt" TIMESTAMPTZ,
     "UpdatedBy" varchar(64),
     -- One profile per account, and the key dbo.SetUserProfile upserts on.
-    CONSTRAINT "UserProfiles_UserUUID_UniqueKey" UNIQUE ("UserUUID")
+    CONSTRAINT "UserProfiles_UserUUID_UniqueKey" UNIQUE ("UserUUID"),
+    CONSTRAINT "UserProfiles_Gender_Check" CHECK ("Gender" IN ('Male', 'Female', 'Transgender', 'Not specified'))
 );

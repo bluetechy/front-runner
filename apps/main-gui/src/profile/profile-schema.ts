@@ -29,6 +29,17 @@ const tags = languages.map((language) => language.tag) as unknown as [
   ...string[],
 ];
 
+/* Stored as they are shown -- the column's check constraint holds these four
+ * and no others -- so the value and the label are the same string. "Not
+ * specified" is an answer rather than the absence of one, which is why the
+ * field has no empty case and every profile has a gender. */
+export const genders = [
+  "Male",
+  "Female",
+  "Transgender",
+  "Not specified",
+] as const;
+
 const optional = (schema: z.ZodType<string>) =>
   z.union([z.literal(""), schema]);
 
@@ -58,6 +69,38 @@ const address = (label: string, max = 255) =>
       ),
   );
 
+/* A day, written the way the API returns it. Empty is "not given"; a date is
+ * checked for being real -- the 31st of February parses as a string and is
+ * not a day -- and for having happened. The floor is there because a year
+ * typed as 19 or 199 is a slip rather than an answer. */
+const birthDate = optional(
+  z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Write the date as YYYY-MM-DD")
+    .refine((value) => {
+      const [year, month, day] = value.split("-").map(Number) as [
+        number,
+        number,
+        number,
+      ];
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return (
+        date.getUTCFullYear() === year &&
+        date.getUTCMonth() === month - 1 &&
+        date.getUTCDate() === day
+      );
+    }, "That is not a real date")
+    .refine(
+      (value) => value <= new Date().toISOString().slice(0, 10),
+      "A birth date cannot be in the future",
+    )
+    .refine(
+      (value) => value >= "1900-01-01",
+      "Check the year — that is before 1900",
+    ),
+);
+
 export const profileSchema = z.object({
   FirstName: text(64, "First name"),
   LastName: text(64, "Last name"),
@@ -65,6 +108,8 @@ export const profileSchema = z.object({
   Designation: text(64, "Designation"),
   Biography: text(2000, "Biographical info"),
   Language: z.enum(tags, { message: "Choose one of the languages offered" }),
+  Gender: z.enum(genders, { message: "Choose one of the options offered" }),
+  BirthDate: birthDate,
   Phone: phone,
   Address: text(255, "Address"),
   Website: address("Website"),

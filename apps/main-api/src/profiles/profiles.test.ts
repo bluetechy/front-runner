@@ -12,6 +12,8 @@ const valid: ProfileInput = {
   Designation: "Programme manager",
   Biography: "Runs the scoreboard.",
   Language: "en-US",
+  Gender: "Male",
+  BirthDate: "1990-04-17",
   Phone: "+1 555 0134",
   Address: "San Francisco, CA",
   Website: "marcus.example",
@@ -63,6 +65,8 @@ describe("the profile a caller may read and write", () => {
         "Programme manager",
         "Runs the scoreboard.",
         "en-US",
+        "Male",
+        "1990-04-17",
         "+1 555 0134",
         "San Francisco, CA",
         "marcus.example",
@@ -98,6 +102,7 @@ describe("what a profile is allowed to contain", () => {
       NickName: "",
       Designation: "",
       Biography: "",
+      BirthDate: "",
       Phone: "",
       Address: "",
       Website: "",
@@ -121,10 +126,30 @@ describe("what a profile is allowed to contain", () => {
     ["Github", "github com/marcus"],
     ["Phone", "no"],
     ["Language", "kl-KL"],
+    ["Gender", "Wizard"],
+    ["BirthDate", "17-04-1990"],
+    ["BirthDate", "2026-02-31"],
+    ["BirthDate", "3000-01-01"],
+    ["BirthDate", "1492-10-12"],
   ])("refuses %s when it is %j", (field, value) => {
     const result = profileSchema.safeParse({ ...valid, [field]: value });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toEqual([field]);
+  });
+
+  // "Not given" is a real answer for a date and there is no date that means
+  // it, so empty has to be allowed through to the NULL the column holds.
+  it("accepts a birth date left blank", () => {
+    expect(profileSchema.safeParse({ ...valid, BirthDate: "" }).success).toBe(
+      true,
+    );
+  });
+
+  it("accepts today, which is a day somebody was born on", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    expect(
+      profileSchema.safeParse({ ...valid, BirthDate: today }).success,
+    ).toBe(true);
   });
 
   it("refuses a preference that is not a yes or a no", () => {

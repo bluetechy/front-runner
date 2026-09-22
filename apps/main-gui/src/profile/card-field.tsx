@@ -79,7 +79,7 @@ export function CardField({
   /* Given, the field takes newlines and is at least that many rows tall,
    * growing rather than hiding the end of a long answer behind a scrollbar. */
   rows?: number;
-  type?: "text" | "email" | "tel" | "url";
+  type?: "text" | "email" | "tel" | "url" | "date";
   /* What is wrong with what is in it, from the same rules the API applies. */
   error?: string;
   /* Said under the field when nothing is wrong: what it is for, or who owns

@@ -20,6 +20,8 @@ CREATE FUNCTION "dbo"."GetUserProfile" (_LoginName varchar(64)) RETURNS TABLE(
     "Designation" varchar(64),
     "Biography" varchar(2000),
     "Language" varchar(32),
+    "Gender" varchar(20),
+    "BirthDate" varchar(10),
     "Phone" varchar(32),
     "Address" varchar(255),
     "Website" varchar(255),
@@ -40,6 +42,11 @@ CREATE FUNCTION "dbo"."GetUserProfile" (_LoginName varchar(64)) RETURNS TABLE(
             COALESCE("UserProfiles"."Designation", ''::varchar(64)),
             COALESCE("UserProfiles"."Biography", ''::varchar(2000)),
             COALESCE("UserProfiles"."Language", 'en-US'::varchar(32)),
+            COALESCE("UserProfiles"."Gender", 'Not specified'::varchar(20)),
+            -- As text, deliberately. A date crossing into a driver becomes a
+            -- timestamp at local midnight, which is the day before in half
+            -- the world; "1990-04-17" is the same day everywhere.
+            CAST(to_char("UserProfiles"."BirthDate", 'YYYY-MM-DD') AS varchar(10)),
             COALESCE("UserProfiles"."Phone", ''::varchar(32)),
             COALESCE("UserProfiles"."Address", ''::varchar(255)),
             COALESCE("UserProfiles"."Website", ''::varchar(255)),

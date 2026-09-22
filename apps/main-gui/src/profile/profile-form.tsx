@@ -14,6 +14,7 @@ import { CardField, FieldRow } from "./card-field";
 import { useProfile, type StoredProfile } from "./profile-api";
 import {
   errorsOf,
+  genders,
   languages,
   type FieldErrors,
   type Profile,
@@ -38,6 +39,8 @@ const EMPTY: Profile = {
   Designation: "",
   Biography: "",
   Language: languages[0].tag,
+  Gender: "Not specified",
+  BirthDate: "",
   Phone: "",
   Address: "",
   Website: "",
@@ -63,6 +66,9 @@ function seed(stored: StoredProfile, identity: Identity | null): Profile {
 
   return {
     ...profile,
+    /* Nobody has given one: the field is empty rather than absent, because
+     * that is what an input holds. */
+    BirthDate: profile.BirthDate ?? "",
     FirstName: profile.FirstName || (cut === -1 ? whole : whole.slice(0, cut)),
     LastName: profile.LastName || (cut === -1 ? "" : whole.slice(cut + 1)),
   };
@@ -147,6 +153,33 @@ export function ProfileForm({
                 label: language.label,
               }))}
               error={errors.Language}
+              loading={loading}
+            />
+          </FieldRow>
+          <FieldRow label="Gender" htmlFor="profile-gender">
+            <CardField
+              id="profile-gender"
+              value={form.Gender}
+              /* The select offers exactly these four, so the cast is saying
+               * what the control already guarantees -- and the schema checks
+               * it again on the way out regardless. */
+              onChange={(value) => set("Gender", value as Profile["Gender"])}
+              options={genders.map((gender) => ({
+                value: gender,
+                label: gender,
+              }))}
+              error={errors.Gender}
+              loading={loading}
+            />
+          </FieldRow>
+          <FieldRow label="Date of birth" htmlFor="profile-birth-date">
+            <CardField
+              id="profile-birth-date"
+              type="date"
+              value={form.BirthDate}
+              onChange={(value) => set("BirthDate", value)}
+              error={errors.BirthDate}
+              hint="Leave it empty if you would rather not say."
               loading={loading}
             />
           </FieldRow>

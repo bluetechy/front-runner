@@ -22,7 +22,7 @@ export class ProfilesService {
   // this can only ever write the signed-in account's own profile.
   async set(loginName: string, profile: ProfileInput) {
     const [saved] = await this.db.query<UserProfile>(
-      'SELECT * FROM dbo."SetUserProfile"($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)',
+      'SELECT * FROM dbo."SetUserProfile"($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)',
       [
         loginName,
         profile.FirstName,
@@ -31,6 +31,8 @@ export class ProfilesService {
         profile.Designation,
         profile.Biography,
         profile.Language,
+        profile.Gender,
+        profile.BirthDate,
         profile.Phone,
         profile.Address,
         profile.Website,

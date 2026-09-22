@@ -27,6 +27,13 @@ export class UserProfile {
   @Field(() => String)
   Language!: string;
   @Field(() => String)
+  Gender!: string;
+  // A day, as "1990-04-17", and null when nobody has given one. A String
+  // rather than GraphQLISODateTime on purpose: a date that becomes a
+  // timestamp is midnight somewhere, and the day before that somewhere else.
+  @Field(() => String, { nullable: true })
+  BirthDate!: string | null;
+  @Field(() => String)
   Phone!: string;
   @Field(() => String)
   Address!: string;
@@ -63,6 +70,12 @@ export class UserProfileInput {
   Biography!: string;
   @Field(() => String)
   Language!: string;
+  @Field(() => String)
+  Gender!: string;
+  // Empty means "not given"; the API's schema refuses anything that is not a
+  // real day in the past.
+  @Field(() => String)
+  BirthDate!: string;
   @Field(() => String)
   Phone!: string;
   @Field(() => String)

@@ -19,9 +19,11 @@ import { profileSchema, type Profile } from "./profile-schema";
  * which is what makes the rail change the moment the form is submitted.
  */
 
+/* Every field of it, in one place: the query and the mutation ask for the
+ * same selection, so a field added to the profile is added once here. */
 const PROFILE_FIELDS = `UserUUID FirstName LastName NickName Designation
-  Biography Language Phone Address Website Twitter Facebook LinkedIn Github
-  WantsAwardEmails WantsDigestEmails`;
+  Biography Language Gender BirthDate Phone Address Website Twitter Facebook
+  LinkedIn Github WantsAwardEmails WantsDigestEmails`;
 
 const READ = `query Profile { profile { ${PROFILE_FIELDS} } }`;
 
