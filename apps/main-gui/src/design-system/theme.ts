@@ -15,6 +15,16 @@ const accent = "#e34fc4";
 const accentStrong = "#e0349f";
 const accentDeep = "#8f3ce0";
 
+/*
+ * The wordmark's own fade. It is a lighter pair than the button's, because a
+ * logo is read rather than pressed and these are the two colours the supplied
+ * mock-up sets it in: 6.5:1 and 5.7:1 on the black chrome, 5.3:1 and 4.7:1 on
+ * the field behind the marketing header. The mark beside the word in the rail
+ * takes the magenta end, so the glyph and the word are one lockup.
+ */
+const logoPink = "#f04fb6";
+const logoViolet = "#c451ec";
+
 const displayFont = '"Playfair Display", Georgia, "Times New Roman", serif';
 const bodyFont =
   'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -50,24 +60,24 @@ const cardRule = "rgba(31, 5, 56, 0.12)";
 /*
  * The chrome behind the login: a rail down the left edge and a bar across the
  * top. They were two surfaces of their own once -- the rail the accent itself,
- * the bar the card's paper stretched across the window -- and they are one
- * surface now, the field's own violet, so the only lit thing in the chrome is
- * the page you are on.
+ * the bar the card's paper stretched across the window -- then one surface in
+ * the field's own violet, and they are black now: the chrome holds no colour
+ * at all, so the only lit thing in it is the page you are on.
  *
- * The bar is flat and the rail is that same violet sinking to the darkest one
- * at its foot: the two meet at the corner in one colour, and the rail has
- * pulled a shade below the field by the time it reaches the bottom of the
- * window.
+ * Both pieces are flat. The rail used to sink from the field's violet to the
+ * darkest one as it fell, which was how it pulled below the field by the foot
+ * of the window; there is nothing below black to sink to, so the fade is gone
+ * and the two pieces are one colour edge to edge.
  */
-const chrome = violet[900];
-const chromeRail = `linear-gradient(176deg, ${violet[900]}, ${violet[950]})`;
+const black = "#000000";
+const chrome = black;
+const chromeRail = black;
 
 /*
- * Everything written on the chrome is white, and the quieter half of it is
- * white held back rather than a grey of its own: 7.8:1 against the bar and
- * the top of the rail, 8.3:1 at the rail's foot. Both ends are far above the
- * 4.5:1 text needs, which is the point -- the rail deepens as it falls and
- * the writing on it must not go with it.
+ * Everything written on the chrome is white -- 21:1 on black -- and the
+ * quieter half of it is white held back rather than a grey of its own, at
+ * 8.8:1. Both are far above the 4.5:1 text needs, and the number no longer
+ * changes down the rail, because the surface under it no longer does.
  */
 const chromeInk = "#ffffff";
 const chromeLabel = "rgba(255, 255, 255, 0.66)";
@@ -83,8 +93,10 @@ const chromeField = "rgba(255, 255, 255, 0.08)";
  * painted with, with its magenta end taken down one step. A nav item is
  * written at 0.92rem, which needs 4.5:1; the button's own `accentStrong`
  * gives white 4.1:1 there and this gives 4.8:1, against 5.4:1 at the violet
- * end the fade runs to. The pill itself is 3.6:1 against the chrome, which is
- * the floor for something drawn rather than written.
+ * end the fade runs to. The pill itself is 4.4:1 against the black chrome at
+ * its magenta end and 3.9:1 at its violet end, both above the 3:1 floor for
+ * something drawn rather than written -- it reads brighter here than it did
+ * on the violet, which is the point of taking the colour out.
  */
 const accentPill = "#d1258f";
 const chromeSelected = `linear-gradient(95deg, ${accentPill}, ${accentDeep})`;
@@ -163,6 +175,10 @@ const brand = {
   /* The light the artwork appears to cast on the field behind it. */
   glow: `radial-gradient(circle, rgba(180, 70, 240, 0.5), transparent 70%)`,
   buttonGradient: `linear-gradient(95deg, ${accentStrong}, ${accentDeep})`,
+  /* The logo, wherever it is drawn: the word in the fade, the mark beside it
+   * in the fade's magenta end. */
+  logoGradient: `linear-gradient(92deg, ${logoPink}, ${logoViolet})`,
+  logoMark: logoPink,
   navText: "#d7c6ec",
   /* A panel raised off the field: the sign-in dialog, and whatever follows. */
   panel,
@@ -177,7 +193,8 @@ const brand = {
   cardInkMuted,
   cardRule,
   /* The chrome behind the login: the bar across the top, and the rail down
-   * the left edge that falls away from it. */
+   * the left edge. Two names for one black, because they are two pieces and
+   * a repaint may not want them to stay one. */
   chrome,
   chromeRail,
   chromeInk,

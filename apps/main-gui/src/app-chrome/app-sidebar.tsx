@@ -136,7 +136,10 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
           gap: 1.25,
           padding: "1.6rem 1.5rem 1.1rem",
           textDecoration: "none",
-          color: "common.white",
+          /* The mark takes this through `currentColor`; the word below paints
+           * over it with the fade the marketing header's logo wears, so the
+           * logo is the same logo on both sides of the login. */
+          color: (theme) => theme.palette.brand.logoMark,
         }}
       >
         <KpiIcon size={24} />
@@ -148,6 +151,9 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
             fontWeight: 700,
             fontSize: "1.3rem",
             letterSpacing: "0.01em",
+            backgroundImage: (theme) => theme.palette.brand.logoGradient,
+            backgroundClip: "text",
+            color: "transparent",
           }}
         >
           YourLogo
@@ -155,9 +161,17 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
       </Stack>
 
       {/* Whoever is signed in. The picture is their initials until there is
-       * somewhere to get a photograph from -- the token carries none. */}
+       * somewhere to get a photograph from -- the token carries none.
+       *
+       * The 1rem above it is on top of the logo's own 1.1rem below: a face and
+       * a wordmark sitting a line apart read as one block, and they are two. */}
       <Stack
-        sx={{ flexShrink: 0, alignItems: "center", paddingInline: "1.5rem" }}
+        sx={{
+          flexShrink: 0,
+          alignItems: "center",
+          paddingInline: "1.5rem",
+          paddingTop: "1rem",
+        }}
       >
         <InitialsAvatar
           name={name}
@@ -312,14 +326,14 @@ export function AppSidebar({
 }) {
   /* One set of paper styles for both drawers: the chrome, square at the edge
    * it is fixed to, and a hairline down the side the field is on -- the rail
-   * and the field are close enough in colour now that without it the two run
-   * together. A column, because the nav below the profile is the part that
-   * scrolls. */
+   * is black and the field is a dark violet, and they are close enough in
+   * weight that without it the two run together. A column, because the nav
+   * below the profile is the part that scrolls. */
   const paper: SxProps<Theme> = {
     width: RAIL_WIDTH,
     border: "none",
     borderRight: (theme) => `1px solid ${theme.palette.brand.chromeEdge}`,
-    backgroundImage: (theme) => theme.palette.brand.chromeRail,
+    backgroundColor: (theme) => theme.palette.brand.chromeRail,
     color: "common.white",
     display: "flex",
     flexDirection: "column",

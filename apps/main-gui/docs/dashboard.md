@@ -11,8 +11,8 @@ that were asked for:
 - the mock-up floats its navigation as an inset panel; here the rail is
   **fixed to the left edge** and runs the full height of the window
 - the rail is not the mock-up's blue — it was the **accent pink** at first,
-  and the rail and the top bar are both the **chrome's violet** now, so the
-  only coloured thing in the chrome is the page you are on
+  then the chrome's violet, and the rail and the top bar are both **black**
+  now, so the only coloured thing in the chrome is the page you are on
 - the cards are laid on this app's own field rather than on the mock-up's pale
   grey
 
@@ -89,13 +89,13 @@ them.
 Four surfaces, all of them from `theme.palette.brand`, and nothing on the page
 defines a colour of its own:
 
-| Surface             | Token                                    | What it is                               |
-| ------------------- | ---------------------------------------- | ---------------------------------------- |
-| the rail            | `chromeRail`, `chromeInk`, `chromeHover` | the field's violet, sinking as it falls  |
-| the top bar         | `chrome`, `chromeEdge`                   | the same violet, flat, across the top    |
-| the page you are on | `chromeSelected`                         | the button's fade, taken one step deeper |
-| behind the cards    | `field`                                  | the same field every page is on          |
-| a card              | `card`, `cardEdge`, `cardInk`            | the pricing card, exactly                |
+| Surface             | Token                                    | What it is                                 |
+| ------------------- | ---------------------------------------- | ------------------------------------------ |
+| the rail            | `chromeRail`, `chromeInk`, `chromeHover` | black, flat, the full height of the window |
+| the top bar         | `chrome`, `chromeEdge`                   | the same black, flat, across the top       |
+| the page you are on | `chromeSelected`                         | the button's fade, taken one step deeper   |
+| behind the cards    | `field`                                  | the same field every page is on            |
+| a card              | `card`, `cardEdge`, `cardInk`            | the pricing card, exactly                  |
 
 The rail and the bar are one surface in two pieces, and what may be written on
 each of the four is [the style guide](style-guide.md).

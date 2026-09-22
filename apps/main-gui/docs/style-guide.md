@@ -16,32 +16,35 @@ its own.** A literal hex outside `theme.ts` is a bug. See
 Every pixel in the product is on one of four surfaces, and which one it is
 decides what may be written on it.
 
-| Surface    | What it is                                          | Where                                                                | Token                              |
-| ---------- | --------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------- |
-| **Field**  | The deep violet everything is rendered on           | Behind every page, marketing and application both                    | `brand.field`                      |
-| **Chrome** | The rail and the top bar, one surface in two pieces | Behind the login only                                                | `brand.chrome`, `brand.chromeRail` |
-| **Card**   | White paper laid on the field                       | Dashboard cards, pricing plans, the menus and the notification panel | `brand.card`                       |
-| **Panel**  | A violet panel raised off the field                 | The sign-in dialog, and whatever follows it                          | `brand.panel`                      |
+| Surface    | What it is                                                 | Where                                                                | Token                              |
+| ---------- | ---------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------- |
+| **Field**  | The deep violet everything is rendered on                  | Behind every page, marketing and application both                    | `brand.field`                      |
+| **Chrome** | The rail and the top bar, black, one surface in two pieces | Behind the login only                                                | `brand.chrome`, `brand.chromeRail` |
+| **Card**   | White paper laid on the field                              | Dashboard cards, pricing plans, the menus and the notification panel | `brand.card`                       |
+| **Panel**  | A violet panel raised off the field                        | The sign-in dialog, and whatever follows it                          | `brand.panel`                      |
 
-The field and the chrome are the same family of violets, which is deliberate:
-the application is one dark room with white paper laid about in it. The card is
-the only light surface, and it is where the work is. Nothing is drawn in a
-fifth colour to mean "this is different" — it goes on card paper, or it goes on
-the field.
+The field is violet and the chrome is black, and everything on both of them is
+one dark room with white paper laid about in it. The chrome holding no colour
+at all is the end of a direction this app has been walking: the rail was the
+accent, then the field's own violet, and it is now the only surface in the
+product with no hue in it. Nothing is drawn in a fifth colour to mean "this is
+different" — it goes on card paper, or it goes on the field.
 
 ### The chrome
 
 The rail down the left edge and the bar across the top used to be two surfaces
-— the rail painted in the accent, the bar in the card's paper. They are one
-surface now:
+— the rail painted in the accent, the bar in the card's paper — and then one
+surface in the field's violet. They are **black** now:
 
-- the bar is flat `violet[900]`;
-- the rail is that same violet fading to `violet[950]` at its foot, so the two
-  meet at the corner in one colour and the rail has pulled a shade below the
-  field by the bottom of the window;
-- both carry a `brand.chromeEdge` hairline on the side the field is on, because
-  the rail and the field are close enough in colour that without it they run
-  together.
+- both pieces are flat `#000000`, so they meet at the corner in one colour and
+  stay one colour edge to edge;
+- the rail used to fade to `violet[950]` as it fell, which was how it pulled
+  below the field by the foot of the window. There is nothing below black to
+  fall to, so the fade is gone and `brand.chromeRail` is a colour rather than
+  a gradient;
+- both carry a `brand.chromeEdge` hairline on the side the field is on: black
+  and the field's violet are 1.2:1 apart, so the two run together without it.
+  The hairline is the only thing separating them.
 
 The point of taking the colour out of the chrome is that **the only lit thing
 in it is the page you are on.**
@@ -76,6 +79,13 @@ It is allowed on:
 `brand.chromeSelected` is the button's fade with its magenta end taken down one
 step — see [contrast](#contrast) for why it is not the same constant.
 
+The logo is the one thing wearing a fade that is not the accent's:
+`brand.logoGradient`, a lighter magenta-to-violet pair, painted through the
+word with `background-clip: text` and given to the mark beside it in the rail
+as `brand.logoMark`. It is the same in both places the logo appears — the
+marketing header and the top of the rail — because a logo that changes either
+side of a login is two logos.
+
 ## Teal, and faces
 
 `teal` `#1f9fb5` is the charts' third series and the fade a person's face is
@@ -102,20 +112,21 @@ argument.
 
 Measured, against the surface each sits on:
 
-| What                                             | Ratio         |
-| ------------------------------------------------ | ------------- |
-| White on the chrome (`violet[900]`)              | 17.1:1        |
-| White at the foot of the rail (`violet[950]`)    | 18.5:1        |
-| `chromeLabel` on the chrome / on the rail's foot | 7.8:1 / 8.3:1 |
-| White on the selected pill, magenta end          | 4.8:1         |
-| White on the selected pill, violet end           | 5.4:1         |
-| The selected pill against the chrome             | 3.6:1         |
-| White initials, light end of the avatar's fade   | 4.7:1         |
-| White initials, deep end of the avatar's fade    | 7.3:1         |
-| White on the teal toast (`toastSuccess`)         | 4.7:1         |
-| White on the pink toast (`toastFailure`)         | 4.8:1         |
-| `cardInk` on card paper                          | 18.5:1        |
-| `cardInkMuted` on card paper                     | 6.5:1         |
+| What                                           | Ratio         |
+| ---------------------------------------------- | ------------- |
+| White on the chrome (black)                    | 21:1          |
+| `chromeLabel` on the chrome                    | 8.8:1         |
+| White on the selected pill, magenta end        | 4.8:1         |
+| White on the selected pill, violet end         | 5.4:1         |
+| The selected pill against the chrome           | 4.4:1 / 3.9:1 |
+| White initials, light end of the avatar's fade | 4.7:1         |
+| White initials, deep end of the avatar's fade  | 7.3:1         |
+| White on the teal toast (`toastSuccess`)       | 4.7:1         |
+| White on the pink toast (`toastFailure`)       | 4.8:1         |
+| The logo's fade on the chrome, both ends       | 6.5:1 / 5.7:1 |
+| The logo's fade on the field, both ends        | 5.3:1 / 4.7:1 |
+| `cardInk` on card paper                        | 18.5:1        |
+| `cardInkMuted` on card paper                   | 6.5:1         |
 
 Three constants in the theme exist only because of this table, and each says so
 where it is defined:
@@ -124,6 +135,9 @@ where it is defined:
   4.5:1. The button's own `accentStrong` gives white 4.1:1 there, so the pill's
   fade starts one step deeper. The button keeps `accentStrong`: a contained
   button's label is heavier and larger, and the pair still reads as one family.
+  Against black the pill reads brighter than it did on the violet — 4.4:1 and
+  3.9:1 at its two ends, against 3.6:1 before — which is what taking the colour
+  out of the chrome buys.
 - **`tealLit` / `tealDeep`.** White on `teal` itself is 3.1:1. The initials
   inside an avatar are white, so the fade is drawn between the same hue taken
   down to 4.7:1 and to 7.3:1 instead, and the letters clear the floor at both

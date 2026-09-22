@@ -44,7 +44,7 @@ export function SiteHeader() {
               fontSize: "1.35rem",
               letterSpacing: "0.01em",
               textDecoration: "none",
-              backgroundImage: "linear-gradient(92deg, #f04fb6, #c451ec)",
+              backgroundImage: (theme) => theme.palette.brand.logoGradient,
               backgroundClip: "text",
               color: "transparent",
             }}
