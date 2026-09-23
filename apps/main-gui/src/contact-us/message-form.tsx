@@ -7,6 +7,7 @@ import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import { useId, useState, type FormEvent } from "react";
+import { CardSurface } from "../card-surface";
 import type { ToastTone } from "../toast";
 import { errorsOf, type FieldErrors, type Message } from "./message-schema";
 import { sendMessage } from "./send-message";
@@ -15,12 +16,13 @@ import { sendMessage } from "./send-message";
  * The form at the bottom of the contact page: who you are, where to reply,
  * and what you wanted to say.
  *
- * It is a panel raised off the field rather than white paper, so the fields
- * inside it are the theme's own -- the hollow the sign-in dialog's are cut
- * out of -- and it needs no colors of its own. The one thing it overrides is
- * the corner of the message box: the theme rounds an input to a pill, and a
- * pill cannot hold five lines of prose without the first and last of them
- * running into the curve.
+ * It is white paper on the field -- the same `CardSurface` the dashboard and
+ * the profile page are made of -- rather than a panel raised off it. Nothing
+ * inside it can be drawn in the app's usual white-on-violet, then: the fields
+ * carry the card's own ink, the card's rule for a border and the card's
+ * square-ish corners, the way a field on the profile page does. The theme's
+ * own field is a pill hollowed out of the dark sign-in panel, which on this
+ * paper is a white box on a white card with no edge to it.
  *
  * Nothing is announced until `sendMessage` has answered, the same rule the
  * profile form keeps: a form that says "sent" on the click has said it about
@@ -92,81 +94,75 @@ export function MessageForm({
   }
 
   return (
-    <Box
-      component="form"
-      onSubmit={submit}
-      noValidate
-      sx={{
-        padding: { xs: "1.75rem 1.5rem", sm: "2.25rem 2.5rem" },
-        borderRadius: "1.75rem",
-        backgroundColor: (theme) => theme.palette.brand.panel,
-        border: (theme) => `1px solid ${theme.palette.brand.panelEdge}`,
-        boxShadow: (theme) => theme.palette.brand.panelGlow,
-      }}
+    <CardSurface
+      sx={{ padding: { xs: "1.75rem 1.5rem", sm: "2.25rem 2.5rem" } }}
     >
-      <Grid container spacing={2.25}>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <Field
-            id={firstNameId}
-            label="First name"
-            autoComplete="given-name"
-            value={form.firstName}
-            onChange={(value) => set("firstName", value)}
-            error={errors.firstName}
-          />
+      <Box component="form" onSubmit={submit} noValidate>
+        <Grid container spacing={2.25}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Field
+              id={firstNameId}
+              label="First name"
+              autoComplete="given-name"
+              value={form.firstName}
+              onChange={(value) => set("firstName", value)}
+              error={errors.firstName}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Field
+              id={lastNameId}
+              label="Last name"
+              autoComplete="family-name"
+              value={form.lastName}
+              onChange={(value) => set("lastName", value)}
+              error={errors.lastName}
+            />
+          </Grid>
+          <Grid size={12}>
+            <Field
+              id={emailId}
+              label="Email"
+              type="email"
+              autoComplete="email"
+              placeholder="Where we should reply"
+              value={form.email}
+              onChange={(value) => set("email", value)}
+              error={errors.email}
+            />
+          </Grid>
+          <Grid size={12}>
+            <Field
+              id={commentsId}
+              label="Message"
+              rows={5}
+              placeholder="What you are trying to get people to do, and where you are up to"
+              value={form.comments}
+              onChange={(value) => set("comments", value)}
+              error={errors.comments}
+            />
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <Field
-            id={lastNameId}
-            label="Last name"
-            autoComplete="family-name"
-            value={form.lastName}
-            onChange={(value) => set("lastName", value)}
-            error={errors.lastName}
-          />
-        </Grid>
-        <Grid size={12}>
-          <Field
-            id={emailId}
-            label="Email"
-            type="email"
-            autoComplete="email"
-            placeholder="Where we should reply"
-            value={form.email}
-            onChange={(value) => set("email", value)}
-            error={errors.email}
-          />
-        </Grid>
-        <Grid size={12}>
-          <Field
-            id={commentsId}
-            label="Message"
-            rows={5}
-            placeholder="What you are trying to get people to do, and where you are up to"
-            value={form.comments}
-            onChange={(value) => set("comments", value)}
-            error={errors.comments}
-          />
-        </Grid>
-      </Grid>
 
-      <Button
-        type="submit"
-        variant="contained"
-        disabled={sending}
-        sx={{ mt: 3 }}
-        startIcon={
-          sending ? <CircularProgress size={16} color="inherit" /> : undefined
-        }
-      >
-        {sending ? "Sending…" : "Send message"}
-      </Button>
-    </Box>
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={sending}
+          sx={{ mt: 3 }}
+          startIcon={
+            sending ? <CircularProgress size={16} color="inherit" /> : undefined
+          }
+        >
+          {sending ? "Sending…" : "Send message"}
+        </Button>
+      </Box>
+    </CardSurface>
   );
 }
 
 /* One field of the form: the label above the control, the way the theme sets
- * every label, and what is wrong with it underneath. */
+ * every label, the control itself repainted for the card paper it is sitting
+ * on, and what is wrong with it underneath. */
 function Field({
   id,
   label,
@@ -192,7 +188,15 @@ function Field({
 }) {
   return (
     <FormControl fullWidth variant="outlined" error={error !== undefined}>
-      <InputLabel htmlFor={id}>{label}</InputLabel>
+      <InputLabel
+        htmlFor={id}
+        sx={{
+          color: (theme) => theme.palette.brand.cardInk,
+          "&.Mui-focused": { color: (theme) => theme.palette.brand.cardInk },
+        }}
+      >
+        {label}
+      </InputLabel>
       <OutlinedInput
         id={id}
         type={type}
@@ -204,24 +208,50 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-describedby={error === undefined ? undefined : `${id}-error`}
-        sx={
-          rows === undefined
-            ? undefined
-            : {
-                /* A pill cannot hold five lines: the first and the last of
-                 * them would run into the curve. */
-                borderRadius: "1.25rem",
-                padding: "0.85rem 1.3rem",
-              }
-        }
+        sx={{
+          /* Square-ish corners rather than the theme's pill, the way a field
+           * on the profile page's card is cut: a page of pills reads as a
+           * page of buttons, and a pill could not have held the five lines
+           * of the message box anyway. */
+          borderRadius: "0.7rem",
+          backgroundColor: (theme) => theme.palette.brand.card,
+          color: (theme) => theme.palette.brand.cardInk,
+          /* The card's own rule is 1.3:1 on its paper: enough to divide a
+           * card into sections, not enough to tell a field from the card it
+           * is cut into. So the outline is the card's muted ink, 6.5:1, and
+           * the hover takes it the rest of the way to the card's ink. */
+          "& fieldset": {
+            borderColor: (theme) => theme.palette.brand.cardInkMuted,
+          },
+          "&:hover fieldset": {
+            borderColor: (theme) => theme.palette.brand.cardInk,
+          },
+          "&.Mui-focused fieldset": { borderColor: "primary.main" },
+          "&.Mui-error fieldset": { borderColor: "error.main" },
+          /* The theme's placeholder is a violet for the dark panel's hollow,
+           * and it is 3.2:1 on this paper. The card's own muted ink is 6.5:1. */
+          "& .MuiInputBase-input::placeholder": {
+            color: (theme) => theme.palette.brand.cardInkMuted,
+            opacity: 1,
+          },
+          /* The theme pads the control itself, and MUI pads the root as well
+           * once a field is multiline. Left as it was, the message would be
+           * inset twice and start further in than the fields above it: the
+           * padding belongs to the control, so the root gives its up. */
+          ...(rows === undefined ? {} : { padding: 0 }),
+        }}
       />
       {error === undefined ? null : (
-        /* Material writes a helper line in `error.main`, which is 4.48:1 on
-         * the panel and just under what a 0.75rem sentence needs. The lighter
-         * end of the same red is 5.53:1 and still unmistakably a complaint.
-         * The outline around the field keeps `error.main`: it is drawn rather
-         * than written, so its floor is 3:1. */
-        <FormHelperText id={`${id}-error`} sx={{ color: "error.light" }}>
+        /* Material writes a helper line in `error.main`, which is 3.68:1 on
+         * card paper and under what a 0.75rem sentence needs. `brand.fall` is
+         * the red this app reads on white -- the figure that moved the wrong
+         * way is drawn in it -- and it is 5.39:1 here. The outline around the
+         * field keeps `error.main`: it is drawn rather than written, so its
+         * floor is 3:1 and it clears that. */
+        <FormHelperText
+          id={`${id}-error`}
+          sx={{ color: (theme) => theme.palette.brand.fall }}
+        >
           {error}
         </FormHelperText>
       )}

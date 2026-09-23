@@ -77,7 +77,7 @@ export function ContactUs() {
             variant="h2"
             sx={{ fontSize: "clamp(1.9rem, 3.6vw, 2.6rem)" }}
           >
-            Message us
+            Message Us
           </Typography>
           <Typography
             variant="body1"

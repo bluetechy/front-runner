@@ -66,21 +66,33 @@ surface where [the style guide](style-guide.md) has four. So:
   surface the pricing page's questions sit on, and the glyph inside it is
   `primary.light`, **4.86:1** against that panel, against the 3:1 a drawn
   thing needs;
-- the form is a panel raised off the field, so its fields are the theme's own
-  (the hollow the sign-in dialog's fields are cut out of) and it defines no
-  color of its own.
+- the form is **white paper on the field**, the same
+  [`CardSurface`](../src/card-surface/card-surface.tsx) the dashboard cards and
+  the profile form are made of, so nothing inside it is drawn in the page's
+  white-on-violet: the fields carry the card's own ink and the card's muted
+  ink for a placeholder, the way a field on
+  [the profile page](profile-page.md) does.
 
 The discs are deliberately **not** the accent's fade. What is being offered on
 this page is the button at the bottom of the form; if the three discs wore the
 fade as well, none of the four would be the accent.
 
-Two shapes are overridden, both with a reason in the file: the message box is
-`1.25rem` rather than the theme's `999px`, because a pill cannot hold five
-lines without the first and last running into the curve, and a field's error
-line is `error.light` rather than Material's `error.main`, which is 4.48:1 on
-the panel and just under what a 0.75rem sentence needs. The outline round the
-field keeps `error.main`, since it is drawn rather than written and its floor
-is 3:1.
+The form was a violet panel until the box was asked for white paper, and the
+fields followed the surface: the theme's own field is a pill hollowed out of
+the dark sign-in panel, which on this paper is a white box on a white card
+with no edge to it. So each field is `0.7rem` at the corner rather than the
+theme's `999px`, the way a profile field is cut (a page of pills reads as a
+page of buttons, and a pill could not have held the five lines of the message
+box anyway). A field is outlined in `brand.cardInkMuted` rather than in
+`brand.cardRule`, which the profile's fields use: the rule is **1.3:1** on
+card paper, which divides a card into sections but does not tell a field from
+the card it is cut into, and the muted ink is **6.5:1**. The hover takes that
+the rest of the way to `brand.cardInk`.
+
+A field's error line is `brand.fall` rather than Material's `error.main`,
+which is 3.68:1 on card paper and under what a 0.75rem sentence needs. `brand.fall` is the red this app already reads on white and is 5.39:1
+here. The outline round the field keeps `error.main`, since it is drawn rather
+than written and its floor is 3:1.
 
 ## Saying what happened
 
