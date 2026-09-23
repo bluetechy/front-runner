@@ -82,7 +82,7 @@ describe("what the bar holds", () => {
       ["About", "/about"],
       ["Features", "/features"],
       ["Pricing", "/pricing"],
-      ["Contact", "/contact"],
+      ["Contact", "/contact-us"],
     ] as const)
       expect(within(nav).getByRole("link", { name: label })).toHaveAttribute(
         "href",

@@ -134,7 +134,7 @@ describe("starting a plan", () => {
 
     expect(screen.getByRole("link", { name: "Contact sales" })).toHaveAttribute(
       "href",
-      "/contact",
+      "/contact-us",
     );
   });
 });

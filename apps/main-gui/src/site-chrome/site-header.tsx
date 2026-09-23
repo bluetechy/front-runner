@@ -15,7 +15,7 @@ const navItems = [
   { to: "/about", label: "About" },
   { to: "/features", label: "Features" },
   { to: "/pricing", label: "Pricing" },
-  { to: "/contact", label: "Contact" },
+  { to: "/contact-us", label: "Contact" },
 ] as const;
 
 export function SiteHeader() {

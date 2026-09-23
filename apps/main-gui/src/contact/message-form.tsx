@@ -68,7 +68,7 @@ export function MessageForm({
     setErrors(found);
     if (Object.keys(found).length > 0) {
       onNotice(
-        "Some fields need another look — see the messages on them.",
+        "Some fields need another look. See the messages on them.",
         "error",
       );
       return;
@@ -78,7 +78,7 @@ export function MessageForm({
     try {
       await sendMessage(form);
       setForm(EMPTY);
-      onNotice("Thank you — your message is with us.", "success");
+      onNotice("Thank you, your message is with us.", "success");
     } catch {
       /* Today there is nothing to fail. There will be, and when there is,
        * the address at the top of this page is the one that still works. */

@@ -24,7 +24,7 @@ import { audiences, percentOff, type AudienceId, type Billing } from "./plans";
  *
  * Every plan but Enterprise starts in the sign-in dialog, the same one the
  * header opens, because signing up is signing in for the first time.
- * Enterprise goes to /contact, since that plan is a conversation.
+ * Enterprise goes to /contact-us, since that plan is a conversation.
  */
 
 export function Pricing() {
@@ -171,7 +171,7 @@ export function Pricing() {
           <Button variant="contained" onClick={loginPrompt.open}>
             Start free
           </Button>
-          <Button variant="outlined" component={Link} to="/contact">
+          <Button variant="outlined" component={Link} to="/contact-us">
             Talk to us
           </Button>
         </Stack>

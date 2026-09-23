@@ -186,7 +186,7 @@ export function PlanCard({
         variant={plan.featured ? "contained" : "outlined"}
         fullWidth
         {...(plan.contactSales
-          ? { component: Link, to: "/contact" }
+          ? { component: Link, to: "/contact-us" }
           : { onClick: onChoose })}
         sx={{
           mt: 2.5,

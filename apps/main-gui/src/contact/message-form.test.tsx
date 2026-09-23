@@ -73,7 +73,7 @@ describe("sending a message", () => {
 
     await waitFor(() =>
       expect(onNotice).toHaveBeenCalledWith(
-        "Thank you — your message is with us.",
+        "Thank you, your message is with us.",
         "success",
       ),
     );
@@ -137,7 +137,7 @@ describe("a message that is not worth sending yet", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Tell us what you are after")).toBeInTheDocument();
     expect(onNotice).toHaveBeenCalledWith(
-      "Some fields need another look — see the messages on them.",
+      "Some fields need another look. See the messages on them.",
       "error",
     );
   });

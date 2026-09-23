@@ -63,15 +63,15 @@ enforces: nothing in the API or the database knows what a plan is yet.
 
 ## What is real and what is not
 
-| Piece                          | State                                                  |
-| ------------------------------ | ------------------------------------------------------ |
-| Layout, palette, type          | Real                                                   |
-| The segmented controls         | Real — local state, not in the URL                     |
-| Prices and the 20% discount    | Real arithmetic over the numbers in `plans.ts`         |
-| Which features sit where       | A first pass, to be argued about                       |
-| "Get started" and the rest     | Real — they open the sign-in dialog the header opens   |
-| "Contact sales" / "Talk to us" | Real links to `/contact`, which is still `coming-soon` |
-| The FAQ answers                | **Copy, not policy** — see below                       |
+| Piece                          | State                                                 |
+| ------------------------------ | ----------------------------------------------------- |
+| Layout, palette, type          | Real                                                  |
+| The segmented controls         | Real — local state, not in the URL                    |
+| Prices and the 20% discount    | Real arithmetic over the numbers in `plans.ts`        |
+| Which features sit where       | A first pass, to be argued about                      |
+| "Get started" and the rest     | Real — they open the sign-in dialog the header opens  |
+| "Contact sales" / "Talk to us" | Real links to `/contact-us`, which is now a real page |
+| The FAQ answers                | **Copy, not policy** — see below                      |
 
 Nothing bills. There is no subscription, no plan on an organization, no card
 on file, and no enforcement of a single limit named on this page. The FAQ

@@ -144,7 +144,7 @@ describe("the button on a card", () => {
       name: enterprise.callToAction,
     });
 
-    expect(link).toHaveAttribute("href", "/contact");
+    expect(link).toHaveAttribute("href", "/contact-us");
     expect(onChoose).not.toHaveBeenCalled();
   });
 });

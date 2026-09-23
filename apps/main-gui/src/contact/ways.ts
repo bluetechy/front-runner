@@ -2,11 +2,11 @@ import type { FC } from "react";
 import type IconProps from "@/shared/icons/IconProps";
 import LocationIcon from "@/shared/icons/LocationIcon";
 import MailIcon from "@/shared/icons/MailIcon";
-import MobileIcon from "@/shared/icons/MobileIcon";
+import PhoneIcon from "@/shared/icons/PhoneIcon";
 
 /*
- * The three ways to reach us: where we are, what to ring, and what to write
- * to. There is one of each -- one office, one number, one mailbox -- so this
+ * The three ways to reach us: what to ring, where we are, and what to write
+ * to. There is one of each -- one number, one office, one mailbox -- so this
  * is a tuple rather than a list somebody is expected to grow. A second number
  * under "Phone" is a second thing that has to be answered.
  *
@@ -22,7 +22,7 @@ export interface Way {
   /* What this way of reaching us is, written over the top of it. */
   heading: string;
   icon: FC<IconProps>;
-  /* The thing itself: the address, the number, the mailbox. The first line
+  /* The thing itself: the number, the address, the mailbox. The first line
    * is the one that carries the link, where there is one. */
   lines: readonly string[];
   /* Where pressing that first line goes -- a dialler, a mail client. An
@@ -34,21 +34,23 @@ export interface Way {
   note: string;
 }
 
+/* Ringing is the quickest of the three, so it is the one read first; the
+ * mailbox is last because it is the one that waits. */
 export const ways: readonly [Way, Way, Way] = [
+  {
+    id: "phone",
+    heading: "Phone",
+    icon: PhoneIcon,
+    lines: ["+1 (303) 555-0148"],
+    href: "tel:+13035550148",
+    note: "A person answers, weekdays 9am to 6pm Mountain time.",
+  },
   {
     id: "address",
     heading: "Address",
     icon: LocationIcon,
     lines: ["1180 Sherman Street", "Suite 410", "Denver, CO 80203"],
     note: "Open weekdays, 9am to 6pm Mountain time.",
-  },
-  {
-    id: "phone",
-    heading: "Phone",
-    icon: MobileIcon,
-    lines: ["+1 (303) 555-0148"],
-    href: "tel:+13035550148",
-    note: "A person answers, weekdays 9am to 6pm Mountain time.",
   },
   {
     id: "email",

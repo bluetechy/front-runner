@@ -86,7 +86,7 @@ describe("what the page says back", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(
-      await screen.findByText("Thank you — your message is with us."),
+      await screen.findByText("Thank you, your message is with us."),
     ).toBeInTheDocument();
     await waitFor(() => expect(sendMessage).toHaveBeenCalled());
   });

@@ -10,9 +10,9 @@ import { WayCard } from "./way-card";
 import { ways } from "./ways";
 
 /*
- * The contact page, at /contact. Its shape is the supplied page's: the three
- * ways to reach us across the top, then a message form with the reason to use
- * it written beside it rather than above it.
+ * The contact page, at /contact-us. Its shape is the supplied page's: the
+ * three ways to reach us across the top, then a message form with the reason
+ * to use it written beside it rather than above it.
  *
  * The colours are this app's. The supplied page bands the top half in teal
  * and paints the discs grey; here the three ways sit straight on the violet
@@ -50,7 +50,7 @@ export function Contact() {
           variant="body1"
           sx={{ maxWidth: "46ch", mt: 2, color: "text.secondary" }}
         >
-          One office, one number and one inbox — whichever you use, it reaches
+          One number, one office and one inbox. Whichever you use, it reaches
           the people who build this.
         </Typography>
       </Stack>
@@ -83,8 +83,8 @@ export function Contact() {
             variant="body1"
             sx={{ maxWidth: "40ch", mt: 2, color: "text.secondary" }}
           >
-            Tell us what you are trying to get people to do — a class, a team, a
-            customer programme — and we will say whether this does it, what it
+            Tell us what you are trying to get people to do (a class, a team, a
+            customer programme) and we will say whether this does it, what it
             would cost, and what moving an existing programme across would take.
           </Typography>
           {/* The same redirect the supplied page makes, pointed at the thing

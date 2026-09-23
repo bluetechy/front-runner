@@ -25,7 +25,7 @@ import { Route as AppTutorialsRouteImport } from './routes/_app.tutorials'
 import { Route as AppWalletRouteImport } from './routes/_app.wallet'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
-import { Route as SiteContactRouteImport } from './routes/_site.contact'
+import { Route as SiteContactUsRouteImport } from './routes/_site.contact-us'
 import { Route as SiteFeaturesRouteImport } from './routes/_site.features'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
 import { Route as SiteAuthCallbackRouteImport } from './routes/_site.auth.callback'
@@ -108,9 +108,9 @@ const SiteAboutRoute = SiteAboutRouteImport.update({
   path: '/about',
   getParentRoute: () => SiteRoute,
 } as any)
-const SiteContactRoute = SiteContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
+const SiteContactUsRoute = SiteContactUsRouteImport.update({
+  id: '/contact-us',
+  path: '/contact-us',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteFeaturesRoute = SiteFeaturesRouteImport.update({
@@ -144,7 +144,7 @@ export interface FileRoutesByFullPath {
   '/tutorials': typeof AppTutorialsRoute
   '/wallet': typeof AppWalletRoute
   '/about': typeof SiteAboutRoute
-  '/contact': typeof SiteContactRoute
+  '/contact-us': typeof SiteContactUsRoute
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
@@ -164,7 +164,7 @@ export interface FileRoutesByTo {
   '/tutorials': typeof AppTutorialsRoute
   '/wallet': typeof AppWalletRoute
   '/about': typeof SiteAboutRoute
-  '/contact': typeof SiteContactRoute
+  '/contact-us': typeof SiteContactUsRoute
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
@@ -186,7 +186,7 @@ export interface FileRoutesById {
   '/_app/tutorials': typeof AppTutorialsRoute
   '/_app/wallet': typeof AppWalletRoute
   '/_site/about': typeof SiteAboutRoute
-  '/_site/contact': typeof SiteContactRoute
+  '/_site/contact-us': typeof SiteContactUsRoute
   '/_site/features': typeof SiteFeaturesRoute
   '/_site/pricing': typeof SitePricingRoute
   '/_site/': typeof SiteIndexRoute
@@ -209,7 +209,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/wallet'
     | '/about'
-    | '/contact'
+    | '/contact-us'
     | '/features'
     | '/pricing'
     | '/auth/callback'
@@ -229,7 +229,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/wallet'
     | '/about'
-    | '/contact'
+    | '/contact-us'
     | '/features'
     | '/pricing'
     | '/auth/callback'
@@ -250,7 +250,7 @@ export interface FileRouteTypes {
     | '/_app/tutorials'
     | '/_app/wallet'
     | '/_site/about'
-    | '/_site/contact'
+    | '/_site/contact-us'
     | '/_site/features'
     | '/_site/pricing'
     | '/_site/'
@@ -376,11 +376,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteAboutRouteImport
       parentRoute: typeof SiteRoute
     }
-    '/_site/contact': {
-      id: '/_site/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof SiteContactRouteImport
+    '/_site/contact-us': {
+      id: '/_site/contact-us'
+      path: '/contact-us'
+      fullPath: '/contact-us'
+      preLoaderRoute: typeof SiteContactUsRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/features': {
@@ -441,7 +441,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface SiteRouteChildren {
   SiteAboutRoute: typeof SiteAboutRoute
-  SiteContactRoute: typeof SiteContactRoute
+  SiteContactUsRoute: typeof SiteContactUsRoute
   SiteFeaturesRoute: typeof SiteFeaturesRoute
   SitePricingRoute: typeof SitePricingRoute
   SiteIndexRoute: typeof SiteIndexRoute
@@ -450,7 +450,7 @@ interface SiteRouteChildren {
 
 const SiteRouteChildren: SiteRouteChildren = {
   SiteAboutRoute: SiteAboutRoute,
-  SiteContactRoute: SiteContactRoute,
+  SiteContactUsRoute: SiteContactUsRoute,
   SiteFeaturesRoute: SiteFeaturesRoute,
   SitePricingRoute: SitePricingRoute,
   SiteIndexRoute: SiteIndexRoute,

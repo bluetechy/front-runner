@@ -1,6 +1,6 @@
 # The contact page
 
-Lives in `src/contact` and renders at `/contact`. It replaced the
+Lives in `src/contact` and renders at `/contact-us`. It replaced the
 `coming-soon` placeholder the header had been linking to, and it is where the
 Enterprise plan's "Talk to us" button on
 [the pricing page](pricing-page.md) has always pointed.
@@ -17,8 +17,8 @@ by trying them:
 
 | What    | Placeholder                 | Why it is safe                                    |
 | ------- | --------------------------- | ------------------------------------------------- |
-| Address | 1180 Sherman Street, Denver | A suite number nobody occupies                    |
 | Phone   | +1 (303) 555-0148           | `555-01xx` is the block reserved for fiction      |
+| Address | 1180 Sherman Street, Denver | A suite number nobody occupies                    |
 | Email   | hello@yourlogo.example      | `.example` is a reserved TLD and resolves nowhere |
 
 They are one edit each, in one file, and all three have to be made before this
@@ -26,15 +26,20 @@ page is shown to anybody. `yourlogo` is the placeholder wordmark from
 `src/logo`; when that becomes a real name, the mailbox is the second place it
 has to change.
 
-There is one of each on purpose — one office, one number, one mailbox — so
+There is one of each on purpose (one number, one office, one mailbox), so
 `ways` is a tuple of three rather than a list. A second number under "Phone"
 is a second thing that has to be answered.
+
+They are read in the order `ways` lists them: **Phone, Address, Email**.
+Ringing is the quickest of the three and the mailbox is the one that waits, so
+that order is part of the page rather than an accident of the file, and
+`ways.test.ts` asserts it.
 
 ## Nothing is sent yet
 
 `send-message.ts` resolves having sent nothing. main-api has no mailbox behind
-this form — no mutation, no SMTP, no ticket — so the thank-you the form shows
-is the one thing on the page that is not true.
+this form: no mutation, no SMTP, no ticket, so the thank-you the form shows is
+the one thing on the page that is not true.
 
 It is a function of its own rather than a `fetch` written into the form so
 that there is exactly one place for that to stop being true. When main-api
@@ -44,7 +49,7 @@ neither has to be touched. Until then, the email address above the form is the
 only thing on the page that actually reaches anybody.
 
 The form's own rules are in `message-schema.ts` and are the only check there
-is — unlike `profile/profile-schema.ts`, which is a copy of something the API
+is, unlike `profile/profile-schema.ts`, which is a copy of something the API
 enforces as well. A first name and an address to reply to are required; a last
 name is not, because plenty of people have one name and a form that insists on
 two is asking them to invent one.
@@ -57,12 +62,12 @@ surface where [the style guide](style-guide.md) has four. So:
 
 - the three ways sit straight on the violet field, like every other section in
   the product;
-- each disc is `brand.panel` with a `brand.panelEdge` hairline — the same
-  surface the pricing page's questions sit on — and the glyph inside it is
+- each disc is `brand.panel` with a `brand.panelEdge` hairline, the same
+  surface the pricing page's questions sit on, and the glyph inside it is
   `primary.light`, **4.86:1** against that panel, against the 3:1 a drawn
   thing needs;
 - the form is a panel raised off the field, so its fields are the theme's own
-  — the hollow the sign-in dialog's fields are cut out of — and it defines no
+  (the hollow the sign-in dialog's fields are cut out of) and it defines no
   colour of its own.
 
 The discs are deliberately **not** the accent's fade. What is being offered on
@@ -74,8 +79,8 @@ Two shapes are overridden, both with a reason in the file: the message box is
 lines without the first and last running into the curve, and a field's error
 line is `error.light` rather than Material's `error.main`, which is 4.48:1 on
 the panel and just under what a 0.75rem sentence needs. The outline round the
-field keeps `error.main` — it is drawn rather than written, so its floor is
-3:1.
+field keeps `error.main`, since it is drawn rather than written and its floor
+is 3:1.
 
 ## Saying what happened
 
@@ -95,7 +100,7 @@ so under itself, and the corner says once that some of them do.
 - Replace the three placeholders in `ways.ts` with the real office, number and
   mailbox.
 - Give `send-message.ts` somewhere to send to, and decide what the reply to a
-  message is — an email, a ticket, a row somebody reads.
+  message is: an email, a ticket, a row somebody reads.
 - The copy beside the form is copy, not policy. "What it would cost" and
   "moving an existing programme across" are promises somebody has to be
   willing to keep.
