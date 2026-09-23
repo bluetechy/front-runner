@@ -3,10 +3,9 @@ import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
-import { RAIL_WIDTH } from "../app-chrome";
 import { useCookieConsent } from "./cookie-consent";
 import { CookiePreferences } from "./cookie-preferences";
 
@@ -140,16 +139,18 @@ function NoticeBar() {
 /*
  * The way back, once there is something to come back to.
  *
- * Behind the login the rail takes the bottom left corner from `lg` up, so the
- * pill steps past it there rather than sitting on the nav. Which shell is
- * drawn is the router's answer and not a guess: `_app` is the layout route
- * every page with a rail sits under.
+ * Bottom right, 1rem off both edges, on every page of both shells. It sat in
+ * the bottom left for a while and had to step past `RAIL_WIDTH` behind the
+ * login to keep off the nav; on this side there is nothing to step past, so
+ * the pill no longer knows which shell it is drawn in.
+ *
+ * The corner it is in now is the one a toast lands in, and the toast is the
+ * thing that moved: `toast.tsx` sits above this pill rather than over it,
+ * because a pill that is the only way back into the cookie choice cannot be
+ * covered up, however briefly.
  */
 function ReopenPill({ onClick }: { onClick: () => void }) {
   const { t } = useTranslation();
-  const railed = useRouterState({
-    select: (state) => state.matches.some((match) => match.routeId === "/_app"),
-  });
 
   return (
     <Button
@@ -158,9 +159,7 @@ function ReopenPill({ onClick }: { onClick: () => void }) {
       sx={{
         position: "fixed",
         bottom: "1rem",
-        left: railed
-          ? { xs: "1rem", lg: `calc(${RAIL_WIDTH}px + 1rem)` }
-          : "1rem",
+        right: "1rem",
         zIndex: (theme) => theme.zIndex.drawer + 2,
         padding: "0.4rem 1rem",
         borderRadius: 999,

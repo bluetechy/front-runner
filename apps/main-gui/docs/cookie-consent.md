@@ -115,14 +115,18 @@ arrives.
 
 What the bar becomes once it has been answered: the same panel, the same edge,
 `brand.navText` for the label, and the 999px radius every other pill has, at
-0.8rem. It sits 1rem off the bottom left corner.
+0.8rem. It sits 1rem off the bottom **right** corner, the same 1rem on every
+page of both shells.
 
-Bottom **left** because the toast owns the bottom right, and the two would
-otherwise land on each other for the six seconds a toast lasts. Behind the
-login the rail owns that corner from `lg` up, so the pill steps past
-`RAIL_WIDTH` there. That offset is the only thing in this vertical that knows
-another shell exists, and it reads the shell out of the router rather than
-guessing.
+It was bottom left for a while, for two reasons that both went away. The rail
+owns the bottom left behind the login from `lg` up, so the pill had to step
+past `RAIL_WIDTH` there, which made this vertical the only one that knew
+another shell existed; on the right there is nothing to step past, and the
+pill no longer asks the router anything. The other reason was the toast, which
+lands in that corner. The toast is what moved: `toast.tsx` stands 4rem off the
+bottom so it stacks above the pill rather than over it. A pill that is the
+only way back into the cookie choice cannot be covered up, however briefly,
+and of the two it is the one that is always there.
 
 ### The dialog
 
@@ -180,12 +184,13 @@ cookie-consent/
 ```
 
 The provider is in the root route rather than in `main.tsx` or in either
-shell. Not in a shell, because a visitor who answers on the pricing page has
-answered for the dashboard too, and asking from inside `_site` would ask again
-on the way through the login. Not in `main.tsx`, because the pill has to know
-which shell is drawn: behind the login the rail owns the corner it sits in, so
-it reads `_app` out of the router's matches and steps past `RAIL_WIDTH` from
-`lg` up.
+shell, so that one answer covers both: a visitor who answers on the pricing
+page has answered for the dashboard too, and asking from inside `_site` would
+ask again on the way through the login. It had a second reason until the pill
+moved corners. The pill used to read `_app` out of the router's matches and
+step past `RAIL_WIDTH` from `lg` up, which is the sort of thing only a route
+can do; on the right it is the same 1rem everywhere and knows nothing about
+shells.
 
 The record is `localStorage` rather than a cookie, through
 [`browser-storage`](../src/browser-storage/browser-storage.ts) so that a

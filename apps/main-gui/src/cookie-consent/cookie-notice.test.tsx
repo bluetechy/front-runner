@@ -1,7 +1,6 @@
 import { ThemeProvider } from "@mui/material/styles";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { RAIL_WIDTH } from "../app-chrome";
 import { theme } from "../design-system";
 import "../language/i18n";
 import { readDecision } from "./consent";
@@ -16,23 +15,17 @@ import { CookieNotice } from "./cookie-notice";
  * it, refusing is the same one press as accepting and drawn the same way,
  * and there is always a way back into the choice afterwards.
  *
- * The router is stubbed rather than stood up. `Link` is a route target the
- * notice does not own, and `useRouterState` is asked exactly one question --
- * "is the rail on this page?" -- so standing a whole router up would be
- * testing TanStack instead of this.
+ * The router is stubbed rather than stood up: `Link` is a route target the
+ * notice does not own, and standing a whole router up would be testing
+ * TanStack instead of this. The notice asked it one question once -- "is the
+ * rail on this page?" -- which it stopped needing when the pill moved to the
+ * other corner.
  */
-
-let routeIds: string[] = [];
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
-  useRouterState: <T,>({
-    select,
-  }: {
-    select: (state: { matches: { routeId: string }[] }) => T;
-  }) => select({ matches: routeIds.map((routeId) => ({ routeId })) }),
 }));
 
 function useFakeStorage() {
@@ -47,7 +40,6 @@ function useFakeStorage() {
 
 beforeEach(() => {
   useFakeStorage();
-  routeIds = ["__root__", "/_site", "/_site/pricing"];
 });
 
 const renderNotice = () =>
@@ -62,13 +54,6 @@ const renderNotice = () =>
 const bar = () => screen.getByRole("region", { name: "Cookies on this site" });
 const press = (label: string | RegExp) =>
   fireEvent.click(screen.getByRole("button", { name: label }));
-
-/* Everything Emotion has written into the document. The pill's offset only
- * exists inside a media query, which jsdom does not resolve. */
-const styleSheet = () =>
-  Array.from(document.querySelectorAll("style"))
-    .map((tag) => tag.textContent)
-    .join("");
 
 describe("the first visit", () => {
   it("asks, in words, before anything optional has run", () => {
@@ -201,24 +186,16 @@ describe("the way back, once it has been answered", () => {
     ).toBeNull();
   });
 
-  // Behind the login the rail owns the bottom left corner from `lg` up, so
-  // the pill steps past it there rather than sitting on the nav. Which shell
-  // is drawn is the router's answer and not a guess, which is the whole of
-  // what these two assert: the offset is read out of the stylesheet Emotion
-  // wrote, because jsdom resolves no media query and `toHaveStyle` would only
-  // ever see the narrow end of it.
-  it("sits in the corner itself on the marketing pages", () => {
+  // Bottom right, the same 1rem off both edges on every page of both shells.
+  // It was bottom left and stepped past the rail behind the login; on this
+  // side there is nothing to step past, so the offset is one number and the
+  // pill no longer asks the router which shell it is in.
+  it("sits in the bottom right corner, the same on every page", () => {
     renderNotice();
     press("Accept all");
 
-    expect(styleSheet()).not.toContain(`${RAIL_WIDTH}px`);
-  });
-
-  it("steps past the rail on the pages that have one", () => {
-    routeIds = ["__root__", "/_app", "/_app/dashboard"];
-    renderNotice();
-    press("Accept all");
-
-    expect(styleSheet()).toContain(`calc(${RAIL_WIDTH}px + 1rem)`);
+    expect(screen.getByRole("button", { name: "Cookie settings" })).toHaveStyle(
+      { position: "fixed", bottom: "1rem", right: "1rem" },
+    );
   });
 });

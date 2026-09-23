@@ -101,4 +101,17 @@ describe("saying something", () => {
       container.querySelector(".MuiSnackbar-anchorOriginBottomRight"),
     ).not.toBeNull();
   });
+
+  // The cookie pill is in that corner on every page of both shells, and it is
+  // the only way back into the cookie choice. The thing that is there for six
+  // seconds stacks above the thing that is always there.
+  it("stands off the bottom far enough to clear the cookie pill", () => {
+    const { container } = renderIn(
+      <Toast notice={notice("success")} onClose={vi.fn()} />,
+    );
+
+    expect(container.querySelector(".MuiSnackbar-root")).toHaveStyle({
+      bottom: "4rem",
+    });
+  });
 });

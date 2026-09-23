@@ -9,6 +9,11 @@ import Snackbar from "@mui/material/Snackbar";
  * when it is dismissed. One at a time: a page holds a single notice and
  * replacing it is what showing the next one means.
  *
+ * It sits a little higher than Material would put it, because the cookie
+ * pill is in that corner on every page of both shells. The pill is the only
+ * way back into the cookie choice, so the thing that is there for six seconds
+ * stacks above the thing that is always there rather than over it.
+ *
  * Three tones, and the two that matter are the two a save has: teal when it
  * saved, pink when it did not. `info` is neither -- it is the page saying
  * something nobody asked it to do anything about -- so it is the panel's own
@@ -42,6 +47,11 @@ export function Toast({
       autoHideDuration={6000}
       onClose={onClose}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      /* Clear of the cookie pill under it: 1rem off the bottom, a shade over
+       * 2rem tall, and a gap between the two. One number rather than a
+       * responsive pair, because Material moves this corner between 8px and
+       * 24px with the window and the pill does not move at all. */
+      sx={{ bottom: "4rem" }}
     >
       <Alert
         severity={tone}
