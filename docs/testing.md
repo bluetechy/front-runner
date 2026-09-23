@@ -143,9 +143,9 @@ main-api: tallies
 main-gui: pricing, routes
 ```
 
-Editing `contact/` runs `contact/` — a second or two — instead of the whole
-repository, and it does not compile main-api to find out that main-api is
-fine. The whole suite is about **22 seconds**; one slice of main-gui is about
+Editing `contact-us/` runs `contact-us/` — a second or two — instead of the
+whole repository, and it does not compile main-api to find out that main-api
+is fine. The whole suite is about **22 seconds**; one slice of main-gui is about
 **two**.
 
 ### What widens it
@@ -155,7 +155,7 @@ the run deliberately:
 
 | What changed                                                                              | What runs      |
 | ----------------------------------------------------------------------------------------- | -------------- |
-| A slice: `main-gui/src/contact`, `main-api/src/tallies`                                   | that slice     |
+| A slice: `main-gui/src/contact-us`, `main-api/src/tallies`                                | that slice     |
 | Something every slice draws on: the theme, `shared/`, main-api's infrastructure verticals | that whole app |
 | Anything outside `src/`: a config, a build script, the package                            | that whole app |
 | Anything at the root of the repository                                                    | every app      |

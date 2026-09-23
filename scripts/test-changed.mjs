@@ -10,7 +10,8 @@
  *
  * That is what this does. It asks git what changed, maps each file to the
  * slice that owns it, and runs each app's own test script over just those
- * slices. Editing `contact/` runs `contact/`; it does not compile main-api.
+ * slices. Editing `contact-us/` runs `contact-us/`; it does not compile
+ * main-api.
  *
  * Three kinds of change widen that, and each widening is deliberate:
  *

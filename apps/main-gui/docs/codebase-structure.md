@@ -23,7 +23,7 @@ src/
   app-chrome/           the shell the application renders inside: rail, top bar
   landing/              the marketing landing page
   pricing/              the plans, and the questions people ask about them
-  contact/              the ways to reach us, and the form that writes to us
+  contact-us/           the ways to reach us, and the form that writes to us
   authentication/       the sign-in dialog, and who is signed in
   browser-storage/      localStorage and sessionStorage, for browsers that refuse them
   language/             which language the interface is in, and i18next
@@ -73,7 +73,7 @@ inside it can break is bounded by the folder it was made in — and the tests
 worth running after that edit are the ones in the same folder.
 `npm run test:changed` is that sentence made into a command. It maps what git
 says changed onto the slices that own it and runs only those: editing
-`contact/` runs `contact/` in about two seconds rather than the whole
+`contact-us/` runs `contact-us/` in about two seconds rather than the whole
 repository in twenty-two, and it does not compile main-api to find out that
 main-api is fine. A change to something every slice draws on — the theme,
 `shared/` — widens to the whole app, because that is what "every slice draws

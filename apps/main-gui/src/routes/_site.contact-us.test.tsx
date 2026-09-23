@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Contact } from "../contact";
+import { ContactUs } from "../contact-us";
 import { Route } from "./_site.contact-us";
 
 /*
@@ -13,8 +13,8 @@ import { Route } from "./_site.contact-us";
  */
 
 describe("/contact-us", () => {
-  it("renders Contact, and nothing of its own", () => {
-    expect(Route.options.component).toBe(Contact);
+  it("renders ContactUs, and nothing of its own", () => {
+    expect(Route.options.component).toBe(ContactUs);
   });
 
   it("does nothing else on the way there", () => {

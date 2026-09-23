@@ -26,7 +26,7 @@ import { ways } from "./ways";
  * invented -- see `ways.ts` and docs/contact-page.md.
  */
 
-export function Contact() {
+export function ContactUs() {
   const [notice, setNotice] = useState<Notice | null>(null);
 
   const notify = useCallback(

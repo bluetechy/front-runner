@@ -1,6 +1,6 @@
 # The contact page
 
-Lives in `src/contact` and renders at `/contact-us`. It replaced the
+Lives in `src/contact-us` and renders at `/contact-us`. It replaced the
 `coming-soon` placeholder the header had been linking to, and it is where the
 Enterprise plan's "Talk to us" button on
 [the pricing page](pricing-page.md) has always pointed.

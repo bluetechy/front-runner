@@ -38,12 +38,12 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-const { Contact } = await import("./contact");
+const { ContactUs } = await import("./contact-us");
 
 const renderPage = () =>
   render(
     <ThemeProvider theme={theme}>
-      <Contact />
+      <ContactUs />
     </ThemeProvider>,
   );
 
