@@ -202,18 +202,34 @@ describe("what a row can be asked to do", () => {
     expect(onRemove).toHaveBeenCalledWith(work);
   });
 
+  // Whether anybody has read the address has nothing to do with whether it
+  // can be given up, so an unverified one carries a Delete like any other.
+  it("offers it on every address that is not the login, verified or not", () => {
+    renderList();
+
+    for (const shown of ["marcus.work@example.test", "marcus.new@example.test"])
+      expect(
+        screen.getByRole("button", { name: `Remove ${shown}` }),
+      ).toBeInTheDocument();
+  });
+
   // Removing it would leave an account whose login resolves to no address.
   // The button is absent rather than disabled, because there is nothing to do
-  // about it here except choose another primary first.
-  it("offers no Delete on the login address, and says that is what it is", () => {
+  // about it here except choose another primary first. A dash stands where it
+  // would have been, hidden from a screen reader, which the checked radio on
+  // the same row has already answered for.
+  it("offers no Delete on the login address, and leaves a dash there", () => {
     renderList();
 
     expect(
       screen.queryByRole("button", { name: "Remove marcus@example.test" }),
     ).toBeNull();
-    expect(screen.getByText("Sign-in address")).toBeInTheDocument();
+    expect(screen.getByText("\u2014")).toHaveAttribute("aria-hidden", "true");
   });
 
+  // The word became a glyph, so the name it is reachable by is the only thing
+  // left saying what it does: a button with no accessible name is a button
+  // nobody who cannot see it can press.
   it("offers another link only where one would do something", () => {
     renderList();
 

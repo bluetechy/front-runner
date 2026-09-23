@@ -95,14 +95,15 @@ export function VerifyEmail({ token }: { token: string | undefined }) {
       {state.name === "done" ? (
         <Body>
           {state.email} is now verified. You can make it the address you sign in
-          with from <Inline to="/security">Security &amp; Login</Inline>.
+          with from{" "}
+          <Inline to="/security-and-access">Security &amp; Access</Inline>.
         </Body>
       ) : null}
 
       {state.name === "failed" ? (
         <Body>
           {state.message} You can send yourself another link from{" "}
-          <Inline to="/security">Security &amp; Login</Inline>.
+          <Inline to="/security-and-access">Security &amp; Access</Inline>.
         </Body>
       ) : null}
     </Container>

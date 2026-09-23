@@ -101,7 +101,7 @@ describe("the page itself", () => {
     renderPage();
 
     expect(
-      screen.getByRole("heading", { name: "Security & Login" }),
+      screen.getByRole("heading", { name: "Security & Access" }),
     ).toBeInTheDocument();
   });
 

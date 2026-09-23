@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import LinkIcon from "@/shared/icons/LinkIcon";
 import TrashIcon from "@/shared/icons/TrashIcon";
 import { CardLabel } from "../card-surface";
 import { checkEmail } from "./email-schema";
@@ -36,6 +37,13 @@ import type { UserEmail } from "./email-api";
  * row already says what it is in Status and offers the link that fixes it in
  * Action.
  *
+ * The Action column is glyphs rather than words. Every row that is not
+ * verified offers the link again, and every row that is not the primary
+ * offers Delete, which is every row but one: the login cannot be removed,
+ * because an account whose login resolves to no address has no way back in.
+ * That row shows a dash where the others show a bin, since there is nothing
+ * for it to offer, and the radio beside it has already said why.
+ *
  * The last row is the one that adds an address: a field in the Email column,
  * nothing in Primary or Status because there is nothing known about an
  * address that does not exist yet, and Add in Action. It is a row rather than
@@ -47,6 +55,11 @@ import type { UserEmail } from "./email-api";
  * agree and three copies of a number is how they stop agreeing. Primary,
  * Status and Action are fixed and the address takes the rest. */
 const COLUMNS = { primary: "5rem", status: "7.5rem", action: "8rem" };
+
+/* Both row actions are a glyph and nothing else, so they are the same size or
+ * one of them reads as the more important of the two. Sixteen was a hairline
+ * at the end of a row somebody is scanning rather than reading. */
+const ACTION_ICON = 22;
 
 /* The head and every row draw the same four columns. Below `sm` they stack,
  * and the radio keeps a column of its own beside them rather than becoming a
@@ -108,9 +121,6 @@ export function EmailList({
               key={address.UserEmailUUID}
               address={address}
               busy={busyId === address.UserEmailUUID}
-              /* The last verified address cannot be given up: the primary is
-               * refused outright, and taking the only other verified one away
-               * would leave nothing that could ever become the login. */
               onRemove={() => onRemove(address)}
               onResend={() => onResend(address)}
             />
@@ -240,35 +250,42 @@ function EmailRow({
         {/* Only where it can do something. An address already verified has
          * nothing to prove, and the API refuses a second link for one. */}
         {address.IsVerified ? null : (
-          <Button
-            type="button"
-            variant="text"
-            disabled={busy}
-            onClick={onResend}
-            sx={{
-              fontFamily: "inherit",
-              fontStyle: "normal",
-              fontSize: "0.78rem",
-              color: "primary.main",
-              "&:hover": { textDecoration: "underline" },
-            }}
-          >
-            Send link
-          </Button>
+          <Tooltip title="Send link">
+            <Box component="span" sx={{ display: "inline-flex" }}>
+              <IconButton
+                aria-label="Send link"
+                disabled={busy}
+                onClick={onResend}
+                sx={{ color: "primary.main" }}
+              >
+                <LinkIcon color="currentColor" size={ACTION_ICON} />
+              </IconButton>
+            </Box>
+          </Tooltip>
         )}
 
-        {/* The primary has no Delete, because removing it would leave an
-         * account whose login resolves to no address. The API refuses it; the
-         * button is absent rather than disabled, because there is nothing to
-         * do about it here except choose another primary first. */}
+        {/* Delete on every row but the primary. Removing that one would leave
+         * an account whose login resolves to no address, and the API refuses
+         * it; the button is absent rather than disabled, because there is
+         * nothing to do about it here except choose another primary first. A
+         * dash stands where it would have been, so the column keeps its
+         * shape, and it is hidden from a screen reader because a dash read
+         * aloud is a word about nothing: the checked radio on the same row
+         * has already said what this address is. */}
         {address.IsPrimary ? (
           <Typography
+            aria-hidden
             sx={{
-              fontSize: "0.78rem",
+              /* As wide as the button it stands in for -- the glyph plus the
+               * padding Material puts round it -- so the dash lands under the
+               * bins above and below it rather than against the edge. */
+              width: `${ACTION_ICON + 16}px`,
+              textAlign: "center",
+              fontSize: "0.95rem",
               color: (theme) => theme.palette.brand.cardInkMuted,
             }}
           >
-            Sign-in address
+            &mdash;
           </Typography>
         ) : (
           <Tooltip title={`Remove ${address.Email}`}>
@@ -279,7 +296,7 @@ function EmailRow({
                 onClick={onRemove}
                 sx={{ color: (theme) => theme.palette.brand.fall }}
               >
-                <TrashIcon color="currentColor" size={16} />
+                <TrashIcon color="currentColor" size={ACTION_ICON} />
               </IconButton>
             </Box>
           </Tooltip>

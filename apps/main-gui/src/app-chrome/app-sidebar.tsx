@@ -58,7 +58,7 @@ type AppPath =
   | "/achievements"
   | "/certifications"
   | "/profile"
-  | "/security"
+  | "/security-and-access"
   | "/billing"
   | "/wallet"
   | "/settings"
@@ -98,7 +98,11 @@ const navGroups: readonly NavGroup[] = [
     label: "Account",
     items: [
       { label: "Profile", icon: ProfileIcon, to: "/profile" },
-      { label: "Security & Login", icon: SecurityIcon, to: "/security" },
+      {
+        label: "Security & Access",
+        icon: SecurityIcon,
+        to: "/security-and-access",
+      },
       { label: "Billing & Subscription", icon: BillingIcon, to: "/billing" },
       { label: "Payment Wallet", icon: WalletIcon, to: "/wallet" },
       { label: "Settings", icon: SettingsIcon, to: "/settings" },

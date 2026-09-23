@@ -119,6 +119,31 @@ black. It is now the same paper, the same ink and the same edge as every other
 field in the app, which is the one place the rule is visible as a change of
 surface rather than a change of border.
 
+## Switches
+
+Material draws a switch for a dark surface: a track at white 30% and a thumb
+barely off white. On card paper that is a control you have to already know is
+there, and **off** is the state that shows least of all, because it is the one
+nothing is drawn in.
+
+So a switch on card paper takes three constants, the same way a text box takes
+two:
+
+| Part              | Token                     | Ratio               |
+| ----------------- | ------------------------- | ------------------- |
+| The track, off    | `brand.cardSwitchTrack`   | 3.6:1 on card paper |
+| The track, on     | `brand.cardSwitchTrackOn` | 4.1:1 on card paper |
+| The thumb, either | `brand.cardSwitchThumb`   | the paper itself    |
+
+The thumb is the paper, so what says which end the switch is at is the thumb
+against the **track**, not against the card: 3.6:1 off and 4.1:1 on, both above
+the 3:1 something drawn rather than written needs. On is the accent, the same
+pink `primary.main` checks a radio in, because a switch that is on is a setting
+this account has taken up.
+
+A switch still says its state in a word beside it. Nothing in this product is
+said in color alone, and position is not a word.
+
 ## The accent, and what wears it
 
 The accent is a magenta-to-violet fade, `brand.buttonGradient`. It marks the
@@ -212,6 +237,8 @@ Measured, against the surface each sits on:
 | `fieldEdge` on the dark field                  | 4.0:1         |
 | `cardFieldEdge` on card paper                  | 6.5:1         |
 | `placeholder` on the dark field                | 4.9:1         |
+| `cardSwitchTrack` on card paper                | 3.6:1         |
+| `cardSwitchTrackOn` on card paper              | 4.1:1         |
 | **Verified** on its own teal tint              | 6.4:1         |
 | **Unverified** on its own pink tint            | 4.8:1         |
 | White on the panel                             | 16.5:1        |
@@ -221,7 +248,7 @@ Measured, against the surface each sits on:
 | `navText` on the panel (the cookie pill)       | 10.4:1        |
 | An outlined button's border on the panel       | 2.8:1         |
 
-Five constants in the theme exist only because of this table, and each says so
+Six constants in the theme exist only because of this table, and each says so
 where it is defined:
 
 - **`accentPill` `#d1258f`.** A nav item is written at 0.92rem, which needs
@@ -235,6 +262,10 @@ where it is defined:
   inside an avatar are white, so the fade is drawn between the same hue taken
   down to 4.7:1 and to 7.3:1 instead, and the letters clear the floor at both
   ends and everywhere between.
+- **`cardSwitchTrack` `#8f829c`.** The card's own ink taken halfway to the
+  paper. Material's off track is white at 30%, which on white paper is nothing
+  at all; this is the same ink at the point it reaches 3.6:1, which is what a
+  track and the white thumb on it both need.
 - **`amber` `#c77b14`.** The mock-up's `#f5a623` is 2.0:1 against card paper
   and unreadable; this is the same hue taken down until it is 3.4:1, which is
   what a white glyph on a disc needs.

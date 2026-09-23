@@ -19,7 +19,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppProfileRouteImport } from './routes/_app.profile'
 import { Route as AppScheduleRouteImport } from './routes/_app.schedule'
-import { Route as AppSecurityRouteImport } from './routes/_app.security'
+import { Route as AppSecurityAndAccessRouteImport } from './routes/_app.security-and-access'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppTutorialsRouteImport } from './routes/_app.tutorials'
 import { Route as AppWalletRouteImport } from './routes/_app.wallet'
@@ -80,9 +80,9 @@ const AppScheduleRoute = AppScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSecurityRoute = AppSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
+const AppSecurityAndAccessRoute = AppSecurityAndAccessRouteImport.update({
+  id: '/security-and-access',
+  path: '/security-and-access',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -151,7 +151,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AppNotificationsRoute
   '/profile': typeof AppProfileRoute
   '/schedule': typeof AppScheduleRoute
-  '/security': typeof AppSecurityRoute
+  '/security-and-access': typeof AppSecurityAndAccessRoute
   '/settings': typeof AppSettingsRoute
   '/tutorials': typeof AppTutorialsRoute
   '/wallet': typeof AppWalletRoute
@@ -173,7 +173,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AppNotificationsRoute
   '/profile': typeof AppProfileRoute
   '/schedule': typeof AppScheduleRoute
-  '/security': typeof AppSecurityRoute
+  '/security-and-access': typeof AppSecurityAndAccessRoute
   '/settings': typeof AppSettingsRoute
   '/tutorials': typeof AppTutorialsRoute
   '/wallet': typeof AppWalletRoute
@@ -197,7 +197,7 @@ export interface FileRoutesById {
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/schedule': typeof AppScheduleRoute
-  '/_app/security': typeof AppSecurityRoute
+  '/_app/security-and-access': typeof AppSecurityAndAccessRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tutorials': typeof AppTutorialsRoute
   '/_app/wallet': typeof AppWalletRoute
@@ -222,7 +222,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/schedule'
-    | '/security'
+    | '/security-and-access'
     | '/settings'
     | '/tutorials'
     | '/wallet'
@@ -244,7 +244,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/schedule'
-    | '/security'
+    | '/security-and-access'
     | '/settings'
     | '/tutorials'
     | '/wallet'
@@ -267,7 +267,7 @@ export interface FileRouteTypes {
     | '/_app/notifications'
     | '/_app/profile'
     | '/_app/schedule'
-    | '/_app/security'
+    | '/_app/security-and-access'
     | '/_app/settings'
     | '/_app/tutorials'
     | '/_app/wallet'
@@ -358,11 +358,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScheduleRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/security': {
-      id: '/_app/security'
-      path: '/security'
-      fullPath: '/security'
-      preLoaderRoute: typeof AppSecurityRouteImport
+    '/_app/security-and-access': {
+      id: '/_app/security-and-access'
+      path: '/security-and-access'
+      fullPath: '/security-and-access'
+      preLoaderRoute: typeof AppSecurityAndAccessRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -454,7 +454,7 @@ interface AppRouteChildren {
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScheduleRoute: typeof AppScheduleRoute
-  AppSecurityRoute: typeof AppSecurityRoute
+  AppSecurityAndAccessRoute: typeof AppSecurityAndAccessRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTutorialsRoute: typeof AppTutorialsRoute
   AppWalletRoute: typeof AppWalletRoute
@@ -469,7 +469,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppNotificationsRoute: AppNotificationsRoute,
   AppProfileRoute: AppProfileRoute,
   AppScheduleRoute: AppScheduleRoute,
-  AppSecurityRoute: AppSecurityRoute,
+  AppSecurityAndAccessRoute: AppSecurityAndAccessRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTutorialsRoute: AppTutorialsRoute,
   AppWalletRoute: AppWalletRoute,

@@ -168,9 +168,9 @@ describe("what it tells the reader", () => {
       renderPage();
 
       const link = await screen.findByRole("link", {
-        name: /Security & Login/,
+        name: /Security & Access/,
       });
-      expect(link).toHaveAttribute("href", "/security");
+      expect(link).toHaveAttribute("href", "/security-and-access");
     },
   );
 });

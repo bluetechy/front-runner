@@ -1,9 +1,14 @@
 # The security page
 
-Lives in `src/security` and renders at `/security`, which is Security & Login
-in the rail. What it holds today is the account's **email addresses**: which
-ones are on file, which one is the login, and which of them anybody has proved
-they can read. Passwords and sessions belong to Keycloak and are not here yet.
+Lives in `src/security` and renders at `/security-and-access`, which is
+Security & Access in the rail. What it holds today is the account's **email
+addresses**: which ones are on file, which one is the login, and which of them
+anybody has proved they can read. Passwords and sessions belong to Keycloak
+and are not here yet.
+
+The route was `/security` and the rail read Security & Login until both were
+renamed. The vertical kept its own name: `src/security` is the subject, not
+the URL.
 
 It replaced the "coming soon" placeholder that route used to render.
 
@@ -25,13 +30,28 @@ does not offer anything. The word is the whole message and the color only agrees
 it, which is the rule the rest of the product follows. See
 [text boxes and the pills beside them](style-guide.md#teal-and-faces).
 
-The Action column carries a Delete on every row but the primary, and a **Send
-link** on every row that is not verified yet. Neither appears where it could
-not do anything: the primary cannot be deleted, and a verified address has
-nothing left to prove.
+The Action column is **glyphs rather than words**: a bin to remove the address
+and a link to send the verification mail again, both at the same size, because
+two actions in one column at two sizes read as one important and one not.
+Each carries its name for anybody who cannot see it, Remove and Send link, and
+a tooltip that says the same thing to anybody who can.
+
+Neither appears where it could do nothing. **Delete is on every row but the
+primary**, whether or not anybody has verified it: reading the address has
+nothing to do with giving it up. The primary cannot be deleted, because an
+account whose login resolves to no address has no way back in, and a verified
+address has nothing left to prove, so it is offered no second link.
+
+The primary's row shows a **dash** where the others show a bin. It keeps the
+column's shape and says there is nothing here to press, and it is hidden from
+a screen reader, which the checked radio on the same row has already answered
+for. It said "Sign-in address" in words before, which was a third place the
+row said the same thing.
 
 The surface is `CardSurface`, the white card the dashboard, the profile and the
-wallet all use.
+wallet all use. The paragraph above the table runs the width of that card
+rather than stopping at a measure of its own: a line of prose capped well short
+of the table under it reads as a column that lost its second half.
 
 It is a grid rather than a `<table>`. Every row here is a form control and a
 label, and a grid keeps them in source order when the columns stack at `xs`.
@@ -132,10 +152,22 @@ list other people in your organizations read — `dbo.GetOrganizationMembers` an
 `dbo.SetOrganizationRole` return an empty `Email` for an account that has set
 it, and the name and login name stay.
 
-The copy says what it does and then says what it does not do: it does not
-remove the address from the account, from mail already sent, or from an
-administrator's reach. A security page is the last place to promise more than
-the query delivers.
+The word beside the switch is **Private** or **Public**, not On or Off. On
+says the switch moved; Private says what that did, and it is a state rather
+than an event. The paragraph explains the setting in those same two words, so
+the control and the copy are not describing it separately.
+
+That paragraph runs the width of the card, the way the one above the table
+does, and it is **one paragraph**, caveat included. The caveat used to sit on
+a line of its own, where on a card this wide it read as a footnote somebody
+else added rather than as part of the promise: what it does and what it does
+not do belong in the same breath. It does not remove the address from the
+account, from mail already sent, or from an administrator's reach, and a
+security page is the last place to promise more than the query delivers.
+
+The switch itself is repainted for the paper: Material draws it for a dark
+surface, and off is the state that shows least of all. Both ends come off
+`brand.cardSwitch*`. See [switches](style-guide.md#switches).
 
 It is stored on `dbo.UserProfiles."EmailIsPrivate"` and written by
 `dbo.SetUserEmailPrivacy`, which is a function of its own rather than a trip

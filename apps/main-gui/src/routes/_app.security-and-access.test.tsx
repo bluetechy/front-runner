@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { Security } from "../security";
-import { Route } from "./_app.security";
+import { Route } from "./_app.security-and-access";
 
 /*
- * /security, which is Security & Login in the rail.
+ * /security-and-access, which is Security & Access in the rail.
  *
  * A route file declares the route and renders one thing from a vertical;
  * anything longer belongs in the vertical (docs/codebase-structure.md). So
@@ -15,7 +15,7 @@ import { Route } from "./_app.security";
  * went in.
  */
 
-describe("/security", () => {
+describe("/security-and-access", () => {
   it("renders the security page", () => {
     expect(Route.options.component).toBe(Security);
   });

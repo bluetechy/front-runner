@@ -229,6 +229,36 @@ describe("a text box", () => {
   });
 });
 
+describe("the switch on card paper", () => {
+  /*
+   * Material draws this control for a dark surface: a track at white 30% and
+   * a thumb barely off white, which on this paper is a control you have to
+   * already know is there. Off is the state that has to carry itself, since
+   * it is the one nothing is drawn in.
+   */
+  it("reads against the paper in the off position", () => {
+    expect(contrast(brand.cardSwitchTrack, brand.card)).toBeGreaterThanOrEqual(
+      DRAWN,
+    );
+  });
+
+  // The thumb is the paper itself, so the thing that says which end the
+  // switch is at is the thumb against the track rather than against the card.
+  it("separates the thumb from the track at both ends", () => {
+    for (const track of [brand.cardSwitchTrack, brand.cardSwitchTrackOn])
+      expect(contrast(brand.cardSwitchThumb, track)).toBeGreaterThanOrEqual(
+        DRAWN,
+      );
+  });
+
+  // On is the accent, the same pink `primary.main` checks a radio in: the
+  // accent marks what is being offered, and a switch that is on is a setting
+  // this account has taken up.
+  it("takes the accent when it is on", () => {
+    expect(brand.cardSwitchTrackOn).toBe(theme.palette.primary.main);
+  });
+});
+
 describe("the pill a row wears to say what is known about it", () => {
   // Named for the state rather than for the color, the same way the
   // notification tints are: a token named for its color cannot be repainted.

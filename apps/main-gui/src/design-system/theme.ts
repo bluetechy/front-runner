@@ -88,6 +88,23 @@ const cardFieldEdge = cardInkMuted;
 const cardFieldEdgeHover = cardInk;
 
 /*
+ * The switch on card paper.
+ *
+ * Material's dark-palette switch is white held back: a track at white 30%
+ * and a thumb barely off white, which on this paper is a control you have to
+ * already know is there. Off is the state that has to carry itself, because
+ * it is the one nothing is drawn in, so the track is the card's own ink
+ * halfway to the paper: 3.6:1 on the card, and the thumb is the paper itself,
+ * so the two are 3.6:1 against each other as well. On is the accent
+ * `primary.main` checks a radio in, at 4.1:1. Both ends clear the 3:1
+ * something drawn rather than written needs, and the switch still says its
+ * state in a word beside it, because nothing here is said in color alone.
+ */
+const cardSwitchTrack = "#8f829c";
+const cardSwitchTrackOn = accentStrong;
+const cardSwitchThumb = card;
+
+/*
  * The one card on the page being pushed is the same paper with the accent
  * breathed onto it: the button's magenta at 9% over white. It takes no ink of
  * its own -- `cardInk` reads 16.3:1 on it against 18.5:1 on the white cards,
@@ -268,6 +285,10 @@ const brand = {
   /* The same edge as `fieldEdge`, on the other kind of surface. */
   cardFieldEdge,
   cardFieldEdgeHover,
+  /* The switch on that paper, which Material draws for a dark surface. */
+  cardSwitchTrack,
+  cardSwitchTrackOn,
+  cardSwitchThumb,
   /* The paper under the plan being pushed, and the badge beside its name. The
    * badge is painted in the nav pill's fade rather than the button's, for the
    * reason the nav pill is: it is small white text on the accent, and

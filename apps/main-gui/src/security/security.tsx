@@ -10,7 +10,8 @@ import { PrivacyCard } from "./privacy-card";
 import { useEmails, type UserEmail } from "./email-api";
 
 /*
- * The security page, at /security, which is Security & Login in the rail.
+ * The security page, at /security-and-access, which is Security & Access in
+ * the rail.
  *
  * What it holds today is the account's email addresses: which ones are on
  * file, which one is the login, and which of them anybody has proved they can
@@ -71,7 +72,7 @@ export function Security() {
           variant="h2"
           sx={{ fontSize: "clamp(1.6rem, 3vw, 2.1rem)" }}
         >
-          Security &amp; Login
+          Security &amp; Access
         </Typography>
         <Stack
           direction="row"
@@ -99,7 +100,7 @@ export function Security() {
             component="span"
             sx={{ fontSize: "inherit", color: "text.secondary" }}
           >
-            Security &amp; Login
+            Security &amp; Access
           </Typography>
         </Stack>
       </Stack>
@@ -118,11 +119,10 @@ export function Security() {
             mb: 1,
             fontSize: "0.82rem",
             lineHeight: 1.7,
-            maxWidth: "62ch",
             color: (theme) => theme.palette.brand.cardInkMuted,
           }}
         >
-          The address marked primary is the one you sign in with. An address has
+          The address marked primary is the one you login with. An address has
           to be verified before it can take that mark, so we send a link to
           every address you add and the link works once.
         </Typography>

@@ -52,16 +52,19 @@ export function PrivacyCard({
         >
           Keep my email addresses private
         </Typography>
+        {/* One paragraph rather than the two this would be written as
+         * elsewhere. The second was the caveat, and a caveat set apart on a
+         * line of its own in a card this wide reads as a footnote somebody
+         * else added: it belongs in the same breath as the promise it
+         * qualifies. */}
         <Muted>
           The members list in each of your organizations shows your name, your
-          user name and your email address to everybody else in it. Turn this on
-          and the address is left out of that list. Your name and user name
-          stay, so people still know who they are working with.
-        </Muted>
-        <Muted>
-          This changes what other members are shown. It does not remove your
-          address from this account, from mail we have already sent, or from an
-          administrator&rsquo;s reach.
+          user name and your email address to everybody else in it. Set this to
+          Private and the address is left out of that list; Public leaves it
+          there. Your name and user name stay either way, so people still know
+          who they are working with. Private only changes what other members are
+          shown: it does not remove your address from this account, from mail we
+          have already sent, or from an administrator&rsquo;s reach.
         </Muted>
       </Stack>
 
@@ -71,7 +74,9 @@ export function PrivacyCard({
       >
         {/* The word beside the switch, because a switch alone says its state
          * in position and color and this product says nothing in color
-         * alone. */}
+         * alone. Private and Public rather than On and Off: on tells you the
+         * switch moved, Private tells you what that did, and the paragraph
+         * beside it uses the same two words. */}
         <Typography
           component="span"
           aria-hidden
@@ -81,7 +86,7 @@ export function PrivacyCard({
             color: (theme) => theme.palette.brand.cardInkMuted,
           }}
         >
-          {isPrivate ? "On" : "Off"}
+          {isPrivate ? "Private" : "Public"}
         </Typography>
         <Switch
           checked={isPrivate}
@@ -89,6 +94,24 @@ export function PrivacyCard({
           onChange={(event) => onChange(event.target.checked)}
           slotProps={{
             input: { "aria-label": "Keep my email addresses private" },
+          }}
+          /* Material draws this one for a dark surface: a track at white 30%
+           * and a thumb barely off white, which on card paper is a control
+           * you have to already know is there, and off is the state that
+           * shows least of all. Both ends of it come off `brand.cardSwitch*`
+           * now, where the ratios are written down. */
+          sx={{
+            "& .MuiSwitch-track": {
+              opacity: 1,
+              backgroundColor: (theme) => theme.palette.brand.cardSwitchTrack,
+            },
+            "& .MuiSwitch-thumb": {
+              backgroundColor: (theme) => theme.palette.brand.cardSwitchThumb,
+            },
+            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+              opacity: 1,
+              backgroundColor: (theme) => theme.palette.brand.cardSwitchTrackOn,
+            },
           }}
         />
       </Stack>
@@ -103,7 +126,6 @@ function Muted({ children }: { children: React.ReactNode }) {
       sx={{
         fontSize: "0.82rem",
         lineHeight: 1.7,
-        maxWidth: "62ch",
         color: (theme) => theme.palette.brand.cardInkMuted,
       }}
     >

@@ -59,11 +59,11 @@ what they are here as — then the nav in three named groups. **Only the nav
 scrolls.** The block above it is fixed, so a short window or a longer list of
 groups scrolls the items and leaves the logo and the profile where they are.
 
-| Group     | Items                                                                           |
-| --------- | ------------------------------------------------------------------------------- |
-| Dashboard | **Command Center**, Schedule, Achievements, Certifications                      |
-| Account   | **Profile**, Security & Login, Billing & Subscription, Payment Wallet, Settings |
-| Support   | Tutorials, Customer Service                                                     |
+| Group     | Items                                                                            |
+| --------- | -------------------------------------------------------------------------------- |
+| Dashboard | **Command Center**, Schedule, Achievements, Certifications                       |
+| Account   | **Profile**, Security & Access, Billing & Subscription, Payment Wallet, Settings |
+| Support   | Tutorials, Customer Service                                                      |
 
 **Command Center** is this page and **Profile** is [its own](profile-page.md).
 The other nine are routes too, rendering `coming-soon`: they name the sections

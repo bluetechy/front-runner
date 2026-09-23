@@ -111,7 +111,7 @@ describe("the navigation", () => {
     ["Achievements", "/achievements"],
     ["Certifications", "/certifications"],
     ["Profile", "/profile"],
-    ["Security & Login", "/security"],
+    ["Security & Access", "/security-and-access"],
     ["Billing & Subscription", "/billing"],
     ["Payment Wallet", "/wallet"],
     ["Settings", "/settings"],
