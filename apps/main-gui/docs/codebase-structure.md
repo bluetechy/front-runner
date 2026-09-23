@@ -23,6 +23,7 @@ src/
   app-chrome/           the shell the application renders inside: rail, top bar
   landing/              the marketing landing page
   pricing/              the plans, and the questions people ask about them
+  contact/              the ways to reach us, and the form that writes to us
   authentication/       the sign-in dialog, and who is signed in
   browser-storage/      localStorage and sessionStorage, for browsers that refuse them
   language/             which language the interface is in, and i18next

@@ -1,39 +1,23 @@
-import { ThemeProvider } from "@mui/material/styles";
-import { render, screen } from "@testing-library/react";
-import { Suspense } from "react";
 import { describe, expect, it } from "vitest";
-import { theme } from "../design-system";
+import { Contact } from "../contact";
 import { Route } from "./_site.contact";
 
 /*
- * /contact — a page the rail or the header links to but that is not built yet.
+ * /contact — the three ways to reach us, and the form under them. It used to
+ * render the `coming-soon` placeholder.
  *
- * A route file declares the route and renders one thing; anything longer
- * belongs in a vertical (docs/codebase-structure.md). So what is asserted is
- * the one thing: that this URL leads to the placeholder, under the name the
- * link beside it uses. A link that goes nowhere is worse than no link, and a
- * placeholder titled after the wrong page is worse again.
- *
- * The router's plugin rewrites `component` into a lazily loaded one so that
- * each page is its own chunk, which is why this renders inside a `Suspense`
- * and waits rather than asserting on the first frame.
+ * A route file declares the route and renders one thing from a vertical;
+ * anything longer belongs in the vertical (docs/codebase-structure.md). So
+ * the whole of what this route promises is which component it is, and that it
+ * is that vertical's own rather than a copy of it.
  */
 
 describe("/contact", () => {
-  it("renders the placeholder, named for the page it stands in for", async () => {
-    const Page = Route.options.component!;
+  it("renders Contact, and nothing of its own", () => {
+    expect(Route.options.component).toBe(Contact);
+  });
 
-    render(
-      <ThemeProvider theme={theme}>
-        <Suspense fallback={null}>
-          <Page />
-        </Suspense>
-      </ThemeProvider>,
-    );
-
-    expect(
-      await screen.findByRole("heading", { name: "Contact" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/has not been built yet/)).toBeInTheDocument();
+  it("does nothing else on the way there", () => {
+    expect(Object.keys(Route.options)).toEqual(["component"]);
   });
 });

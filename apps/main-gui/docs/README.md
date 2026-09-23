@@ -5,7 +5,8 @@ Vite + React 19 + MUI 9 + TanStack Router, in TypeScript, running on
 This app replaced the Create React App / webpack 4 front end that used to live
 here; nothing was carried over from it. See
 [codebase structure](codebase-structure.md) for how the source is organized,
-[the landing page](landing-page.md) and [the pricing page](pricing-page.md)
+[the landing page](landing-page.md), [the pricing page](pricing-page.md) and
+[the contact page](contact-page.md)
 for what is built so far, [signing in](authentication.md) for the login dialog
 and its Keycloak flows, [the dashboard](dashboard.md),
 [the profile page](profile-page.md) and [the wallet page](wallet-page.md) for

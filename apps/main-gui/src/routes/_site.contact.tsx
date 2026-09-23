@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ComingSoon } from "../coming-soon";
+import { Contact } from "../contact";
 
-export const Route = createFileRoute("/_site/contact")({
-  component: () => <ComingSoon title="Contact" />,
-});
+export const Route = createFileRoute("/_site/contact")({ component: Contact });
