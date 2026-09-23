@@ -16,18 +16,13 @@ else, apart from the one control among them.
 **`YourLogo` is the wordmark from `src/logo` and `hello@yourlogo.example` is
 the same invented mailbox the contact page uses.** Nothing written on this
 page can reach a stranger, and nothing on it names a real company, because
-there is not one to name yet.
+there is not one to name yet. The controller, the mailbox and the office all
+have to become real before this page is shown to anybody outside the team, and
+that is the first item in
+[privacy and cookies: what is left](../../../docs/privacy-follow-ups.md),
+along with everything else this page and the cookie box still owe.
 
-Three things have to be true before this page is shown to anybody:
-
-| What           | Placeholder today          | What it has to become                       |
-| -------------- | -------------------------- | ------------------------------------------- |
-| The controller | `YourLogo`                 | The legal entity, by its registered name    |
-| The mailbox    | `hello@yourlogo.example`   | An address somebody reads                   |
-| The office     | The contact page's address | A real one, and the same one in both places |
-
-They are one edit each, in `sections.ts` and in `contact-us/ways.ts`. A
-privacy policy naming a company that does not exist is worse than no page at
+A privacy policy naming a company that does not exist is worse than no page at
 all, because it reads as a promise somebody made.
 
 ## Everything else on it is true
@@ -56,11 +51,10 @@ so there is exactly one of it.
 
 ## What is left
 
-- **It is in `en-US` only**, like every other marketing page. The cookie box
-  on top of it is translated, which is the odd pair: a notice in Spanish
-  linking to a policy in English. The whole marketing side moves together, or
-  this page goes first because it is the one somebody is entitled to read.
-- **Nothing links to it from the site's own navigation.** The header has five
-  items and none of them is this; the paths in are the cookie box, the pill in
-  the corner, and typing the URL. A footer is the usual answer and there is no
-  footer yet.
+The list is in
+[privacy and cookies: what is left](../../../docs/privacy-follow-ups.md). What
+touches this page: the placeholder identity above, that it is in `en-US` only
+while the box on top of it is translated, that nothing in the site's own
+navigation leads here, and the several places where what it promises is ahead
+of what the product can do (there is no way to delete an account yet, and no
+way to export one).

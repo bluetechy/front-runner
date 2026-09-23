@@ -139,6 +139,22 @@ On a volume created before Keycloak existed, its database has to be made once:
 
 - `make db-keycloak`
 
+## Privacy and cookies
+
+The site asks before anything optional runs: a notice across the foot of every
+page, a dialog with a switch per category behind it, and a pill in the corner
+that is the way back to the choice. Nothing optional is allowed until somebody
+answers, refusing is the same one press as accepting, and an answer stands for
+six months. How it is built is in
+[the cookie notice](apps/main-gui/docs/cookie-consent.md); what the site
+collects and why is [the privacy page](apps/main-gui/docs/privacy-page.md).
+
+**What both of them still owe is one list:
+[privacy and cookies: what is left](docs/privacy-follow-ups.md).** The company
+named in the policy is still the placeholder wordmark, the fonts still come
+from Google on every visit, and the consent this keeps cannot yet be proved to
+anybody. Read it before showing the site to somebody outside the team.
+
 ## Database
 
 The schema is built once, when the container first starts on an empty volume.

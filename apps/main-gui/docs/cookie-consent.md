@@ -113,22 +113,22 @@ component that has lost its provider loads nothing instead of everything.
 
 ## What this does not do yet
 
+Four things, and the list of them with the work written out is
+[privacy and cookies: what is left](../../../docs/privacy-follow-ups.md).
+The two that matter:
+
 - **It cannot prove anything.** The record is in the visitor's own browser, so
   they can edit it and it leaves with their site data. Demonstrating consent
   under Article 7(1) means a row on a server with a timestamp against it, and
   that is main-api's to grow.
-- **Google Fonts is still a third party watching every visit.** `index.html`
-  fetches Inter and Playfair Display from `fonts.googleapis.com`, which tells
-  Google the visitor's address before anybody has agreed to anything. It is
-  named in [the privacy policy](privacy-page.md) because it is true, but the
-  fix is to serve the two faces ourselves, and that fix is the one thing on
-  this page that would change the compliance picture most.
-- **The bar sits over the foot of the page** rather than pushing the content
-  up. Everything is still reachable by scrolling, and the bar goes as soon as
-  it is answered.
-- **A second tab does not hear about it.** A choice made in one tab reaches
-  another when that one is reloaded, the same bargain
-  [`language`](language.md) makes.
+- **Google Fonts is still a third party watching every visit**, from
+  `index.html`, before this box has asked anything and where no gate can reach
+  it. Serving the two faces ourselves is the single change that would most
+  improve the compliance picture.
+
+The other two are smaller: the bar sits over the foot of the page rather than
+pushing it up, and a choice made in one tab reaches another only when that one
+is reloaded, the same bargain [`language`](language.md) makes.
 
 ## The words
 
