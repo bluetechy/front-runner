@@ -111,6 +111,11 @@ describe("the page itself", () => {
     expect(
       screen.getByRole("heading", { name: "Email Addresses" }),
     ).toBeInTheDocument();
+    // Two cards, headed the same way: the switch's own block carries no
+    // heading of its own any more.
+    expect(
+      screen.getByRole("heading", { name: "Email Privacy" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("switch", { name: "Keep my email addresses private" }),
     ).toBeInTheDocument();

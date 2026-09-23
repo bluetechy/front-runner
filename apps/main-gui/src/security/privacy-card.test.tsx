@@ -90,6 +90,21 @@ describe("the switch", () => {
     });
   });
 
+  // It sits on the card's title line, opposite EMAIL PRIVACY and centered
+  // against it, rather than floating above the paragraph: the heading names
+  // the setting and the control is the answer to it, so the two belong on one
+  // line. That is what CardSurface's `action` row is.
+  it("sits on the title line, opposite the heading", () => {
+    renderCard();
+
+    const row = screen.getByRole("heading", {
+      name: "Email Privacy",
+    }).parentElement!;
+
+    expect(row).toContainElement(screen.getByRole("switch"));
+    expect(row).toHaveStyle({ alignItems: "center" });
+  });
+
   it("reports what it was moved to rather than changing anything itself", () => {
     renderCard({ isPrivate: false });
 
@@ -108,12 +123,13 @@ describe("the switch", () => {
     ).toBeDisabled();
   });
 
-  // The heading and the paragraph are a great deal easier to hit than a
-  // 34-pixel track, so the whole block is the control's label.
+  // The paragraph is a great deal easier to hit than a 34-pixel track, so the
+  // whole block is the control's label. The heading is the card's now, which
+  // is outside this component and therefore outside the label.
   it("can be hit anywhere on the block, not only on the track", () => {
     renderCard();
 
-    fireEvent.click(screen.getByText("Keep my email addresses private"));
+    fireEvent.click(screen.getByText(/members list/i));
 
     expect(onChange).toHaveBeenCalledWith(true);
   });
@@ -132,8 +148,19 @@ describe("what the block says it does", () => {
     renderCard();
 
     const copy = screen.getByText(/members list/i);
-    expect(copy.textContent).toMatch(/Set this to Private/);
-    expect(copy.textContent).toMatch(/Public leaves it there/);
+    expect(copy.textContent).toMatch(/Private/);
+    expect(copy.textContent).toMatch(/Set this to Public/);
+  });
+
+  // Private is what the account was given at creation rather than something
+  // to go and find, and the copy has to say so: somebody reading this should
+  // learn they are already withheld, not wonder whether they are.
+  it("says the addresses are private to begin with", () => {
+    renderCard();
+
+    expect(
+      screen.getByText(/addresses are Private to begin with/i),
+    ).toBeInTheDocument();
   });
 
   // One paragraph, the caveat included: set apart on its own line it reads as
@@ -142,7 +169,7 @@ describe("what the block says it does", () => {
     renderCard();
 
     const copy = screen.getByText(/members list/i);
-    expect(copy.textContent).toMatch(/does not remove your address/i);
+    expect(copy.textContent).toMatch(/does not remove your email address/i);
   });
 
   it("says the name and user name stay", () => {
@@ -156,7 +183,7 @@ describe("what the block says it does", () => {
   it("says plainly what it does not do", () => {
     renderCard();
 
-    const caveat = screen.getByText(/does not remove your address/i);
+    const caveat = screen.getByText(/does not remove your email address/i);
     expect(caveat).toBeInTheDocument();
     expect(caveat.textContent).toMatch(/already sent/i);
     expect(caveat.textContent).toMatch(/administrator/i);

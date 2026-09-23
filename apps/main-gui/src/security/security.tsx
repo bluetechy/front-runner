@@ -177,28 +177,34 @@ export function Security() {
         />
       </CardSurface>
 
-      <CardSurface sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}>
-        <PrivacyCard
-          isPrivate={isPrivate}
-          busy={savingPrivacy || loading}
-          onChange={(next) => {
-            setSavingPrivacy(true);
-            setPrivacy(next)
-              .then((saved) =>
-                setNotice({
-                  message: saved
-                    ? "Your address is now hidden from the members list."
-                    : "Your address is shown in the members list again.",
-                  tone: "success",
-                }),
-              )
-              .catch((failure: unknown) =>
-                report(failure, "The setting was not saved."),
-              )
-              .finally(() => setSavingPrivacy(false));
-          }}
-        />
-      </CardSurface>
+      {/* The only card the page does not draw itself: the switch sits on the
+       * card's title line, opposite EMAIL PRIVACY, so the card and the
+       * control are one component. The space between the two cards is still
+       * the page's to set. */}
+      <PrivacyCard
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+        isPrivate={isPrivate}
+        busy={savingPrivacy || loading}
+        onChange={(next) => {
+          setSavingPrivacy(true);
+          setPrivacy(next)
+            .then((saved) =>
+              setNotice({
+                /* Neither sentence says "again". Public is the state somebody
+                 * opts into, so for most accounts this is the first time the
+                 * address has been in that list at all. */
+                message: saved
+                  ? "Your address is now hidden from the members list."
+                  : "Your address is now shown in the members list.",
+                tone: "success",
+              }),
+            )
+            .catch((failure: unknown) =>
+              report(failure, "The setting was not saved."),
+            )
+            .finally(() => setSavingPrivacy(false));
+        }}
+      />
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
     </>
