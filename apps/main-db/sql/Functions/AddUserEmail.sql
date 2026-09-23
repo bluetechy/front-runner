@@ -71,7 +71,7 @@ CREATE FUNCTION "dbo"."AddUserEmail" (
             SELECT 1 FROM "dbo"."UserEmails"
             WHERE "UserEmails"."Email" = _NormalizedEmail
         ) THEN
-            RAISE EXCEPTION 'That address is already on an account.';
+            RAISE EXCEPTION 'That email address is already on an account.';
         END IF;
 
         INSERT INTO "dbo"."UserEmails" (

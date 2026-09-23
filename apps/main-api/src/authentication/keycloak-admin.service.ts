@@ -85,7 +85,7 @@ export class KeycloakAdminService {
     // act on rather than a generic failure.
     if (response.status === 409)
       throw new InternalServerErrorException(
-        "The identity provider already has that address on another account",
+        "The identity provider already has that email address on another account",
       );
 
     // The token may have been revoked rather than merely expired, and a stale

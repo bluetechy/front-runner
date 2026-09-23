@@ -76,7 +76,7 @@ describe("the request it sends", () => {
   it("carries no Authorization header, because there may be no session", async () => {
     answering("marcus.work@example.test");
     renderPage();
-    await screen.findByRole("heading", { name: "Address confirmed" });
+    await screen.findByRole("heading", { name: "Email address confirmed" });
 
     const headers = fetchMock.mock.calls[0]![1].headers as Record<
       string,
@@ -88,7 +88,7 @@ describe("the request it sends", () => {
   it("sends the token from the URL and nothing else", async () => {
     answering("marcus.work@example.test");
     renderPage();
-    await screen.findByRole("heading", { name: "Address confirmed" });
+    await screen.findByRole("heading", { name: "Email address confirmed" });
 
     expect(bodyOf().variables).toEqual({ token: TOKEN });
     expect(bodyOf().query).toContain("verifyEmail");
@@ -98,7 +98,7 @@ describe("the request it sends", () => {
   it("spends the token once even when its effect runs again", async () => {
     answering("marcus.work@example.test");
     const { rerender } = renderPage();
-    await screen.findByRole("heading", { name: "Address confirmed" });
+    await screen.findByRole("heading", { name: "Email address confirmed" });
 
     rerender(
       <ThemeProvider theme={theme}>

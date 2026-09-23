@@ -102,7 +102,7 @@ export function useEmails() {
       if (body.errors?.length) throw new Error(body.errors[0]!.message);
       const [result] = Object.values(body.data ?? {});
       if (result === undefined || result === null)
-        throw new Error("The API returned no addresses.");
+        throw new Error("The API returned no email addresses.");
       return result;
     },
     [getAccessToken],

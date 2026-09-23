@@ -368,7 +368,7 @@ function AddRow({
           if (problem) setProblem(null);
         }}
         error={problem !== null}
-        helperText={problem ?? "Add another address you read mail at"}
+        helperText={problem ?? "Add another email address."}
         placeholder="you@example.com"
         slotProps={{ htmlInput: { "aria-label": "Add an email address" } }}
         sx={{

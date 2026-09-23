@@ -53,7 +53,7 @@ CREATE FUNCTION "dbo"."ResendUserEmailVerification" (
             RAISE EXCEPTION 'Action cannot be performed.';
         END IF;
         IF _VerifiedAt IS NOT NULL THEN
-            RAISE EXCEPTION 'That address is already verified.';
+            RAISE EXCEPTION 'That email address is already verified.';
         END IF;
 
         UPDATE "dbo"."UserEmails" SET

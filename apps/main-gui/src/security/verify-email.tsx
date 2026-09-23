@@ -33,7 +33,7 @@ export function VerifyEmail({ token }: { token: string | undefined }) {
       : {
           name: "failed",
           message:
-            "This link is missing its token. Open the link from the email rather than typing the address.",
+            "This link is missing its token. Open the link from the email rather than typing the email address.",
         },
   );
 
@@ -88,14 +88,14 @@ export function VerifyEmail({ token }: { token: string | undefined }) {
         {state.name === "working"
           ? "Checking your link…"
           : state.name === "done"
-            ? "Address confirmed"
+            ? "Email address confirmed"
             : "That link did not work"}
       </Typography>
 
       {state.name === "done" ? (
         <Body>
-          {state.email} is now verified. You can make it the address you login
-          with from{" "}
+          {state.email} is now verified. You can make it the email address you
+          login with from{" "}
           <Inline to="/security-and-access">Security &amp; Access</Inline>.
         </Body>
       ) : null}

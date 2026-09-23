@@ -198,7 +198,9 @@ describe("choosing the address somebody signs in with", () => {
 
   it("passes the API's own refusal on rather than a sentence of its own", async () => {
     setPrimary.mockRejectedValue(
-      new Error("An address has to be verified before you can login with it."),
+      new Error(
+        "An email address has to be verified before you can login with it.",
+      ),
     );
     renderPage();
 
@@ -232,7 +234,9 @@ describe("adding an address", () => {
   });
 
   it("says what went wrong when the API refuses", async () => {
-    add.mockRejectedValue(new Error("That address is already on an account."));
+    add.mockRejectedValue(
+      new Error("That email address is already on an account."),
+    );
     renderPage();
 
     fireEvent.change(screen.getByLabelText("Add an email address"), {

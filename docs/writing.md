@@ -126,6 +126,29 @@ copy, the pricing page and the sign-in dialog's own messages still say "sign
 in" in places; they are being cleared as those files are touched, the same way
 the em dash rule is.
 
+## Email address, not address
+
+**Say "email address" every time.** Not "address", not "the address marked
+primary", not "another address you read mail at". The word on its own means a
+street on the profile page and in `dbo.UserProfiles`, and a security page that
+says it about mail is asking the reader to work out which one is meant.
+
+It is repetitive on purpose. A paragraph that names the thing twice reads a
+little heavier than one that says "an address has to be verified"; it also
+cannot be misread, which is worth more on the page that holds somebody's
+login. Where a third mention in one breath is too much, refer back to it
+("every one you add") rather than shortening it to the bare noun.
+
+`address` stays in identifiers and in data: the `address` variable in
+`email-list.tsx`, `Addresses` in the GraphQL model, and the `"Address"` column
+on `dbo.UserProfiles`. This is the same carve out the spelling rule makes, and
+for the same reason.
+
+Copy that a reader sees was swept in September 2026: the security page, the
+verification mail, the messages `dbo.AddUserEmail`, `dbo.RemoveUserEmail`,
+`dbo.SetPrimaryUserEmail` and `dbo.ResendUserEmailVerification` raise, and the
+identity provider's refusal.
+
 ## Enforcement
 
 None, today. `npm run lint` checks formatting, JavaScript and that every source

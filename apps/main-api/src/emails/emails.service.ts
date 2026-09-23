@@ -169,21 +169,21 @@ export class EmailsService {
       // full in the text part: a bare "click here" is useless in a client
       // that shows no markup.
       text: [
-        "Somebody added this address to a Front Runner account.",
+        "Somebody added this email address to a Front Runner account.",
         "",
         "Confirm it by opening this link:",
         link,
         "",
         "The link works once and stops working after 24 hours.",
         "",
-        "If this was not you, you can ignore this message. The address will",
-        "not be used until somebody confirms it.",
+        "If this was not you, you can ignore this message. The email",
+        "address will not be used until somebody confirms it.",
       ].join("\n"),
       html: [
-        "<p>Somebody added this address to a Front Runner account.</p>",
+        "<p>Somebody added this email address to a Front Runner account.</p>",
         `<p><a href="${link}">Confirm this email address</a></p>`,
         "<p>The link works once and stops working after 24 hours.</p>",
-        "<p>If this was not you, you can ignore this message. The address will not be used until somebody confirms it.</p>",
+        "<p>If this was not you, you can ignore this message. The email address will not be used until somebody confirms it.</p>",
       ].join(""),
     });
   }

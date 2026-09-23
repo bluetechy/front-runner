@@ -40,7 +40,7 @@ CREATE FUNCTION "dbo"."RemoveUserEmail" (
             RAISE EXCEPTION 'Action cannot be performed.';
         END IF;
         IF _IsPrimary THEN
-            RAISE EXCEPTION 'The primary address cannot be removed. Make another address primary first.';
+            RAISE EXCEPTION 'The primary email address cannot be removed. Make another email address primary first.';
         END IF;
 
         DELETE FROM "dbo"."UserEmails"

@@ -174,6 +174,6 @@ describe("when Keycloak does not cooperate", () => {
 
     await expect(
       service.setEmail("subject-marcus", "marcus.work@example.test"),
-    ).rejects.toThrow("already has that address");
+    ).rejects.toThrow("already has that email address");
   });
 });

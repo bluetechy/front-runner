@@ -40,12 +40,13 @@ spelling out what an example settles. It is `@username` whoever is reading it:
 the example stands for the shape of a mention, and the field directly under it
 is where this account's own name is.
 
-It says **two ways in**, the name or the email address marked primary,
-because the realm has `loginWithEmailAllowed` and Keycloak holds exactly one
-address per account. Saying only "your email address" would have been an
-invitation to try one of the others and be refused. The copy says "email
-address" every time rather than "address", which on the profile page is a
-street.
+It says **two ways in**, the name or the email address marked primary, because
+the realm has `loginWithEmailAllowed` and Keycloak holds exactly one address
+per account. Saying only "your email address" would have been an invitation to
+try one of the others and be refused. The copy says "email address" every time
+rather than "address", which on the profile page is a street. That holds
+across the whole page now, and across the messages behind it: see [email
+address, not address](../../../docs/writing.md#email-address-not-address).
 
 The value comes off the **token**, not the API. `useSession` already holds
 what Keycloak said at login, and a page that only reads a value has nothing to

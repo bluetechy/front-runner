@@ -67,7 +67,7 @@ export function Security() {
       await run();
       setNotice({ message: done, tone: "success" });
     } catch (failure: unknown) {
-      report(failure, "The address list was not changed.");
+      report(failure, "The email address list was not changed.");
     } finally {
       setBusyId(null);
     }
@@ -138,9 +138,9 @@ export function Security() {
             color: (theme) => theme.palette.brand.cardInkMuted,
           }}
         >
-          The address marked primary is the one you login with. An address has
-          to be verified before it can take that mark, so we send a link to
-          every address you add and the link works once.
+          The email address marked primary is the one you login with. An email
+          address has to be verified before it can take that mark, so we send a
+          link to every one you add and the link works once.
         </Typography>
 
         <EmailList
@@ -181,12 +181,12 @@ export function Security() {
             add(email)
               .then(() =>
                 setNotice({
-                  message: `${email} was added. Open the link we sent it to verify the address.`,
+                  message: `${email} was added. Open the link we sent it to verify the email address.`,
                   tone: "success",
                 }),
               )
               .catch((failure: unknown) =>
-                report(failure, "The address was not added."),
+                report(failure, "The email address was not added."),
               )
               .finally(() => setAdding(false));
           }}
@@ -210,8 +210,8 @@ export function Security() {
                  * opts into, so for most accounts this is the first time the
                  * address has been in that list at all. */
                 message: saved
-                  ? "Your address is now hidden from the members list."
-                  : "Your address is now shown in the members list.",
+                  ? "Your email address is now hidden from the members list."
+                  : "Your email address is now shown in the members list.",
                 tone: "success",
               }),
             )
