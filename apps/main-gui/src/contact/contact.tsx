@@ -44,7 +44,7 @@ export function Contact() {
           variant="h1"
           sx={{ fontSize: "clamp(2.5rem, 5.4vw, 4rem)" }}
         >
-          Get in touch
+          Contact Us
         </Typography>
         <Typography
           variant="body1"
