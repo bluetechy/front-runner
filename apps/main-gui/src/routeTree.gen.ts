@@ -28,6 +28,7 @@ import { Route as SiteAboutRouteImport } from './routes/_site.about'
 import { Route as SiteContactUsRouteImport } from './routes/_site.contact-us'
 import { Route as SiteFeaturesRouteImport } from './routes/_site.features'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
+import { Route as SitePrivacyRouteImport } from './routes/_site.privacy'
 import { Route as SiteAuthCallbackRouteImport } from './routes/_site.auth.callback'
 
 const AppRoute = AppRouteImport.update({
@@ -123,6 +124,11 @@ const SitePricingRoute = SitePricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => SiteRoute,
 } as any)
+const SitePrivacyRoute = SitePrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteAuthCallbackRoute = SiteAuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/contact-us': typeof SiteContactUsRoute
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy': typeof SitePrivacyRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/contact-us': typeof SiteContactUsRoute
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy': typeof SitePrivacyRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
 }
 export interface FileRoutesById {
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/_site/contact-us': typeof SiteContactUsRoute
   '/_site/features': typeof SiteFeaturesRoute
   '/_site/pricing': typeof SitePricingRoute
+  '/_site/privacy': typeof SitePrivacyRoute
   '/_site/': typeof SiteIndexRoute
   '/_site/auth/callback': typeof SiteAuthCallbackRoute
 }
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/contact-us'
     | '/features'
     | '/pricing'
+    | '/privacy'
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/contact-us'
     | '/features'
     | '/pricing'
+    | '/privacy'
     | '/auth/callback'
   id:
     | '__root__'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/_site/contact-us'
     | '/_site/features'
     | '/_site/pricing'
+    | '/_site/privacy'
     | '/_site/'
     | '/_site/auth/callback'
   fileRoutesById: FileRoutesById
@@ -397,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitePricingRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/privacy': {
+      id: '/_site/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof SitePrivacyRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/auth/callback': {
       id: '/_site/auth/callback'
       path: '/auth/callback'
@@ -444,6 +463,7 @@ interface SiteRouteChildren {
   SiteContactUsRoute: typeof SiteContactUsRoute
   SiteFeaturesRoute: typeof SiteFeaturesRoute
   SitePricingRoute: typeof SitePricingRoute
+  SitePrivacyRoute: typeof SitePrivacyRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAuthCallbackRoute: typeof SiteAuthCallbackRoute
 }
@@ -453,6 +473,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteContactUsRoute: SiteContactUsRoute,
   SiteFeaturesRoute: SiteFeaturesRoute,
   SitePricingRoute: SitePricingRoute,
+  SitePrivacyRoute: SitePrivacyRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAuthCallbackRoute: SiteAuthCallbackRoute,
 }

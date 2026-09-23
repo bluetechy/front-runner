@@ -24,6 +24,8 @@ src/
   landing/              the marketing landing page
   pricing/              the plans, and the questions people ask about them
   contact-us/           the ways to reach us, and the form that writes to us
+  privacy/              the privacy policy, and the cookie choices inside it
+  cookie-consent/       the box that asks before anything optional runs
   authentication/       the sign-in dialog, and who is signed in
   browser-storage/      localStorage and sessionStorage, for browsers that refuse them
   language/             which language the interface is in, and i18next
@@ -82,7 +84,10 @@ slice can break a _caller_, and the caller's folder did not change. See
 [testing](../../../docs/testing.md#only-the-slices-you-changed).
 
 **There are two shells, and the route says which one.** `__root.tsx` is an
-outlet and nothing else. The marketing pages sit under the pathless `_site`
+outlet, and the one thing that belongs to both halves of the product: the
+cookie notice, which is mounted there so that a visitor who answers it on the
+pricing page has answered it for the dashboard too. Nothing else is in it.
+The marketing pages sit under the pathless `_site`
 layout route, which wraps them in `site-chrome`; the pages behind the login
 sit under `_app`, which wraps them in `app-chrome` and guards the session for
 all of them at once. They never appear together, which is why neither is in
@@ -125,6 +130,13 @@ wallet each had the same `Snackbar` and `Alert` written out inside them, and
 the profile page's moved out when it was asked for a corner and two colors of
 its own. The wallet still has its copy, and adopting this is the whole of what
 is left to do about that — see [the profile page](profile-page.md#saying-so).
+
+`cookie-consent/` is the rule applied to something that is nobody's page at
+all: the box has to be on every page of both shells, the gate it holds
+(`allows()`) is what anything wanting to set a cookie has to ask, and
+`privacy/` is the page the box links to. Neither belongs to the other, so
+they are two verticals and the page asks the notice to open its dialog
+through the notice's own hook. See [the cookie notice](cookie-consent.md).
 
 `browser-storage/` and `language/` are the same rule again, and the second
 caused the first: the language somebody picks in the top bar is remembered in
