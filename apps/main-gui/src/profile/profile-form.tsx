@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import { CardLabel, CardSurface } from "../card-surface";
 import { useSession, type Identity } from "../authentication";
 import type { ToastTone } from "../toast";
-import { CardField, FieldRow } from "./card-field";
+import { CardField, FieldRow } from "../card-field";
 import { useProfile, type StoredProfile } from "./profile-api";
 import {
   errorsOf,
@@ -25,11 +25,14 @@ import {
  * The profile as a form: what is loaded from the API, edited here, checked
  * against the same rules the API enforces, and written back.
  *
- * Two fields are shown and not editable. "User name" and "Email" belong to
- * Keycloak -- dbo.ProvisionUser copies them out of the token on every sign-in
- * -- so a value typed here would last until the next sign-in and no longer.
- * They are on the form because a profile that did not show them would look
- * like it had lost them.
+ * One field is shown and not editable. "Email" belongs to Keycloak --
+ * dbo.ProvisionUser copies it out of the token on every sign-in -- so a value
+ * typed here would last until the next sign-in and no longer. It is on the
+ * form because a profile that did not show it would look like it had lost it.
+ *
+ * "User name" was the other one. It moved to the security page, under USER
+ * HANDLE, where the account's own identifiers live: it is the name somebody
+ * signs in with rather than anything they wrote about themselves.
  *
  * Everything the form *says* goes through `t()`. Nothing it *stores* does:
  * a gender is written to the database as "Male", and the Spanish label above
@@ -172,15 +175,6 @@ export function ProfileForm({
         }}
       >
         <Section label={t("Name")}>
-          <FieldRow label={t("User name")} htmlFor="profile-user-name">
-            <CardField
-              id="profile-user-name"
-              value={identity?.loginName ?? ""}
-              onChange={() => undefined}
-              readOnly
-              hint={t("Your sign-in name. Change it where you sign in.")}
-            />
-          </FieldRow>
           <FieldRow label={t("First name")} htmlFor="profile-first-name">
             <CardField
               id="profile-first-name"
@@ -226,7 +220,7 @@ export function ProfileForm({
               value={identity?.email ?? ""}
               onChange={() => undefined}
               readOnly
-              hint={t("Your sign-in address. Change it where you sign in.")}
+              hint={t("Your login address. Change it where you login.")}
             />
           </FieldRow>
           <FieldRow label={t("Phone")} htmlFor="profile-phone">

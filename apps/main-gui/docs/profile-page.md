@@ -121,26 +121,34 @@ The wallet says the same kinds of thing through its own copy of the Snackbar,
 in the bottom center. It has not moved onto this component yet; when it does,
 the two pages agree on where a notice appears.
 
-## Two fields nobody here may edit
+## One field nobody here may edit
 
-**User name** and **Email** are shown, grayed, with a line saying where to
-change them. They belong to Keycloak: `dbo.ProvisionUser` copies them out of
-the token on every sign-in, so a value typed here would last until the next
-sign-in and no longer. They are on the form because a profile page that did
-not show them would look like it had lost them.
+**Email** is shown, grayed, with a line saying where to change it. It belongs
+to Keycloak: `dbo.ProvisionUser` copies it out of the token on every login, so
+a value typed here would last until the next login and no longer. It is on the
+form because a profile page that did not show it would look like it had lost
+it.
+
+**User name** was the other one. It moved to the security page, under
+[USER NAME](security-page.md#the-user-name): a user name is not something a
+person wrote about themselves, it is how the account is addressed, and that
+page is where the account's own identifiers live.
 
 ## The fields
 
-`card-field.tsx` holds them. The theme's own field is a pill hollowed out of
-the dark sign-in panel; on white paper that is a white box on a white card
-with no edge to it, so a field here takes `brand.cardFieldEdge` for a border,
-the card's ink for text, and square-ish corners, because a page of pills reads
-as a page of buttons. These were outlined in `brand.cardRule` until the rule in
-[text boxes](style-guide.md#text-boxes) was written down; at **1.3:1** that
-divides a card into sections but cannot draw a box. A read-only field keeps
-the same edge under the pointer rather than deepening: the hover is the
-invitation to type, and there is nothing to type here. `FieldRow` puts the label beside the control from `sm` up and
-above it below that, and that is all it does.
+`src/card-field` holds them, beside `card-surface` rather than inside this
+vertical: the security page draws a field on card paper now, and a component
+two pages share is a piece of the card rather than a piece of either one. The
+theme's own field is a pill hollowed out of the dark login panel; on white
+paper that is a white box on a white card with no edge to it, so a field here
+takes `brand.cardFieldEdge` for a border, the card's ink for text, and
+square-ish corners, because a page of pills reads as a page of buttons. These
+were outlined in `brand.cardRule` until the rule in [text
+boxes](style-guide.md#text-boxes) was written down; at **1.3:1** that divides
+a card into sections but cannot draw a box. A read-only field keeps the same
+edge under the pointer rather than deepening: the hover is the invitation to
+type, and there is nothing to type here. `FieldRow` puts the label beside the
+control from `sm` up and above it below that, and that is all it does.
 
 ## In two languages
 

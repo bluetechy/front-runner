@@ -97,6 +97,35 @@ instead of doing it.
 Comments in `apps/main-gui/src/shared` and elsewhere use a double hyphen (`--`)
 where a break of that weight is wanted. That is fine and is not an em dash.
 
+## Login, not sign in
+
+**The product says "login".** A person logs in, an address is the one they
+login with, a session that ran out asks them to login again. "Sign in" is the
+phrase this repository keeps reaching for and it is not the one the product
+uses: the button in the dialog says Login, the security page says the primary
+address is the one you login with, and copy that says "sign in" beside them is
+a second name for the same act.
+
+It is one word as a noun and as the verb here, which is not what a style guide
+for general English would say. This is a product term rather than a sentence:
+the screen it names is the login, and the copy around it matches the screen.
+
+Two things are not covered by it:
+
+| Stays                               | Why                                                  |
+| ----------------------------------- | ---------------------------------------------------- |
+| `sign up`, `signed up`              | a different act: making the account, not entering it |
+| `SignInError`, `signInWithPassword` | identifiers, and Keycloak's own vocabulary           |
+
+The rule covers what a reader sees. An identifier keeps whatever name it was
+given, the way the spelling rule leaves `'Cancelled'` alone, and a comment may
+quote one exactly.
+
+This rule does not hold retroactively yet. The privacy policy, the cookie
+copy, the pricing page and the sign-in dialog's own messages still say "sign
+in" in places; they are being cleared as those files are touched, the same way
+the em dash rule is.
+
 ## Enforcement
 
 None, today. `npm run lint` checks formatting, JavaScript and that every source

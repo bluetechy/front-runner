@@ -59,7 +59,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       variables: Record<string, unknown>,
     ): Promise<Result> => {
       const token = await getAccessToken();
-      if (!token) throw new Error("Your session has expired. Sign in again.");
+      if (!token) throw new Error("Your session has expired. Login again.");
 
       const response = await fetch(import.meta.env.VITE_GRAPHQL_URL, {
         method: "POST",

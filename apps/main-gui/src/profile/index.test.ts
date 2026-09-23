@@ -25,11 +25,10 @@ describe("what the profile vertical offers the rest of the app", () => {
     expect(profile.useProfile).toBe(useProfile);
   });
 
-  it("keeps the form, the card and the schema to itself", () => {
+  it("keeps the form, the summary and the schema to itself", () => {
     for (const inside of [
       "ProfileForm",
       "ProfileSummary",
-      "CardField",
       "profileSchema",
       "linksOf",
     ])

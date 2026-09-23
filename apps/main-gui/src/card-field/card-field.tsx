@@ -17,6 +17,11 @@ import type { ReactNode } from "react";
  *
  * The label sits to the left of the control from `sm` up and above it below
  * that, which is the only thing the row does.
+ *
+ * It lived in the profile vertical while the profile was the only page with a
+ * form on card paper. The security page shows the user name on one now, so
+ * the field sits beside `card-surface` instead: both are pieces of the card
+ * rather than pieces of a page.
  */
 
 export function FieldRow({
@@ -81,9 +86,9 @@ export function CardField({
   /* Given, the field takes newlines and is at least that many rows tall,
    * growing rather than hiding the end of a long answer behind a scrollbar. */
   rows?: number;
-  /* No "date": the one date on this form is written the way this product
+  /* No "date": the one date on these forms is written the way this product
    * writes dates, and a native date field is written the way the browser's
-   * locale does. See the form. */
+   * locale does. See the profile form. */
   type?: "text" | "email" | "tel" | "url";
   /* Shown in an empty field: the shape of what goes in it, where the shape
    * is not obvious. It is not a label and never says what the field is. */
@@ -93,9 +98,10 @@ export function CardField({
   /* Said under the field when nothing is wrong: what it is for, or who owns
    * it. An error replaces it, because the error is the more urgent of the two. */
   hint?: string;
-  /* Shown, but not this application's to change -- see the form. */
+  /* Shown, but not editable here: a value this application does not own, or
+   * one it owns and never changes. */
   readOnly?: boolean;
-  /* The profile has not arrived yet; the field stands in for itself. */
+  /* The answer has not arrived yet; the field stands in for itself. */
   loading?: boolean;
 }) {
   if (loading) return <Skeleton height={44} sx={{ transform: "none" }} />;

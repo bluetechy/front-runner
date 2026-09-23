@@ -128,17 +128,17 @@ describe("the four columns", () => {
   });
 });
 
-describe("the radio that marks the sign-in address", () => {
+describe("the radio that marks the login address", () => {
   it("is checked on the primary and on nothing else", () => {
     renderList();
 
     const chosen = screen.getByRole("radio", {
-      name: "Sign in with marcus@example.test",
+      name: "Login with marcus@example.test",
     });
     expect(chosen).toBeChecked();
     expect(
       screen.getByRole("radio", {
-        name: "Sign in with marcus.work@example.test",
+        name: "Login with marcus.work@example.test",
       }),
     ).not.toBeChecked();
   });
@@ -159,7 +159,7 @@ describe("the radio that marks the sign-in address", () => {
 
     fireEvent.click(
       screen.getByRole("radio", {
-        name: "Sign in with marcus.work@example.test",
+        name: "Login with marcus.work@example.test",
       }),
     );
 
@@ -173,7 +173,7 @@ describe("the radio that marks the sign-in address", () => {
 
     expect(
       screen.queryByRole("radio", {
-        name: "Sign in with marcus.new@example.test",
+        name: "Login with marcus.new@example.test",
       }),
     ).toBeNull();
     expect(screen.getAllByRole("radio")).toHaveLength(2);
@@ -316,11 +316,11 @@ describe("while something is in flight", () => {
 
     expect(
       screen.getByRole("radio", {
-        name: "Sign in with marcus.work@example.test",
+        name: "Login with marcus.work@example.test",
       }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("radio", { name: "Sign in with marcus@example.test" }),
+      screen.getByRole("radio", { name: "Login with marcus@example.test" }),
     ).not.toBeDisabled();
   });
 

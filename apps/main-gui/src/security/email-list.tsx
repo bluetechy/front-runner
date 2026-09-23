@@ -209,7 +209,7 @@ function EmailRow({
             disabled={busy}
             slotProps={{
               input: {
-                "aria-label": `Sign in with ${address.Email}`,
+                "aria-label": `Login with ${address.Email}`,
               },
             }}
             sx={{

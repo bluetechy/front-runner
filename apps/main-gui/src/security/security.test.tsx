@@ -27,6 +27,14 @@ const setPrivacy = vi.fn();
 
 vi.mock("./email-api", () => ({ useEmails: () => emails() }));
 
+/* The user name is read off the token rather than fetched, so the page asks
+ * the session for it directly. */
+vi.mock("../authentication", () => ({
+  useSession: () => ({
+    identity: { name: "Marcus Member", loginName: "member", email: "m@e.test" },
+  }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
     children,
@@ -105,20 +113,34 @@ describe("the page itself", () => {
     ).toBeInTheDocument();
   });
 
-  it("holds the addresses and the privacy switch, in that order", () => {
+  // Three cards, headed the same way, and the order is the argument: what
+  // the account is called and cannot change, then the addresses that can, then
+  // what the other members are shown of them.
+  it("holds the user name, the addresses and the privacy switch, in that order", () => {
     renderPage();
 
+    /* The table's own column headings are drawn with the same label, so the
+     * three card names are picked out of the page rather than counted. */
+    const cards = ["User Name", "Email Addresses", "Email Privacy"];
+
     expect(
-      screen.getByRole("heading", { name: "Email Addresses" }),
-    ).toBeInTheDocument();
-    // Two cards, headed the same way: the switch's own block carries no
-    // heading of its own any more.
-    expect(
-      screen.getByRole("heading", { name: "Email Privacy" }),
-    ).toBeInTheDocument();
+      screen
+        .getAllByRole("heading")
+        .map((heading) => heading.textContent ?? "")
+        .filter((name) => cards.includes(name)),
+    ).toEqual(cards);
+
     expect(
       screen.getByRole("switch", { name: "Keep my email addresses private" }),
     ).toBeInTheDocument();
+  });
+
+  // Off the token, not out of the API: there is nothing to fetch for a value
+  // this page only reads.
+  it("shows the name the session says the account signs in with", () => {
+    renderPage();
+
+    expect(screen.getByLabelText("User name")).toHaveValue("member");
   });
 
   // The rule that governs the whole page, said once at the top rather than
@@ -146,7 +168,7 @@ describe("choosing the address somebody signs in with", () => {
 
     fireEvent.click(
       screen.getByRole("radio", {
-        name: "Sign in with marcus.work@example.test",
+        name: "Login with marcus.work@example.test",
       }),
     );
 
@@ -158,38 +180,36 @@ describe("choosing the address somebody signs in with", () => {
   // Two things happened: this application's copy changed and so did the
   // credential at Keycloak. Somebody not told the second will try their old
   // address next time.
-  it("says which address they will sign in with from now on", async () => {
+  it("says which address they will login with from now on", async () => {
     renderPage();
 
     fireEvent.click(
       screen.getByRole("radio", {
-        name: "Sign in with marcus.work@example.test",
+        name: "Login with marcus.work@example.test",
       }),
     );
 
     expect(
       await screen.findByText(
-        /sign in with marcus\.work@example\.test from now on/i,
+        /login with marcus\.work@example\.test from now on/i,
       ),
     ).toBeInTheDocument();
   });
 
   it("passes the API's own refusal on rather than a sentence of its own", async () => {
     setPrimary.mockRejectedValue(
-      new Error(
-        "An address has to be verified before you can sign in with it.",
-      ),
+      new Error("An address has to be verified before you can login with it."),
     );
     renderPage();
 
     fireEvent.click(
       screen.getByRole("radio", {
-        name: "Sign in with marcus.work@example.test",
+        name: "Login with marcus.work@example.test",
       }),
     );
 
     expect(
-      await screen.findByText(/has to be verified before you can sign in/i),
+      await screen.findByText(/has to be verified before you can login/i),
     ).toBeInTheDocument();
   });
 });

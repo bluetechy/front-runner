@@ -83,7 +83,7 @@ export function useEmails() {
       variables: Record<string, unknown>,
     ): Promise<T> => {
       const token = await getAccessToken();
-      if (!token) throw new Error("Your session has expired. Sign in again.");
+      if (!token) throw new Error("Your session has expired. Login again.");
 
       const response = await fetch(import.meta.env.VITE_GRAPHQL_URL, {
         method: "POST",

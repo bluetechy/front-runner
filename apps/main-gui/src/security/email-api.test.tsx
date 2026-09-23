@@ -245,7 +245,7 @@ describe("the writes", () => {
       [
         {
           message:
-            "An address has to be verified before you can sign in with it.",
+            "An address has to be verified before you can login with it.",
         },
       ],
     );

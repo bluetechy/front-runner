@@ -91,7 +91,7 @@ export function useWallet() {
       variables: Record<string, unknown>,
     ): Promise<PaymentMethod[]> => {
       const token = await getAccessToken();
-      if (!token) throw new Error("Your session has expired. Sign in again.");
+      if (!token) throw new Error("Your session has expired. Login again.");
 
       const response = await fetch(import.meta.env.VITE_GRAPHQL_URL, {
         method: "POST",

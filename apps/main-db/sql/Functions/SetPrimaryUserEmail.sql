@@ -53,7 +53,7 @@ CREATE FUNCTION "dbo"."SetPrimaryUserEmail" (
             RAISE EXCEPTION 'Action cannot be performed.';
         END IF;
         IF _Chosen."VerifiedAt" IS NULL THEN
-            RAISE EXCEPTION 'An address has to be verified before you can sign in with it.';
+            RAISE EXCEPTION 'An address has to be verified before you can login with it.';
         END IF;
 
         -- Only the row that actually carries it: an UPDATE touching every

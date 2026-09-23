@@ -3,9 +3,11 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useSession } from "../authentication";
 import { CardSurface } from "../card-surface";
 import { Toast, type Notice } from "../toast";
 import { EmailList } from "./email-list";
+import { UserNameCard } from "./user-name-card";
 import { PrivacyCard } from "./privacy-card";
 import { useEmails, type UserEmail } from "./email-api";
 
@@ -13,9 +15,14 @@ import { useEmails, type UserEmail } from "./email-api";
  * The security page, at /security-and-access, which is Security & Access in
  * the rail.
  *
- * What it holds today is the account's email addresses: which ones are on
- * file, which one is the login, and which of them anybody has proved they can
- * read. Passwords and sessions are Keycloak's and are not here yet.
+ * What it holds today is the account's user name and its email addresses:
+ * what the account is called, which addresses are on file, which one is the
+ * login, and which of them anybody has proved they can read. Passwords and
+ * sessions are Keycloak's and are not here yet.
+ *
+ * The user name comes off the token rather than out of the API. It is on this
+ * page to be read, so there is nothing to fetch for it: `useSession` already
+ * holds what Keycloak said at sign-in.
  *
  * `notice` is how the page says something back: that an address was added,
  * that a link is on its way, or that the API refused. One at a time, which is
@@ -33,6 +40,7 @@ export function Security() {
     resend,
     setPrivacy,
   } = useEmails();
+  const { identity } = useSession();
 
   /* Which row has a save in flight. One at a time is enough: every write
    * rewrites the whole list, so a second one started underneath the first
@@ -105,6 +113,14 @@ export function Security() {
         </Stack>
       </Stack>
 
+      {/* Above the addresses, because it is the one identifier on the page
+       * that never changes: what the account is called, and then everything
+       * about it that can be added to, removed and moved. */}
+      <UserNameCard
+        sx={{ height: "auto", mb: { xs: 2, md: 2.5 } }}
+        userName={identity?.loginName ?? ""}
+      />
+
       <CardSurface title="Email Addresses" sx={{ height: "auto" }}>
         {/* The list could not be read at all, which is a different thing from
          * an empty one and has to say so rather than look like one. */}
@@ -140,7 +156,7 @@ export function Security() {
                * application's copy changed, and so did the credential at the
                * identity provider. Somebody who is not told the second will
                * try their old address next time. */
-              `You will sign in with ${address.Email} from now on.`,
+              `You will login with ${address.Email} from now on.`,
             )
           }
           onRemove={(address) =>

@@ -1,16 +1,66 @@
 # The security page
 
 Lives in `src/security` and renders at `/security-and-access`, which is
-Security & Access in the rail. What it holds today is the account's **email
-addresses**: which ones are on file, which one is the login, and which of them
-anybody has proved they can read. Passwords and sessions belong to Keycloak
-and are not here yet.
+Security & Access in the rail. What it holds today is the account's **user
+name** and its **email addresses**: what the account is called, which
+addresses are on file, which one is the login, and which of them anybody has
+proved they can read. Passwords and sessions belong to Keycloak and are not
+here yet.
 
 The route was `/security` and the rail read Security & Login until both were
 renamed. The vertical kept its own name: `src/security` is the subject, not
 the URL.
 
 It replaced the "coming soon" placeholder that route used to render.
+
+## The user name
+
+`user-name-card.tsx`, the first card on the page, headed **USER NAME**. One
+read-only field holding the name the account logs in with, and a paragraph
+above it saying why it is read-only.
+
+It is **drawn as a field and is not one**. The value is the same kind of thing
+as the addresses under it and belongs in the same kind of box, so it takes
+`CardField` with `readOnly`: the card's gray fill, an edge that does not
+deepen under the pointer, and nothing that takes a keystroke. A line of plain
+text would have been the honest drawing of a value nobody can change, and it
+would have read as a caption rather than as one of the account's names.
+
+Nothing in this application writes a user name back. Keycloak assigns it at
+sign-up, `dbo.ProvisionUser` copies it out of the token on every login, and
+there is no screen that sends it anywhere. So the paragraph says so first,
+rather than leaving somebody to discover it by typing into a box that quietly
+refuses them. It also says the other half: the name is what the other members
+see beside your name and what they type to flag you, which is the reason an
+account keeps one name rather than a series of them.
+
+The mention is **shown rather than described**. "@" in front of the name is
+the whole convention, so the sentence writes one out, `@username`, rather than
+spelling out what an example settles. It is `@username` whoever is reading it:
+the example stands for the shape of a mention, and the field directly under it
+is where this account's own name is.
+
+It says **two ways in**, the name or the email address marked primary,
+because the realm has `loginWithEmailAllowed` and Keycloak holds exactly one
+address per account. Saying only "your email address" would have been an
+invitation to try one of the others and be refused. The copy says "email
+address" every time rather than "address", which on the profile page is a
+street.
+
+The value comes off the **token**, not the API. `useSession` already holds
+what Keycloak said at login, and a page that only reads a value has nothing to
+fetch for it.
+
+It sits **above the addresses** because it is the one identifier here that
+never changes: what the account is called, and then everything about it that
+can be added to, removed, and moved.
+
+It was the profile form's first field until this card existed. A user name is
+not something a person wrote about themselves, which is what that form holds;
+it is how the account is addressed, which is this page's subject. The field
+itself moved with it: `CardField` and `FieldRow` live in `src/card-field` now,
+beside `card-surface`, because a component two pages share is a piece of the
+card rather than a piece of either page.
 
 ## The table
 
@@ -62,11 +112,12 @@ line.
 
 ## The primary is a radio, and there is one of it
 
-The radio in the Primary column is the address the account signs in with, and
+The radio in the Primary column is the address the account logs in with, and
 there is exactly **one across the list** — so the table is a single
 `RadioGroup` over the whole thing rather than a control per row. That is the
-arrangement [the wallet](wallet-page.md#the-default-is-a-radio-and-there-is-one-of-it)
-uses for the default payment method, and it is here for the same reasons.
+arrangement [the
+wallet](wallet-page.md#the-default-is-a-radio-and-there-is-one-of-it) uses for
+the default payment method, and it is here for the same reasons.
 
 Choosing one is a save. The group shows what the API last returned rather than
 what was clicked, so a refused change leaves the mark where it was.
