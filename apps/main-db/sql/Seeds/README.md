@@ -142,6 +142,13 @@ Each parent table owns a leading nibble, so a UUID is identifiable on sight:
 | `2e000000-...` | `BadgeGroups`                 |
 | `2f000000-...` | `BadgeGroupRelationships`     |
 | `30000000-...` | `SharedBadges`                |
+| `b1000000-...` | `UserEmails`                  |
+| `b2000000-...` | `UserProfiles`                |
+
+The last two break the counting on purpose. Both tables hang off `Users` and
+nothing else, and one row of each belongs to one account, so they sit beside
+`b0000000` where that is readable at a glance rather than taking the next
+number in a sequence that says nothing about them.
 
 `a` through `f` are used up, so the scheme carries on into two-digit prefixes
 counting from `10`. It is still one distinct leading byte per table, which is

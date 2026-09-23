@@ -16,7 +16,12 @@
 --   testuser  a second verified address, so "Make primary" is offered on a
 --             row that can actually take it
 --   jdoe      an unverified address with a live link, which is the row the
---             Status column exists for
+--             Status column exists for, and a verified one that is not the
+--             primary, which is the row the Primary radio exists for: it is
+--             the only address on the dataset that can take the login off
+--             another one, so changing a primary -- this application's copy
+--             and Keycloak's credential, both at once -- can be worked
+--             through by hand
 --   matthewm  an unverified address whose link expired two days ago, so
 --             "Send another link" has something to act on
 --
@@ -44,10 +49,11 @@ INSERT INTO "dbo"."UserEmails" ("UserEmailUUID", "UserUUID", "Email", "IsPrimary
     ('b1000000-0000-4000-8000-00000000000b', 'b0000000-0000-4000-8000-00000000000b', 'piotr.kowalski@northwind.test',  true,  CURRENT_TIMESTAMP, NULL,               NULL,                                    'seed'),
     ('b1000000-0000-4000-8000-00000000000c', 'b0000000-0000-4000-8000-00000000000c', 'dana.retired@northwind.test',    true,  CURRENT_TIMESTAMP, NULL,               NULL,                                    'seed'),
     ('b1000000-0000-4000-8000-00000000000d', 'b0000000-0000-4000-8000-00000000000d', 'test.user@northwind.test',       true,  CURRENT_TIMESTAMP, NULL,               NULL,                                    'seed'),
-    -- The three extra addresses, one of each state the page has to draw.
+    -- The four extra addresses, one of each state the page has to draw.
     ('b1000000-0000-4000-8000-00000000000e', 'b0000000-0000-4000-8000-00000000000d', 'test.user.two@northwind.test',   false, CURRENT_TIMESTAMP, NULL,               NULL,                                    'seed'),
     ('b1000000-0000-4000-8000-00000000000f', 'b0000000-0000-4000-8000-000000000003', 'jane.personal@northwind.test',   false, NULL,              'seed-token-fresh', CURRENT_TIMESTAMP - interval '1 hour',   'seed'),
-    ('b1000000-0000-4000-8000-000000000010', 'b0000000-0000-4000-8000-000000000002', 'matthew.old@northwind.test',     false, NULL,              'seed-token-stale', CURRENT_TIMESTAMP - interval '48 hours', 'seed')
+    ('b1000000-0000-4000-8000-000000000010', 'b0000000-0000-4000-8000-000000000002', 'matthew.old@northwind.test',     false, NULL,              'seed-token-stale', CURRENT_TIMESTAMP - interval '48 hours', 'seed'),
+    ('b1000000-0000-4000-8000-000000000011', 'b0000000-0000-4000-8000-000000000003', 'jane.work@northwind.test',       false, CURRENT_TIMESTAMP, NULL,               NULL,                                    'seed')
 ON CONFLICT ("UserEmailUUID") DO UPDATE SET
     "Email" = EXCLUDED."Email",
     "IsPrimary" = EXCLUDED."IsPrimary",
