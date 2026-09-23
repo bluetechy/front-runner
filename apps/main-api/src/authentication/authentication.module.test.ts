@@ -3,6 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import { APP_GUARD } from "@nestjs/core";
 import { DatabaseModule } from "../database/index.js";
 import { AuthenticationGuard } from "./authentication.guard.js";
+import { KeycloakAdminService } from "./keycloak-admin.service.js";
 import { AuthenticationModule } from "./authentication.module.js";
 import { KeycloakService, keycloakKeySetProvider } from "./keycloak.service.js";
 
@@ -32,9 +33,10 @@ describe("how authentication is wired", () => {
     expect(wiring("providers")).toContain(keycloakKeySetProvider);
   });
 
-  // The only piece another vertical may inject. The guard is not exported:
-  // nothing should be running it a second time by hand.
-  it("exports the Keycloak service and nothing else", () => {
-    expect(wiring("exports")).toEqual([KeycloakService]);
+  // The two pieces another vertical may inject: the one that verifies a token
+  // and the one that writes to Keycloak. The guard is not exported -- nothing
+  // should be running it a second time by hand.
+  it("exports the two Keycloak services and nothing else", () => {
+    expect(wiring("exports")).toEqual([KeycloakService, KeycloakAdminService]);
   });
 });

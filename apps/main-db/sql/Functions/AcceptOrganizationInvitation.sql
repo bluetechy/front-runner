@@ -1,8 +1,20 @@
 --
 -- Take up an invitation, which is the only way a user joins an organization
 -- they do not already belong to. The caller is the invitee: an invitation is
--- matched to them by the email address on their account, folded to lower case
+-- matched to them by an email address on their account, folded to lower case
 -- the same way dbo.InviteToOrganization folded it when the row was written.
+--
+-- **Any verified address matches**, not only the one on the token. That is the
+-- case dbo.UserEmails exists for: somebody signs in as a personal address and
+-- is invited at a work one, and an invitation that matched nobody would be a
+-- link that silently failed. Unverified addresses do not match, and the order
+-- matters -- an invitation is an offer of membership, so matching on an
+-- address nobody has proved they read would let anyone claim one by typing
+-- the address it was sent to.
+--
+-- dbo.Users."Email" is accepted beside the table for the same reason
+-- dbo.InviteToOrganization consults it: an account that has not signed in
+-- since dbo.UserEmails existed has the column and no rows yet.
 --
 -- An invitation that is not Pending, has expired, or belongs to a disabled
 -- organization is refused rather than silently ignored -- the invitee asked a
@@ -45,7 +57,16 @@ CREATE FUNCTION "dbo"."AcceptOrganizationInvitation" (_LoginName varchar(64), _I
         FROM "dbo"."OrganizationInvitations"
         WHERE "OrganizationInvitations"."InvitationUUID" = _InvitationUUID;
 
-        IF NOT FOUND OR _Invitation."Email" <> _Actor."Email" THEN
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Action cannot be performed.';
+        END IF;
+        IF _Invitation."Email" <> _Actor."Email"
+            AND NOT EXISTS (
+                SELECT 1 FROM "dbo"."UserEmails"
+                WHERE "UserEmails"."UserUUID" = _Actor."UserUUID"
+                    AND "UserEmails"."Email" = _Invitation."Email"
+                    AND "UserEmails"."VerifiedAt" IS NOT NULL
+            ) THEN
             RAISE EXCEPTION 'Action cannot be performed.';
         END IF;
         IF _Invitation."Status" <> 'Pending' THEN

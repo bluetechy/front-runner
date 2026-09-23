@@ -26,8 +26,8 @@ BEGIN
         ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
         ('Surveys'), ('TaskComments'), ('TaskDependencies'), ('TaskHistory'),
         ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
-        ('UserPointLevels'), ('UserPoints'), ('UserProfiles'), ('UserRoles'), ('UserTallies'),
-        ('UserTeams'), ('Users')
+        ('UserEmails'), ('UserPointLevels'), ('UserPoints'), ('UserProfiles'), ('UserRoles'),
+        ('UserTallies'), ('UserTeams'), ('Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (SELECT 1 FROM pg_tables WHERE "schemaname" = 'dbo' AND "tablename" = "Expected"."Name");
 
@@ -48,8 +48,8 @@ BEGIN
             'Points', 'Roadmaps', 'Roles', 'SharedBadges', 'SurveyAnswers',
             'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
             'TaskComments', 'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks',
-            'Teams', 'UserBadges', 'UserOrganizations', 'UserPointLevels', 'UserPoints',
-            'UserProfiles', 'UserRoles', 'UserTallies', 'UserTeams', 'Users'
+            'Teams', 'UserBadges', 'UserEmails', 'UserOrganizations', 'UserPointLevels',
+            'UserPoints', 'UserProfiles', 'UserRoles', 'UserTallies', 'UserTeams', 'Users'
         );
 
     PERFORM "test"."AssertEquals"(_Unexpected, NULL::text, 'tables in dbo that this test does not know about -- add them here and to test.InsertOneRowIntoEveryTable');
@@ -64,7 +64,7 @@ BEGIN
     FROM (VALUES
         ('AcceptOrganizationInvitation'), ('AddBankAccount'), ('AddCreditCard'),
         ('AddOrganization'), ('AddTeam'),
-        ('AddUserPoints'), ('AwardBadgeToUser'),
+        ('AddUserEmail'), ('AddUserPoints'), ('AwardBadgeToUser'),
         ('CheckPointTransferLimit'), ('CreateBadgeGroup'),
         ('DeclineOrganizationInvitation'),
         ('GetApprovalWorkflowStagesCount'), ('GetBadgeGroups'),
@@ -76,19 +76,24 @@ BEGIN
         ('GetPointStatistics'), ('GetPointTotals'), ('GetPointTransfers'), ('GetPoints'),
         ('GetOrganization'), ('GetOrganizationMembers'),
         ('GetNotifications'),
-        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserInvitations'), ('GetUserProfile'),
+        ('GetTallies'), ('GetTeams'), ('GetUser'), ('GetUserEmails'), ('GetUserInvitations'),
+        ('GetUserProfile'),
         ('GetUserUUID'), ('GetUsers'), ('InviteToOrganization'),
         ('IsLastOwnerOfOrganization'), ('IsManagerOfTeam'),
         ('IsMemberOfOrganization'), ('IsMemberOfTeam'),
         ('IsOwnerOfOrganization'), ('JoinTeam'),
         ('LeaveOrganization'), ('LeaveTeam'),
         ('MarkAllNotificationsRead'), ('MarkNotificationRead'), ('ProvisionUser'),
-        ('RemovePaymentMethod'), ('RenameOrganization'), ('ReorderTasks'),
-        ('RequestPointRedemption'), ('RequestPointTransfer'), ('ReverseUserPoints'),
+        ('RemovePaymentMethod'), ('RemoveUserEmail'), ('RenameOrganization'),
+        ('ReorderTasks'),
+        ('RequestPointRedemption'), ('RequestPointTransfer'),
+        ('ResendUserEmailVerification'), ('ReverseUserPoints'),
         ('RevokeOrganizationInvitation'), ('SetDefaultPaymentMethod'),
         ('SetOrganizationEnabled'),
-        ('SetOrganizationRole'), ('SetUserProfile'), ('SettlePointRedemption'),
-        ('SettlePointTransfer'), ('calculate_tallies'), ('insert_modified_info'),
+        ('SetOrganizationRole'), ('SetPrimaryUserEmail'), ('SetUserEmailPrivacy'),
+        ('SetUserProfile'), ('SettlePointRedemption'),
+        ('SettlePointTransfer'), ('VerifyUserEmail'),
+        ('calculate_tallies'), ('insert_modified_info'),
         ('update_modified_info')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
@@ -241,6 +246,7 @@ BEGIN
         ('FK_Tasks_Organizations'), ('FK_Tasks_Roadmaps'), ('FK_Tasks_Users'),
         ('FK_UserBadges_Badges'), ('FK_UserBadges_Organizations'), ('FK_UserBadges_Users'),
         ('FK_UserPointLevels_Organizations'), ('FK_UserPointLevels_PointLevels'),
+        ('FK_UserEmails_Users'),
         ('FK_UserPointLevels_Users'), ('FK_UserProfiles_Users'),
         ('FK_UserRoles_Roles'), ('FK_UserRoles_Users')
     ) AS "Expected" ("Name")

@@ -80,7 +80,13 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('Invitation.OwnerSeat',     '14141414-0000-4000-8000-000000000002'),
     ('Invitation.Expired',       '14141414-0000-4000-8000-000000000003'),
     ('Invitation.Declined',      '14141414-0000-4000-8000-000000000004'),
-    ('Invitation.DisabledOrg',   '14141414-0000-4000-8000-000000000005');
+    ('Invitation.DisabledOrg',   '14141414-0000-4000-8000-000000000005'),
+    ('UserEmail.OwnerPrimary',   '15151515-0000-4000-8000-000000000001'),
+    ('UserEmail.MemberPrimary',  '15151515-0000-4000-8000-000000000002'),
+    ('UserEmail.MemberWork',     '15151515-0000-4000-8000-000000000003'),
+    ('UserEmail.MemberFresh',    '15151515-0000-4000-8000-000000000004'),
+    ('UserEmail.MemberStale',    '15151515-0000-4000-8000-000000000005'),
+    ('UserEmail.OutsiderPrimary','15151515-0000-4000-8000-000000000006');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -352,3 +358,34 @@ INSERT INTO "dbo"."EventLog" ("OrganizationUUID", "UserUUID", "EventType", "Desc
     ("test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), 'TaskAssigned',  'Marcus picked up Build.', true,  '2024-01-15 00:00:00+00', 'fixtures'),
     ("test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), 'BadgeEarned',   'Marcus earned Rookie.',   true,  '2024-01-01 00:00:00+00', 'fixtures'),
     (NULL,                                  NULL,                            'SchemaApplied', 'Nightly rebuild.',        false, '2024-01-20 00:00:00+00', 'fixtures');
+
+-- The address list. One of everything dbo.GetUserEmails and its writers branch
+-- on: a primary, a verified address that is not the primary, an unverified one
+-- whose link still works, and an unverified one whose link has expired.
+--
+-- The primaries repeat what dbo.Users."Email" already holds for the same
+-- accounts, which is not duplication for its own sake: that is the state
+-- dbo.ProvisionUser leaves behind on every sign-in, and a test that started
+-- from the two disagreeing would be testing a world that does not happen.
+--
+-- The owner and the outsider hold a primary and nothing else, so there is an
+-- account with one address to compare against the member's four. The outsider
+-- has one because dbo.AcceptOrganizationInvitation matches on this table now,
+-- and Invitation.Pending is addressed to them.
+--
+-- Disabled holds no row at all, which is the account that predates this table:
+-- a column and no rows is exactly what an installation looks like before its
+-- users have signed in again, and both invitation functions still have to cope
+-- with it.
+--
+-- "VerificationSentAt" is written relative to now rather than as a literal,
+-- because dbo.VerifyUserEmail measures a link's twenty-four hours from it. A
+-- fixed timestamp would start fresh and quietly become expired as the suite
+-- aged, which is the kind of test that fails on a Tuesday for no reason.
+INSERT INTO "dbo"."UserEmails" ("UserEmailUUID", "UserUUID", "Email", "IsPrimary", "VerifiedAt", "VerificationToken", "VerificationSentAt", "CreatedBy") VALUES
+    ("test"."Fixture"('UserEmail.OwnerPrimary'),    "test"."Fixture"('User.Owner'),    'owner@example.test',       true,  '2024-01-01 00:00:00+00', NULL,                 NULL,                                     'fixtures'),
+    ("test"."Fixture"('UserEmail.MemberPrimary'),   "test"."Fixture"('User.Member'),   'member@example.test',      true,  '2024-01-01 00:00:00+00', NULL,                 NULL,                                     'fixtures'),
+    ("test"."Fixture"('UserEmail.MemberWork'),      "test"."Fixture"('User.Member'),   'marcus.work@example.test', false, '2024-02-01 00:00:00+00', NULL,                 NULL,                                     'fixtures'),
+    ("test"."Fixture"('UserEmail.MemberFresh'),     "test"."Fixture"('User.Member'),   'marcus.new@example.test',  false, NULL,                     'token-fresh',        CURRENT_TIMESTAMP - interval '1 hour',    'fixtures'),
+    ("test"."Fixture"('UserEmail.MemberStale'),     "test"."Fixture"('User.Member'),   'marcus.old@example.test',  false, NULL,                     'token-stale',        CURRENT_TIMESTAMP - interval '48 hours',  'fixtures'),
+    ("test"."Fixture"('UserEmail.OutsiderPrimary'), "test"."Fixture"('User.Outsider'), 'outsider@example.test',    true,  '2024-01-01 00:00:00+00', NULL,                 NULL,                                     'fixtures');

@@ -63,3 +63,89 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
+
+--
+-- The security page's privacy switch, read from here. Withholding an address
+-- has to hide it from the people in the room without hiding the person.
+--
+
+CREATE FUNCTION "test"."TestGetOrganizationMembers_WithholdsAnAddressItsOwnerMadePrivate" () RETURNS void AS $$
+DECLARE
+    _Member record;
+BEGIN
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
+
+    SELECT * INTO _Member FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"
+    WHERE "Members"."UserUUID" = "test"."Fixture"('User.Member');
+
+    PERFORM "test"."AssertEquals"(_Member."Email"::text, '', 'a withheld address was handed to another member');
+END;
+$$ LANGUAGE plpgsql;
+
+-- The point of the switch is not to be invisible to the people you work with,
+-- it is not to hand every one of them a mailbox.
+CREATE FUNCTION "test"."TestGetOrganizationMembers_KeepsAPrivateMemberInTheList" () RETURNS void AS $$
+DECLARE
+    _Member record;
+    _Before bigint;
+    _After bigint;
+BEGIN
+    SELECT count(*) INTO _Before FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members";
+
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
+
+    SELECT count(*) INTO _After FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members";
+    SELECT * INTO _Member FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"
+    WHERE "Members"."UserUUID" = "test"."Fixture"('User.Member');
+
+    PERFORM "test"."AssertEquals"(_After, _Before, 'withholding an address removed the member from the list');
+    PERFORM "test"."AssertEquals"(_Member."Name"::text, 'Marcus Member', 'withholding an address hid the member''s name');
+    PERFORM "test"."AssertEquals"(_Member."LoginName"::text, 'member', 'withholding an address hid the member''s login name');
+END;
+$$ LANGUAGE plpgsql;
+
+-- It hides the address, it does not lose it. Turning the switch off gives it
+-- back, which is why it is read here rather than enforced by clearing a column.
+CREATE FUNCTION "test"."TestGetOrganizationMembers_GivesTheAddressBackWhenTheSwitchGoesOff" () RETURNS void AS $$
+DECLARE
+    _Member record;
+BEGIN
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', false);
+
+    SELECT * INTO _Member FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"
+    WHERE "Members"."UserUUID" = "test"."Fixture"('User.Member');
+
+    PERFORM "test"."AssertEquals"(_Member."Email"::text, 'member@example.test', 'the address did not come back when the switch went off');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Everybody else's address is untouched: this is one account's setting, not a
+-- switch on the list.
+CREATE FUNCTION "test"."TestGetOrganizationMembers_LeavesEverybodyElsesAddressAlone" () RETURNS void AS $$
+DECLARE
+    _Owner record;
+BEGIN
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
+
+    SELECT * INTO _Owner FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"
+    WHERE "Members"."UserUUID" = "test"."Fixture"('User.Owner');
+
+    PERFORM "test"."AssertEquals"(_Owner."Email"::text, 'owner@example.test', 'one member''s switch withheld another member''s address');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Reading your own row is not an exception. It is the same list everybody
+-- else is served, and the page already knows your address from elsewhere.
+CREATE FUNCTION "test"."TestGetOrganizationMembers_WithholdsAPrivateAddressFromItsOwnerToo" () RETURNS void AS $$
+DECLARE
+    _Self record;
+BEGIN
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
+
+    SELECT * INTO _Self FROM "dbo"."GetOrganizationMembers"('member', "test"."Fixture"('Organization.Acme')) AS "Members"
+    WHERE "Members"."UserUUID" = "test"."Fixture"('User.Member');
+
+    PERFORM "test"."AssertEquals"(_Self."Email"::text, '', 'the members list served one copy to its owner and another to everybody else');
+END;
+$$ LANGUAGE plpgsql;

@@ -12,17 +12,17 @@ bin/
 test/
   runner.test.js    discovers and drives the SQL tests
 sql/
-  Functions/        one function per file            (64)
-  Tables/           CREATE TABLE only, no triggers   (55)
-  Triggers/         one trigger per file            (112)
-  ForeignKeys/      FK constraints, one file per table (43 files, 89 constraints)
+  Functions/        one function per file            (74)
+  Tables/           CREATE TABLE only, no triggers   (56)
+  Triggers/         one trigger per file            (114)
+  ForeignKeys/      FK constraints, one file per table (44 files, 91 constraints)
   Security/         Permissions.sql
-  Seeds/Dev/        demo data, applied on demand     (45)
+  Seeds/Dev/        demo data, applied on demand     (46)
                     see Seeds/README.md
   Tests/            see Tests/README.md
     Helpers/        assertions and shared setup       (9)
     Fixtures/       the world every test starts from  (1)
-    Cases/          one file per object under test    (82)
+    Cases/          one file per object under test    (93)
   Drafts/           not built; see "Drafts" below
     Functions/        real logic, to rewrite          (1)
     StoredProcedures/ real logic, to rewrite          (1)
@@ -114,6 +114,25 @@ each keep the invariant too. Writing either column by hand goes round all four.
 This is not in the register below because it is not a defect — it is a rule the
 functions hold instead of the schema, and `Tests/Cases/SetDefaultPaymentMethod.sql`
 is what proves they do.
+
+**`dbo.UserEmails."IsPrimary"` is the same shape, and could have been a
+constraint.** One row per account carries it, and unlike the wallet's flag both
+rows are in one table, so a partial unique index would say it. There is no
+`Indexes/` directory and no index anywhere in this schema, so it follows the
+wallet instead: `dbo.SetPrimaryUserEmail` clears the flag and then sets one, and
+`dbo.ProvisionUser` does the same when a sign-in moves it.
+`Tests/Cases/SetPrimaryUserEmail.sql` and `Tests/Cases/GetUserEmails.sql` are
+what prove it holds. **If an `Indexes/` directory is ever added, this is the
+first thing that should move into it** — the constraint would be exact, and two
+functions would stop being the only thing standing between an account and two
+sign-in addresses.
+
+**`dbo.UserEmails."Email"` is stored folded, and a check constraint enforces
+it.** Postgres compares `varchar` by bytes, so `Ada@example.test` and
+`ada@example.test` would be two rows under the plain `UNIQUE` on that column —
+and an address belonging to two accounts is the one thing the key exists to
+prevent. Every writer folds on the way in; the constraint is what makes that a
+guarantee rather than a habit.
 
 `PointTransfers` bends the "2nd to same table" rule: it has two foreign keys to
 `Users` and _both_ carry the column suffix. The rule leaves the first one

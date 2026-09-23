@@ -56,6 +56,19 @@ CREATE TABLE "dbo"."UserProfiles" (
     "Twitter" varchar(255) NOT NULL DEFAULT '',
     "WantsAwardEmails" boolean NOT NULL DEFAULT true,
     "WantsDigestEmails" boolean NOT NULL DEFAULT false,
+    -- Whether to withhold this person's address from the other members of
+    -- their organizations. dbo.GetOrganizationMembers and
+    -- dbo.SetOrganizationRole return an empty "Email" for an account that has
+    -- set it, the way the column reads an unanswered question as ''. It hides
+    -- the address from people, not from the installation: an owner's export,
+    -- an administrator and this table all still hold it, and the security page
+    -- says so rather than promising more than it does.
+    --
+    -- False by default, because the members list has shown addresses since
+    -- there was a members list and turning that off for everybody at once
+    -- would be a change nobody asked for. A new account opting in is the
+    -- better default and is not this column's to make.
+    "EmailIsPrivate" boolean NOT NULL DEFAULT false,
     "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "CreatedBy" varchar(64) NOT NULL,
     "UpdatedAt" TIMESTAMPTZ,

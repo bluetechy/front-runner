@@ -124,3 +124,99 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
+
+--
+-- Matching an invitation to an invitee once an account can hold several
+-- addresses. The case this exists for is being invited at work and signing in
+-- from home.
+--
+
+CREATE FUNCTION "test"."TestAcceptOrganizationInvitation_MatchesASecondaryVerifiedAddress" () RETURNS void AS $$
+DECLARE
+    _Organization uuid;
+    _Invitation uuid;
+    _Accepted record;
+BEGIN
+    -- A fresh organization rather than a fixture one, because the member is
+    -- already in Acme and Organization.Disabled refuses an owner's actions
+    -- for a different reason. What is being tested is the address match.
+    SELECT "Organizations"."OrganizationUUID" INTO _Organization
+    FROM "dbo"."AddOrganization"('owner', 'Second Company') AS "Organizations";
+
+    -- marcus.work is verified and is not the address the member signs in with.
+    SELECT "Invitations"."InvitationUUID" INTO _Invitation
+    FROM "dbo"."InviteToOrganization"('owner', _Organization, 'marcus.work@example.test', false) AS "Invitations";
+
+    SELECT * INTO _Accepted FROM "dbo"."AcceptOrganizationInvitation"('member', _Invitation) AS "Invitations";
+
+    PERFORM "test"."AssertEquals"(_Accepted."Status"::text, 'Accepted', 'an invitation to a verified secondary address was not accepted');
+    PERFORM "test"."AssertTrue"(
+        "dbo"."IsMemberOfOrganization"('member', _Organization),
+        'accepting at a secondary address did not join the organization'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- The order matters. An invitation is an offer of membership, so matching on
+-- an address nobody has proved they read would let anybody claim one by typing
+-- the address it was sent to.
+CREATE FUNCTION "test"."TestAcceptOrganizationInvitation_RefusesAnUnverifiedAddress" () RETURNS void AS $$
+DECLARE
+    _Organization uuid;
+    _Invitation uuid;
+BEGIN
+    SELECT "Organizations"."OrganizationUUID" INTO _Organization
+    FROM "dbo"."AddOrganization"('owner', 'Second Company') AS "Organizations";
+
+    SELECT "Invitations"."InvitationUUID" INTO _Invitation
+    FROM "dbo"."InviteToOrganization"('owner', _Organization, 'marcus.new@example.test', false) AS "Invitations";
+
+    PERFORM "test"."AssertRaises"(
+        format('SELECT * FROM "dbo"."AcceptOrganizationInvitation"(%L, %L)', 'member', _Invitation),
+        'an invitation was accepted at an address nobody had verified',
+        'Action cannot be performed.'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Somebody else's verified address is still somebody else's.
+CREATE FUNCTION "test"."TestAcceptOrganizationInvitation_RefusesAnotherAccountsAddress" () RETURNS void AS $$
+DECLARE
+    _Organization uuid;
+    _Invitation uuid;
+BEGIN
+    SELECT "Organizations"."OrganizationUUID" INTO _Organization
+    FROM "dbo"."AddOrganization"('owner', 'Second Company') AS "Organizations";
+
+    SELECT "Invitations"."InvitationUUID" INTO _Invitation
+    FROM "dbo"."InviteToOrganization"('owner', _Organization, 'marcus.work@example.test', false) AS "Invitations";
+
+    PERFORM "test"."AssertRaises"(
+        format('SELECT * FROM "dbo"."AcceptOrganizationInvitation"(%L, %L)', 'admin', _Invitation),
+        'one account accepted an invitation addressed to another account''s address',
+        'Action cannot be performed.'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- The account that predates dbo.UserEmails has the column and no rows, and its
+-- invitations still have to work.
+CREATE FUNCTION "test"."TestAcceptOrganizationInvitation_StillMatchesOnTheAccountColumnAlone" () RETURNS void AS $$
+DECLARE
+    _Invitation uuid;
+    _Accepted record;
+BEGIN
+    PERFORM "test"."AssertRowCount"(
+        'SELECT * FROM "dbo"."GetUserEmails"(''admin'')',
+        0,
+        'admin already had address rows, so this test proves nothing'
+    );
+
+    SELECT "Invitations"."InvitationUUID" INTO _Invitation
+    FROM "dbo"."InviteToOrganization"('owner', "test"."Fixture"('Organization.Acme'), 'admin@example.test', false) AS "Invitations";
+
+    SELECT * INTO _Accepted FROM "dbo"."AcceptOrganizationInvitation"('admin', _Invitation) AS "Invitations";
+
+    PERFORM "test"."AssertEquals"(_Accepted."Status"::text, 'Accepted', 'an account with no address rows could not accept its invitation');
+END;
+$$ LANGUAGE plpgsql;

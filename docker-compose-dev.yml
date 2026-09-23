@@ -53,10 +53,27 @@ services:
       KEYCLOAK_ISSUER_URL: http://localhost:${KEYCLOAK_PUBLISHED_PORT}/realms/${KEYCLOAK_REALM}
       KEYCLOAK_JWKS_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
+      # Admin calls go over the mesh, like the key set, because they are this
+      # process's rather than the browser's.
+      KEYCLOAK_ADMIN_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_AUDIENCE}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       WALLET_ENCRYPTION_KEY: ${WALLET_ENCRYPTION_KEY}
+      # main-api sends the address-verification mail on the security page. The
+      # same Mailpit container Keycloak sends its password resets through.
+      MAIL_ADDRESS: ${MAIL_ADDRESS}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      # The browser's address for main-gui, because it goes into a link
+      # somebody opens on their own machine.
+      APP_BASE_URL: ${APP_BASE_URL}
     depends_on:
       main-db:
         condition: service_healthy
+      main-mail:
+        condition: service_started
     networks:
       - service-mesh
     ports:

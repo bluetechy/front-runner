@@ -32,6 +32,8 @@ const identity: VerifiedIdentity = {
   loginName: "alice",
   name: "Alice Example",
   email: "alice@example.test",
+  emailVerified: true,
+  issuedAt: new Date("2026-01-01T00:00:00.000Z"),
 };
 
 const account = {
@@ -145,11 +147,20 @@ describe("the account behind the subject", () => {
     await guard.canActivate(context);
 
     expect(query.mock.calls[1]?.[0]).toContain('"ProvisionUser"');
+    // The fifth parameter is the token's "email_verified" claim. It is what
+    // dbo.ProvisionUser marks the primary dbo.UserEmails row with, so a
+    // sign-in with an address Keycloak has confirmed does not ask its owner
+    // to confirm it a second time.
     expect(query.mock.calls[1]?.[1]).toEqual([
       "subject-alice",
       "alice",
       "Alice Example",
       "alice@example.test",
+      true,
+      // When the token was minted. A token issued before somebody chose a new
+      // sign-in address still carries the old one, and dbo.ProvisionUser needs
+      // to know that so the change does not undo itself on the next request.
+      new Date("2026-01-01T00:00:00.000Z"),
     ]);
   });
 

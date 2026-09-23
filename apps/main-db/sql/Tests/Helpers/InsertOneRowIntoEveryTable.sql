@@ -36,6 +36,11 @@ BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
     INSERT INTO "dbo"."UserProfiles" ("UserUUID", "Designation", "CreatedBy") VALUES (_UserUUID, 'Smoke Designation', _By);
+    -- The address is written already folded and trimmed, which the table's
+    -- check constraint requires: dbo.AddUserEmail is what normally folds one,
+    -- and this helper writes rows directly to prove the table accepts them.
+    INSERT INTO "dbo"."UserEmails" ("UserUUID", "Email", "IsPrimary", "VerifiedAt", "CreatedBy")
+        VALUES (_UserUUID, 'smoke@example.test', true, CURRENT_TIMESTAMP, _By);
     -- The wallet, written directly rather than through dbo.AddCreditCard, because
     -- this helper's job is to prove the tables accept a row. The number is
     -- encrypted here the way the function would do it: the column is bytea, so

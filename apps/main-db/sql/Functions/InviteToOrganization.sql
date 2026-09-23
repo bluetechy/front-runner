@@ -13,6 +13,15 @@
 -- happens -- dbo.AcceptOrganizationInvitation folds the caller's address the
 -- same way and the two have to agree.
 --
+-- "Already a member" is asked of every verified address on an account rather
+-- than only the one it signs in with. An account can hold several since
+-- dbo.UserEmails, and somebody invited at the address they read mail at is
+-- already in the room whether or not that is the address on their token.
+-- dbo.Users."Email" is still consulted beside the table, because an account
+-- that has not signed in since dbo.UserEmails existed has the column and no
+-- rows, and an invitation it can never usefully accept is worse than a
+-- redundant check.
+--
 CREATE FUNCTION "dbo"."InviteToOrganization" (_LoginName varchar(64), _OrganizationUUID uuid, _Email varchar(255), _IsOwner boolean DEFAULT false) RETURNS TABLE(
     "InvitationUUID" uuid,
     "OrganizationUUID" uuid,
@@ -44,8 +53,16 @@ CREATE FUNCTION "dbo"."InviteToOrganization" (_LoginName varchar(64), _Organizat
             FROM "dbo"."UserOrganizations"
                 JOIN "dbo"."Users" ON ("Users"."UserUUID" = "UserOrganizations"."UserUUID")
             WHERE "UserOrganizations"."OrganizationUUID" = _OrganizationUUID
-                AND lower("Users"."Email") = _NormalizedEmail
                 AND "Users"."IsEnabled" = true
+                AND (
+                    lower("Users"."Email") = _NormalizedEmail
+                    OR EXISTS (
+                        SELECT 1 FROM "dbo"."UserEmails"
+                        WHERE "UserEmails"."UserUUID" = "Users"."UserUUID"
+                            AND "UserEmails"."Email" = _NormalizedEmail
+                            AND "UserEmails"."VerifiedAt" IS NOT NULL
+                    )
+                )
         ) THEN
             RAISE EXCEPTION 'That address is already a member of the organization.';
         END IF;

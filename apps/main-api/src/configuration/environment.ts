@@ -62,6 +62,31 @@ export function validateEnvironment(env: Record<string, unknown>) {
     // reads those columns back today, so nothing breaks, but see
     // apps/main-db/sql/Tables/CreditCards.sql before that stops being true.
     WALLET_ENCRYPTION_KEY: secret("WALLET_ENCRYPTION_KEY", 16),
+    // The realm main-api administers, and the credentials it does it with.
+    // Changing the address somebody signs in with is two writes -- one here
+    // and one at Keycloak -- and this is the half that reaches Keycloak. The
+    // secret belongs to the "main-api" client's service account, which holds
+    // manage-users and view-users and nothing else.
+    KEYCLOAK_REALM: required("KEYCLOAK_REALM"),
+    KEYCLOAK_CLIENT_ID: String(env.KEYCLOAK_CLIENT_ID ?? "main-api"),
+    KEYCLOAK_CLIENT_SECRET: secret("KEYCLOAK_CLIENT_SECRET", 16),
+    // Separate from the issuer for the same reason the key set is: in Compose
+    // the browser reaches Keycloak on its published port and this process
+    // reaches it inside the network. Admin calls are this process's, so they
+    // take the inside address.
+    KEYCLOAK_ADMIN_URL: new URL(
+      String(env.KEYCLOAK_ADMIN_URL ?? issuer.replace(/\/realms\/[^/]+$/, "")),
+    ).href.replace(/\/$/, ""),
+    // The mail main-api sends itself: address verification, and nothing else
+    // yet. The server is the one Keycloak already uses.
+    MAIL_ADDRESS: required("MAIL_ADDRESS"),
+    MAIL_SMTP_PORT: integer("MAIL_SMTP_PORT", 1025, 65535),
+    MAIL_FROM_ADDRESS: required("MAIL_FROM_ADDRESS"),
+    MAIL_FROM_NAME: String(env.MAIL_FROM_NAME ?? "Front Runner"),
+    // Where a verification link points. The browser's address for main-gui,
+    // because it goes into a message somebody opens on their own machine, and
+    // a Compose hostname there would be a link that cannot be followed.
+    APP_BASE_URL: new URL(required("APP_BASE_URL")).href.replace(/\/$/, ""),
     CORS_ORIGINS: String(env.CORS_ORIGINS ?? "")
       .split(",")
       .map((value) => value.trim())

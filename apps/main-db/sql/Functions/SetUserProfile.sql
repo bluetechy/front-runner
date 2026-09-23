@@ -15,6 +15,12 @@
 -- nothing is longer than its column. What an address or a handle means is the
 -- API's business; see main-api's profile schema.
 --
+-- "EmailIsPrivate" is on the same table and is **not** written here. It
+-- belongs to the security page rather than to this form, so it is not a
+-- parameter, it is left out of the conflict clause, and a profile save leaves
+-- whatever the switch was set to alone. It is in the returned shape because
+-- this function answers with dbo.GetUserProfile. See dbo.SetUserEmailPrivacy.
+--
 CREATE FUNCTION "dbo"."SetUserProfile" (
     _LoginName varchar(64),
     _FirstName varchar(64),
@@ -50,7 +56,8 @@ CREATE FUNCTION "dbo"."SetUserProfile" (
     "TikTok" varchar(255),
     "Twitter" varchar(255),
     "WantsAwardEmails" boolean,
-    "WantsDigestEmails" boolean
+    "WantsDigestEmails" boolean,
+    "EmailIsPrivate" boolean
 ) AS $$
     DECLARE
         _UserUUID uuid;

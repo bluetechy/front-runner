@@ -7,7 +7,12 @@ const base = {
   POSTGRES_PASSWORD: "test",
   KEYCLOAK_ISSUER_URL: "https://identity.example.test/realms/front-runner",
   KEYCLOAK_AUDIENCE: "main-api",
+  KEYCLOAK_REALM: "front-runner",
+  KEYCLOAK_CLIENT_SECRET: "a-secret-long-enough-to-pass",
   WALLET_ENCRYPTION_KEY: "a-key-long-enough-to-pass",
+  MAIL_ADDRESS: "main-mail",
+  MAIL_FROM_ADDRESS: "no-reply@example.test",
+  APP_BASE_URL: "https://app.example.test",
 };
 describe("environment validation", () => {
   it("parses ports, pool limits and explicit CORS origins", () => {
@@ -29,9 +34,53 @@ describe("environment validation", () => {
   it.each([
     "KEYCLOAK_ISSUER_URL",
     "KEYCLOAK_AUDIENCE",
+    "KEYCLOAK_REALM",
+    "KEYCLOAK_CLIENT_SECRET",
     "WALLET_ENCRYPTION_KEY",
+    "MAIL_ADDRESS",
+    "MAIL_FROM_ADDRESS",
+    "APP_BASE_URL",
   ])("requires %s", (name) => {
     expect(() => validateEnvironment({ ...base, [name]: "" })).toThrow(name);
+  });
+  // The same reasoning as the wallet key: a short client secret is what a
+  // forgotten placeholder looks like, and this one lets main-api change the
+  // address somebody signs in with.
+  it("refuses a Keycloak client secret too short to be one", () => {
+    expect(() =>
+      validateEnvironment({ ...base, KEYCLOAK_CLIENT_SECRET: "changeme" }),
+    ).toThrow("KEYCLOAK_CLIENT_SECRET");
+  });
+  // The admin address is this process's route to Keycloak, which in Compose
+  // is not the address in the token. Left unset it is the issuer with the
+  // realm path taken off, which is right for a deployment where they agree.
+  it("derives the admin address from the issuer, and lets it be overridden", () => {
+    expect(validateEnvironment(base)).toMatchObject({
+      KEYCLOAK_ADMIN_URL: "https://identity.example.test",
+    });
+    expect(
+      validateEnvironment({
+        ...base,
+        KEYCLOAK_ADMIN_URL: "http://keycloak-idp:8080",
+      }),
+    ).toMatchObject({ KEYCLOAK_ADMIN_URL: "http://keycloak-idp:8080" });
+  });
+  // A verification link goes into a message somebody opens on their own
+  // machine, so a trailing slash here would show up in every one of them.
+  it("trims a trailing slash off the address links are built from", () => {
+    expect(
+      validateEnvironment({
+        ...base,
+        APP_BASE_URL: "https://app.example.test/",
+      }),
+    ).toMatchObject({ APP_BASE_URL: "https://app.example.test" });
+  });
+  it("defaults the mail port and the sender name", () => {
+    expect(validateEnvironment(base)).toMatchObject({
+      MAIL_SMTP_PORT: 1025,
+      MAIL_FROM_NAME: "Front Runner",
+      KEYCLOAK_CLIENT_ID: "main-api",
+    });
   });
   // A short key is the shape a forgotten placeholder takes, so it is refused
   // at boot rather than left quietly encrypting card numbers with "changeme".

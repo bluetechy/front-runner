@@ -29,7 +29,8 @@ CREATE FUNCTION "dbo"."GetUserProfile" (_LoginName varchar(64)) RETURNS TABLE(
     "TikTok" varchar(255),
     "Twitter" varchar(255),
     "WantsAwardEmails" boolean,
-    "WantsDigestEmails" boolean
+    "WantsDigestEmails" boolean,
+    "EmailIsPrivate" boolean
 ) AS $$
     BEGIN
         RETURN QUERY
@@ -53,7 +54,12 @@ CREATE FUNCTION "dbo"."GetUserProfile" (_LoginName varchar(64)) RETURNS TABLE(
             COALESCE("UserProfiles"."TikTok", ''::varchar(255)),
             COALESCE("UserProfiles"."Twitter", ''::varchar(255)),
             COALESCE("UserProfiles"."WantsAwardEmails", true),
-            COALESCE("UserProfiles"."WantsDigestEmails", false)
+            COALESCE("UserProfiles"."WantsDigestEmails", false),
+            -- The security page's switch, not the profile form's. It is
+            -- returned here because this is the function that says what an
+            -- account's profile holds, and dbo.SetUserProfile returns this
+            -- shape back; dbo.SetUserEmailPrivacy is what writes it.
+            COALESCE("UserProfiles"."EmailIsPrivate", false)
         FROM
             "dbo"."Users"
             LEFT JOIN "dbo"."UserProfiles" ON ("UserProfiles"."UserUUID" = "Users"."UserUUID")

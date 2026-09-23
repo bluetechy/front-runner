@@ -1,39 +1,22 @@
-import { ThemeProvider } from "@mui/material/styles";
-import { render, screen } from "@testing-library/react";
-import { Suspense } from "react";
 import { describe, expect, it } from "vitest";
-import { theme } from "../design-system";
+import { Security } from "../security";
 import { Route } from "./_app.security";
 
 /*
- * /security — a page the rail or the header links to but that is not built yet.
+ * /security, which is Security & Login in the rail.
  *
- * A route file declares the route and renders one thing; anything longer
- * belongs in a vertical (docs/codebase-structure.md). So what is asserted is
- * the one thing: that this URL leads to the placeholder, under the name the
- * link beside it uses. A link that goes nowhere is worse than no link, and a
- * placeholder titled after the wrong page is worse again.
+ * A route file declares the route and renders one thing from a vertical;
+ * anything longer belongs in the vertical (docs/codebase-structure.md). So
+ * what is asserted is the one thing: that this URL leads to the security page
+ * and not to anything else. The page's own behavior is tested beside it, in
+ * `security/security.test.tsx`.
  *
- * The router's plugin rewrites `component` into a lazily loaded one so that
- * each page is its own chunk, which is why this renders inside a `Suspense`
- * and waits rather than asserting on the first frame.
+ * This route rendered the "coming soon" placeholder until the email addresses
+ * went in.
  */
 
 describe("/security", () => {
-  it("renders the placeholder, named for the page it stands in for", async () => {
-    const Page = Route.options.component!;
-
-    render(
-      <ThemeProvider theme={theme}>
-        <Suspense fallback={null}>
-          <Page />
-        </Suspense>
-      </ThemeProvider>,
-    );
-
-    expect(
-      await screen.findByRole("heading", { name: "Security & Login" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/has not been built yet/)).toBeInTheDocument();
+  it("renders the security page", () => {
+    expect(Route.options.component).toBe(Security);
   });
 });

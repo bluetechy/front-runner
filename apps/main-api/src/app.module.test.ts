@@ -121,6 +121,11 @@ describe("GraphQL application", () => {
       preferred_username: "alice",
       name: "Alice Example",
       email: "alice@example.test",
+      // What Keycloak puts on a token for an account whose address has been
+      // confirmed, which every seeded realm account is. It reaches
+      // dbo.ProvisionUser as the fifth parameter and decides whether the
+      // primary address on the security page arrives already verified.
+      email_verified: true,
       ...claims,
     })
       .setProtectedHeader({ alg: "RS256" })
@@ -609,7 +614,18 @@ describe("GraphQL application", () => {
     expect(response.body.errors).toBeUndefined();
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('dbo."ProvisionUser"'),
-      ["subject-alice", "alice", "Alice Example", "alice@example.test"],
+      [
+        "subject-alice",
+        "alice",
+        "Alice Example",
+        "alice@example.test",
+        // The token's "email_verified" claim, which decides whether the
+        // primary address on the security page arrives already verified.
+        true,
+        // And when the token was minted, so a change made on the security
+        // page is not undone by a token that predates it.
+        expect.any(Date),
+      ],
     );
   });
 
@@ -625,7 +641,14 @@ describe("GraphQL application", () => {
     await execute("{ me { LoginName } }", {}, `Bearer ${renamed}`);
     expect(query).toHaveBeenCalledWith(
       expect.stringContaining('dbo."ProvisionUser"'),
-      ["subject-alice", "alice.example", "Alice Example", "alice@example.test"],
+      [
+        "subject-alice",
+        "alice.example",
+        "Alice Example",
+        "alice@example.test",
+        true,
+        expect.any(Date),
+      ],
     );
   });
 
@@ -764,26 +787,38 @@ describe("GraphQL application", () => {
       if (isEnumType(declared)) return declared.getValues()[0]!.name;
       return name === "Boolean" ? "false" : name === "Int" ? "1" : `"${orgId}"`;
     };
+    // The one operation in this schema that a token is not the authorization
+    // for. A verification link is followed by whoever opens the mailbox it
+    // was sent to, which is exactly the thing being proved, and the token in
+    // the link is what authorizes it. Requiring a session would refuse the
+    // case the feature exists for: adding an address at work and reading it
+    // at home. Its own resolver test asserts that it is @Public and that it
+    // is the only one here that is.
+    const publicOperations = new Set(["verifyEmail"]);
     const operations = roots.flatMap((root) =>
-      Object.values(root.getFields()).map((field) => {
-        const args = field.args
-          .filter(
-            (argument) =>
-              String(argument.type).endsWith("!") &&
-              argument.defaultValue === undefined,
-          )
-          .map((argument) => `${argument.name}: ${placeholder(argument.type)}`);
-        // A field returning a scalar takes no selection set, and asking one
-        // for `__typename` fails validation before the guard this test is
-        // about ever runs -- which is not the same thing as being public.
-        const named = String(field.type).replace(/[[\]!]/g, "");
-        const leaf = isLeafType(schema.getType(named));
-        const selection = `${field.name}${args.length ? `(${args.join(", ")})` : ""}`;
-        return {
-          name: field.name,
-          document: `${root.name.toLowerCase()} { ${selection}${leaf ? "" : " { __typename }"} }`,
-        };
-      }),
+      Object.values(root.getFields())
+        .filter((field) => !publicOperations.has(field.name))
+        .map((field) => {
+          const args = field.args
+            .filter(
+              (argument) =>
+                String(argument.type).endsWith("!") &&
+                argument.defaultValue === undefined,
+            )
+            .map(
+              (argument) => `${argument.name}: ${placeholder(argument.type)}`,
+            );
+          // A field returning a scalar takes no selection set, and asking one
+          // for `__typename` fails validation before the guard this test is
+          // about ever runs -- which is not the same thing as being public.
+          const named = String(field.type).replace(/[[\]!]/g, "");
+          const leaf = isLeafType(schema.getType(named));
+          const selection = `${field.name}${args.length ? `(${args.join(", ")})` : ""}`;
+          return {
+            name: field.name,
+            document: `${root.name.toLowerCase()} { ${selection}${leaf ? "" : " { __typename }"} }`,
+          };
+        }),
     );
 
     // A schema that lost its fields would pass every assertion below.

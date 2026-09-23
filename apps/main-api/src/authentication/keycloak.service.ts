@@ -44,6 +44,26 @@ export interface VerifiedIdentity {
   loginName: string;
   name: string | null;
   email: string;
+  // The token's "email_verified" claim, passed through rather than assumed.
+  // Keycloak can hold an address nobody has confirmed, and dbo.UserEmails has
+  // to be able to tell the two apart: the security page offers to send a
+  // verification link for an address this is false for. A claim that is
+  // missing or is not a boolean is false, which is the safe direction -- it
+  // costs somebody one link, where guessing true would put a green tick on an
+  // address nobody has proved they read.
+  emailVerified: boolean;
+  // When Keycloak minted this token, from the "iat" claim, as a Date.
+  //
+  // It is what stops a change made on the security page from undoing itself.
+  // A token is minted once and used until it expires, so one issued before
+  // somebody chose a new sign-in address still carries the old one; handing
+  // that to dbo.ProvisionUser without saying when it was written would move
+  // the primary address back, and the change would appear to revert a moment
+  // after it was made. See that function's header.
+  //
+  // Null when the claim is missing or is not a number, which dbo.ProvisionUser
+  // reads as "do not know when" and treats as current.
+  issuedAt: Date | null;
 }
 
 // dbo.Users column widths. A claim that will not fit is a rejected sign-in
@@ -112,7 +132,18 @@ export class KeycloakService {
         true,
       );
 
-    return { subjectId, loginName, name, email };
+    return {
+      subjectId,
+      loginName,
+      name,
+      email,
+      emailVerified: payload.email_verified === true,
+      // "iat" is seconds since the epoch, and Date wants milliseconds.
+      issuedAt:
+        typeof payload.iat === "number" && Number.isFinite(payload.iat)
+          ? new Date(payload.iat * 1000)
+          : null,
+    };
   }
 
   private text(value: unknown, limit: number, truncate = false): string | null {

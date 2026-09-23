@@ -85,8 +85,22 @@ export class AuthenticationGuard implements CanActivate {
     identity: VerifiedIdentity,
   ): Promise<Account | undefined> {
     const [account] = await this.db.query<Account>(
-      'SELECT * FROM dbo."ProvisionUser"($1, $2, $3, $4)',
-      [identity.subjectId, identity.loginName, identity.name, identity.email],
+      'SELECT * FROM dbo."ProvisionUser"($1, $2, $3, $4, $5, $6)',
+      [
+        identity.subjectId,
+        identity.loginName,
+        identity.name,
+        identity.email,
+        // Whether Keycloak says this address has been confirmed. It is what
+        // dbo.ProvisionUser marks the primary dbo.UserEmails row with, and it
+        // can only ever verify a row, never take one back to unverified.
+        identity.emailVerified,
+        // When this token was minted. A token issued before somebody chose a
+        // new sign-in address still carries the old one, and without this the
+        // next request after that change would hand the old address back and
+        // undo it. See dbo.ProvisionUser.
+        identity.issuedAt,
+      ],
     );
     return account;
   }

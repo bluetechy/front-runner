@@ -32,6 +32,7 @@ src/
   dashboard/            where a completed sign-in lands
   profile/              the profile page, and the form that edits it
   wallet/               saved cards and bank accounts, and the dialogs that add them
+  security/             the addresses on the account, and the page that verifies them
   notifications/        the bell in the top bar, and the panel behind it
   card-surface/         the white card those are all made of
   avatar/               the circle that stands in for somebody's face

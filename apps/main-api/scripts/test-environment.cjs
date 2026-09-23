@@ -20,5 +20,21 @@ Object.assign(process.env, {
   // with a stubbed database -- but the key is required at boot, and app.test.ts
   // boots the real module.
   WALLET_ENCRYPTION_KEY: "test-only-wallet-key",
+  // The same arrangement as the Keycloak values above: the admin address
+  // points at a host nothing listens on, and every test that exercises the
+  // admin client hands it a fetch of its own, so no request leaves the
+  // process. The secret is required at boot and app.test.ts boots the real
+  // module.
+  KEYCLOAK_REALM: "front-runner",
+  KEYCLOAK_ADMIN_URL: "https://identity.example.test",
+  KEYCLOAK_CLIENT_SECRET: "test-only-client-secret",
+  // Mail is the same story: nothing under test opens a connection, because
+  // the mail service's own tests mock nodemailer and every other test that
+  // reaches it is handed a stub.
+  MAIL_ADDRESS: "127.0.0.1",
+  MAIL_SMTP_PORT: "1025",
+  MAIL_FROM_ADDRESS: "no-reply@example.test",
+  MAIL_FROM_NAME: "Front Runner",
+  APP_BASE_URL: "https://app.example.test",
   CORS_ORIGINS: "",
 });

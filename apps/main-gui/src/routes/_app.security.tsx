@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ComingSoon } from "../coming-soon";
+import { Security } from "../security";
 
-export const Route = createFileRoute("/_app/security")({
-  component: () => <ComingSoon title="Security & Login" />,
-});
+export const Route = createFileRoute("/_app/security")({ component: Security });

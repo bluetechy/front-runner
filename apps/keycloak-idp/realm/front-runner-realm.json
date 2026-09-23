@@ -61,7 +61,8 @@
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false
+      "serviceAccountsEnabled": true,
+      "secret": "dev-main-api-client-secret"
     }
   ],
   "users": [
@@ -274,6 +275,14 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "service-account-main-api",
+      "enabled": true,
+      "serviceAccountClientId": "main-api",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users"]
+      }
     }
   ],
   "identityProviders": [

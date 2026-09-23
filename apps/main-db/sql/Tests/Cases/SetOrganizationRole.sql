@@ -131,3 +131,20 @@ BEGIN
     PERFORM "test"."AssertEquals"(_Member."JoinedAt", _Before, 'promoting a member changed when they joined');
 END;
 $$ LANGUAGE plpgsql;
+
+-- Promoting somebody is not a way to read an address they have withheld: the
+-- row this answers with is the one dbo.GetOrganizationMembers would return.
+CREATE FUNCTION "test"."TestSetOrganizationRole_WithholdsAPrivateAddressFromTheRowItAnswersWith" () RETURNS void AS $$
+DECLARE
+    _Promoted record;
+BEGIN
+    PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
+
+    SELECT * INTO _Promoted FROM "dbo"."SetOrganizationRole"(
+        'owner', "test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), true
+    ) AS "Members";
+
+    PERFORM "test"."AssertEquals"(_Promoted."Email"::text, '', 'promoting a member handed over an address they had withheld');
+    PERFORM "test"."AssertTrue"(_Promoted."IsOwner", 'the member was not promoted');
+END;
+$$ LANGUAGE plpgsql;

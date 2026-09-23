@@ -36,6 +36,7 @@ const claims = (overrides: Record<string, unknown> = {}) => ({
   preferred_username: "alice",
   name: "Alice Example",
   email: "alice@example.test",
+  email_verified: true,
   ...overrides,
 });
 
@@ -45,11 +46,17 @@ const token = async (
     key?: CryptoKey;
     expiry?: string | number;
     subject?: string | null;
+    /* setIssuedAt() stamps "iat" over whatever the payload said, so a test
+     * about a missing or malformed one has to switch it off rather than pass
+     * a value. */
+    issuedAt?: boolean;
   } = {},
 ) => {
-  let jwt = new SignJWT({ ...claims(), ...payload })
-    .setProtectedHeader({ alg: "RS256" })
-    .setIssuedAt()
+  let jwt = new SignJWT({ ...claims(), ...payload }).setProtectedHeader({
+    alg: "RS256",
+  });
+  if (options.issuedAt !== false) jwt = jwt.setIssuedAt();
+  jwt = jwt
     .setIssuer(String(payload.iss ?? issuer))
     .setAudience(String(payload.aud ?? audience));
   if (options.subject !== null)
@@ -74,8 +81,72 @@ describe("Keycloak access tokens", () => {
       loginName: "alice",
       name: "Alice Example",
       email: "alice@example.test",
+      emailVerified: true,
+      // setIssuedAt() stamps the token as it is signed, so this is whatever
+      // "now" was, to the second.
+      issuedAt: expect.any(Date),
     });
   });
+
+  // The claim that stops a new sign-in address from undoing itself. A token
+  // is minted once and used until it expires, so dbo.ProvisionUser has to be
+  // able to tell a token that predates a change from one that describes it.
+  it("reports when the token was minted, to the second", async () => {
+    const identity = await service().verify(await token());
+
+    expect(identity.issuedAt).toBeInstanceOf(Date);
+    expect(identity.issuedAt!.getTime()).toBeLessThanOrEqual(Date.now());
+    expect(identity.issuedAt!.getTime()).toBeGreaterThan(Date.now() - 60_000);
+    // Seconds on the wire, milliseconds in a Date.
+    expect(identity.issuedAt!.getTime() % 1000).toBe(0);
+  });
+
+  // A token with no "iat" at all is a valid token: the claim is optional.
+  // dbo.ProvisionUser reads the null as "do not know when" and treats the
+  // address on it as current, which is what it did before there was a claim
+  // to read.
+  it("reports no issue time when the claim is absent", async () => {
+    const signed = await token({}, { issuedAt: false });
+
+    await expect(service().verify(signed)).resolves.toMatchObject({
+      issuedAt: null,
+    });
+  });
+
+  // An "iat" that is not a number never reaches the mapping above: jose
+  // refuses it while verifying, the same as any other malformed claim. Worth
+  // stating, because the null-handling above would otherwise look like it was
+  // covering this case too.
+  it.each([
+    ["a string", "yesterday"],
+    ["null", null],
+  ])("refuses a token whose issue time is %s", async (_label, iat) => {
+    const signed = await token({ iat }, { issuedAt: false });
+
+    await expect(service().verify(signed)).rejects.toThrow(
+      "Invalid or expired token",
+    );
+  });
+
+  // Whether Keycloak says the address has been confirmed, passed through
+  // rather than assumed: dbo.ProvisionUser uses it to decide whether the
+  // primary dbo.UserEmails row arrives verified. Anything that is not
+  // literally true reads as false, which is the safe direction -- it costs
+  // somebody one verification link, where guessing true would put a green
+  // tick on an address nobody has proved they read.
+  it.each([
+    ["missing", undefined],
+    ["false", false],
+    ['the string "true"', "true"],
+    ["null", null],
+  ])(
+    "reads an email_verified claim that is %s as unverified",
+    async (_label, value) => {
+      await expect(
+        service().verify(await token({ email_verified: value })),
+      ).resolves.toMatchObject({ emailVerified: false });
+    },
+  );
 
   it("rejects a token signed by any other key", async () => {
     await expect(

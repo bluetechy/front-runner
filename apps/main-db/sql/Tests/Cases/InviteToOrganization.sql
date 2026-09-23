@@ -127,3 +127,55 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
+
+--
+-- "Already a member" asked of every verified address, not only the one on the
+-- token: somebody invited at the address they read mail at is already in the
+-- room whether or not that is what they sign in with.
+--
+
+CREATE FUNCTION "test"."TestInviteToOrganization_RefusesAMemberAtTheirSecondaryAddress" () RETURNS void AS $$
+BEGIN
+    PERFORM "test"."AssertRaises"(
+        format(
+            'SELECT * FROM "dbo"."InviteToOrganization"(%L, %L, %L, false)',
+            'owner', "test"."Fixture"('Organization.Acme'), 'marcus.work@example.test'
+        ),
+        'an existing member was invited again at a second verified address',
+        'already a member'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- An unverified address proves nothing about who reads it, so it does not
+-- count as being in the room and the invitation goes out.
+CREATE FUNCTION "test"."TestInviteToOrganization_StillInvitesAnUnverifiedAddress" () RETURNS void AS $$
+DECLARE
+    _Invitation record;
+BEGIN
+    SELECT * INTO _Invitation
+    FROM "dbo"."InviteToOrganization"('owner', "test"."Fixture"('Organization.Acme'), 'marcus.new@example.test', false) AS "Invitations";
+
+    PERFORM "test"."AssertEquals"(_Invitation."Email"::text, 'marcus.new@example.test', 'an unverified address was treated as a member');
+    PERFORM "test"."AssertEquals"(_Invitation."Status"::text, 'Pending', 'the invitation was not left pending');
+END;
+$$ LANGUAGE plpgsql;
+
+-- A verified address on an account that is not in this organization is an
+-- ordinary invitation: the check is about membership, not about the table.
+CREATE FUNCTION "test"."TestInviteToOrganization_InvitesAVerifiedAddressFromOutsideTheOrganization" () RETURNS void AS $$
+DECLARE
+    _Organization uuid;
+    _Invitation record;
+BEGIN
+    -- A fresh organization, because the member is already in Acme and
+    -- Organization.Disabled refuses an owner's actions for its own reason.
+    SELECT "Organizations"."OrganizationUUID" INTO _Organization
+    FROM "dbo"."AddOrganization"('owner', 'Second Company') AS "Organizations";
+
+    SELECT * INTO _Invitation
+    FROM "dbo"."InviteToOrganization"('owner', _Organization, 'marcus.work@example.test', false) AS "Invitations";
+
+    PERFORM "test"."AssertEquals"(_Invitation."Status"::text, 'Pending', 'a verified address outside the organization was refused an invitation');
+END;
+$$ LANGUAGE plpgsql;

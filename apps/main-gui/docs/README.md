@@ -10,8 +10,8 @@ here; nothing was carried over from it. See
 for what is built so far, [the cookie notice](cookie-consent.md) for the box
 that asks before anything optional runs, [signing in](authentication.md) for the login dialog
 and its Keycloak flows, [the dashboard](dashboard.md),
-[the profile page](profile-page.md) and [the wallet page](wallet-page.md) for
-what is behind the login, [notifications](notifications.md) for the bell in the
+[the profile page](profile-page.md), [the wallet page](wallet-page.md) and
+[the security page](security-page.md) for what is behind the login, [notifications](notifications.md) for the bell in the
 top bar, the page behind it and the TanStack Query under both, [language](language.md) for the flag
 beside it and the i18next behind that, [icons](shared/icons.md) for how
 every icon is wrapped, [the style guide](style-guide.md) for the surfaces,

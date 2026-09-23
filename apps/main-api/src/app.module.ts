@@ -5,6 +5,7 @@ import { ApiGraphqlModule } from "./graphql/index.js";
 import { HealthModule } from "./health/index.js";
 import { UsersModule } from "./users/index.js";
 import { ProfilesModule } from "./profiles/index.js";
+import { EmailsModule } from "./emails/index.js";
 import { OrganizationsModule } from "./organizations/index.js";
 import { TeamsModule } from "./teams/index.js";
 import { BadgesModule } from "./badges/index.js";
@@ -21,6 +22,7 @@ import { NotificationsModule } from "./notifications/index.js";
     HealthModule,
     UsersModule,
     ProfilesModule,
+    EmailsModule,
     OrganizationsModule,
     TeamsModule,
     BadgesModule,

@@ -16,6 +16,10 @@
 -- The target has to be an enabled member already. Ownership is a property of a
 -- membership, not a way to create one -- that is what an invitation is for.
 --
+-- The row it answers with is the one dbo.GetOrganizationMembers would return,
+-- privacy switch included: promoting somebody is not a way to read an address
+-- they have withheld.
+--
 CREATE FUNCTION "dbo"."SetOrganizationRole" (_LoginName varchar(64), _OrganizationUUID uuid, _UserUUID uuid, _IsOwner boolean) RETURNS TABLE(
     "UserUUID" uuid,
     "Name" varchar(64),
@@ -55,12 +59,21 @@ CREATE FUNCTION "dbo"."SetOrganizationRole" (_LoginName varchar(64), _Organizati
             "Users"."UserUUID",
             "Users"."Name",
             "Users"."LoginName",
-            "Users"."Email",
+            -- Withheld when its owner has asked for that on the security
+            -- page. Empty rather than NULL, because dbo.Users."Email" is
+            -- NOT NULL DEFAULT '' and an account that has never had an
+            -- address already reads as '' here: one representation, so no
+            -- caller has to handle two. See dbo.SetUserEmailPrivacy.
+            CASE WHEN COALESCE("UserProfiles"."EmailIsPrivate", false)
+                THEN ''::varchar(255)
+                ELSE "Users"."Email"
+            END,
             "UserOrganizations"."IsOwner",
             "UserOrganizations"."CreatedAt"
         FROM
             "dbo"."UserOrganizations"
             JOIN "dbo"."Users" ON ("Users"."UserUUID" = "UserOrganizations"."UserUUID")
+            LEFT JOIN "dbo"."UserProfiles" ON ("UserProfiles"."UserUUID" = "Users"."UserUUID")
         WHERE
             "UserOrganizations"."OrganizationUUID" = _OrganizationUUID AND
             "UserOrganizations"."UserUUID" = _UserUUID;
