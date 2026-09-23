@@ -83,11 +83,16 @@ the dark sign-in panel, which on this paper is a white box on a white card
 with no edge to it. So each field is `0.7rem` at the corner rather than the
 theme's `999px`, the way a profile field is cut (a page of pills reads as a
 page of buttons, and a pill could not have held the five lines of the message
-box anyway). A field is outlined in `brand.cardInkMuted` rather than in
-`brand.cardRule`, which the profile's fields use: the rule is **1.3:1** on
-card paper, which divides a card into sections but does not tell a field from
-the card it is cut into, and the muted ink is **6.5:1**. The hover takes that
-the rest of the way to `brand.cardInk`.
+box anyway). A field is outlined in `brand.cardFieldEdge` rather than in
+`brand.cardRule`: the rule is **1.3:1** on card paper, which divides a card
+into sections but does not tell a field from the card it is cut into, and the
+edge is **6.5:1**. The hover takes that the rest of the way to
+`brand.cardFieldEdgeHover`.
+
+These fields were outlined this way first, and the rule is theirs: every text
+box in the app is drawn against its own fill now, and the two constants above
+are where a field on card paper gets its edge. See
+[text boxes](style-guide.md#text-boxes).
 
 A field's error line is `brand.fall` rather than Material's `error.main`,
 which is 3.68:1 on card paper and under what a 0.75rem sentence needs. `brand.fall` is the red this app already reads on white and is 5.39:1

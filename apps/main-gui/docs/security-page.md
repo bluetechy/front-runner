@@ -9,14 +9,21 @@ It replaced the "coming soon" placeholder that route used to render.
 
 ## The table
 
-`email-list.tsx`. Three columns, from a supplied mock-up: **Email**, **Status**,
-**Action**. One row per address, separated by the card's own rule, and a last
-row that adds one.
+`email-list.tsx`. Four columns, from a supplied mock-up: **Primary**, **Email**,
+**Status**, **Action**. One row per address, separated by the card's own rule,
+and a last row that adds one.
 
-The Status column carries pills rather than sentences: **Verified** or
-**Unverified**, and **Primary** on the one address the account signs in with.
-The word is the whole message, not the color, which is the rule the rest of the
-product follows.
+The Primary column holds the radio and nothing else. It was an unheaded column
+with a pill saying **Primary** two columns further along, which said the same
+word twice and said it in the column that is about something else; the radio is
+the only mark on the row now, and the heading over it is what names it.
+
+The Status column carries pills rather than sentences: **Verified** in teal,
+**Unverified** in the accent's pink, from `brand.statusPills`. That is the
+same pair the toast uses, for the same reason: a pill says what happened, it
+does not offer anything. The word is the whole message and the color only agrees with
+it, which is the rule the rest of the product follows. See
+[text boxes and the pills beside them](style-guide.md#teal-and-faces).
 
 The Action column carries a Delete on every row but the primary, and a **Send
 link** on every row that is not verified yet. Neither appears where it could
@@ -28,10 +35,13 @@ wallet all use.
 
 It is a grid rather than a `<table>`. Every row here is a form control and a
 label, and a grid keeps them in source order when the columns stack at `xs`.
+Stacked, the radio keeps a column of its own beside the three lines rather than
+becoming a fourth line above them: there is one of it per row, not one per
+line.
 
 ## The primary is a radio, and there is one of it
 
-The radio in the Email column is the address the account signs in with, and
+The radio in the Primary column is the address the account signs in with, and
 there is exactly **one across the list** — so the table is a single
 `RadioGroup` over the whole thing rather than a control per row. That is the
 arrangement [the wallet](wallet-page.md#the-default-is-a-radio-and-there-is-one-of-it)
@@ -44,23 +54,33 @@ what was clicked, so a refused change leaves the mark where it was.
 `CreatedAt` and nothing else, so the address the account started with stays at
 the top and the only thing that moves a row is adding or removing one.
 
-**An unverified address cannot take the radio.** Nobody has proved they read
-it, and a login is not a thing to hand over on an unproven address. The control
-is disabled and a tooltip says why — on a wrapper, because a disabled control
-takes no pointer events and the one thing somebody needs to know would
-otherwise be the one thing they cannot reach. `dbo.SetPrimaryUserEmail` refuses
-it as well, so the disabled control is agreeing with the rule rather than being
-it.
+**An unverified address has no radio at all.** Nobody has proved they read it,
+and a login is not a thing to hand over on an unproven address.
+`dbo.SetPrimaryUserEmail` refuses it as well, so the missing control is
+agreeing with the rule rather than being it.
+
+It is absent rather than disabled, for the reason the primary row has no
+Delete: there is nothing to do about it in that column. What is missing has to
+be answerable somewhere else on the row, and it is. The Status column says
+**Unverified** and the Action column offers **Send link**, which is the thing
+that changes the answer.
 
 ## The last row adds an address
 
-A field in the Email column, nothing in Status, and **Add** in the Action
-column. A row rather than a dialog, because it is one field and a dialog for
-one field is a door in front of a doorway.
+A field in the Email column, nothing in Primary or Status, and **Add** in the
+Action column. A row rather than a dialog, because it is one field and a dialog
+for one field is a door in front of a doorway.
 
-Nothing goes in Status, because there is nothing known about an address that
-does not exist yet, and a pill reading "Unverified" before it was added would
-be describing something that is not there.
+Nothing goes in either of the middle columns, because there is nothing known
+about an address that does not exist yet: it cannot be the login before it is
+an address, and a pill reading "Unverified" before it was added would be
+describing something that is not there.
+
+The field is drawn the way every text box on card paper is drawn: the card's
+own edge around it, the card's ink in it, `0.7rem` corners. It was the theme's
+dark-panel field before, which on white paper is a white box on a white card
+with no edge at all, and it was hard to see there was a box there. See
+[text boxes](style-guide.md#text-boxes).
 
 The field checks the address in the browser through `email-schema.ts`, which is
 a copy of main-api's `emails.schema.ts`. The two are meant to say the same

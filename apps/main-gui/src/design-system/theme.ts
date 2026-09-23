@@ -42,7 +42,28 @@ const gutter = "clamp(1.25rem, 4vw, 3.5rem)";
 const panel = "#2c0a52";
 const panelEdge = "rgba(227, 79, 196, 0.22)";
 const inputField = "rgba(255, 255, 255, 0.07)";
-const placeholder = "#9c86b6";
+
+/*
+ * What an empty field says it takes. The mock-up's violet reads 4.3:1 on
+ * that hollow, under the 4.5:1 a sentence needs; this is the same hue taken
+ * up until it cleared, at 4.9:1.
+ */
+const placeholder = "#a68fc0";
+
+/*
+ * The edge around a text box.
+ *
+ * A box is drawn against its own fill rather than against the surface behind
+ * it -- white held back around this dark hollow, the card's dark ink around
+ * white paper -- so that a field reads as somewhere to write rather than as
+ * a patch of a slightly different color. That is the whole rule, and it is
+ * written out in docs/style-guide.md.
+ *
+ * White at 45% on the hollow is 4.0:1, against the 3:1 something drawn
+ * rather than written needs, and the pointer takes it the rest of the way.
+ */
+const fieldEdge = "rgba(255, 255, 255, 0.45)";
+const fieldEdgeHover = "#ffffff";
 
 /*
  * The pricing cards are the one surface in the app that is not violet: white
@@ -56,6 +77,15 @@ const card = "#ffffff";
 const cardInk = violet[950];
 const cardInkMuted = "#6a5581";
 const cardRule = "rgba(31, 5, 56, 0.12)";
+
+/*
+ * The edge around a text box cut into card paper: the card's muted ink at
+ * 6.5:1, and the card's own ink at 18.5:1 under the pointer. `cardRule` is
+ * 1.3:1 -- enough to divide a card into sections, nowhere near enough to
+ * tell a white box from the white card it is cut into.
+ */
+const cardFieldEdge = cardInkMuted;
+const cardFieldEdgeHover = cardInk;
 
 /*
  * The one card on the page being pushed is the same paper with the accent
@@ -91,11 +121,11 @@ const chromeRail = black;
 const chromeInk = "#ffffff";
 const chromeLabel = "rgba(255, 255, 255, 0.66)";
 
-/* The wash under the pointer, the hairline along the chrome's outer edges,
- * and the hollow the top bar's search field is sunk into. */
+/* The wash under the pointer, and the hairline along the chrome's outer
+ * edges. The top bar's search field used to be a third of these, a hollow at
+ * white 8%; it is card paper now, for the reason in `fieldEdge`. */
 const chromeHover = "rgba(255, 255, 255, 0.09)";
 const chromeEdge = "rgba(255, 255, 255, 0.16)";
-const chromeField = "rgba(255, 255, 255, 0.08)";
 
 /*
  * The pill under the page you are on: the same fade a contained button is
@@ -108,6 +138,14 @@ const chromeField = "rgba(255, 255, 255, 0.08)";
  * on the violet, which is the point of taking the color out.
  */
 const accentPill = "#d1258f";
+
+/*
+ * The accent taken down one step further again, for the word inside a status
+ * pill. The pill is the accent laid on card paper at 12%, and `accentPill`
+ * is 4.2:1 written on that tint where a 0.7rem word needs 4.5:1. This is the
+ * same hue taken down until it cleared, at 4.8:1.
+ */
+const accentPillInk = "#c21f84";
 const accentPillFade = `linear-gradient(95deg, ${accentPill}, ${accentDeep})`;
 const chromeSelected = accentPillFade;
 
@@ -134,6 +172,28 @@ const tealDeep = "#0a5f72";
  * cycled: a fourth series is not a fourth hue, it is a different chart.
  */
 const chartSeries = [accentStrong, accentDeep, teal] as const;
+
+/* A hue laid on card paper at 12%: the disc behind a stat tile's icon, and
+ * the pill a status is written in. */
+const cardTint = "rgba(227, 79, 196, 0.12)";
+const cardTintTeal = "rgba(31, 159, 181, 0.12)";
+
+/*
+ * The pill a row wears to say what is known about it: teal for what is
+ * settled, the accent's pink for what is still waiting on somebody. Teal is
+ * not a second accent here, for the reason the teal toast is not one -- a
+ * pill says what happened, it does not offer anything.
+ *
+ * Each is its own hue laid on white, with the word written in that hue taken
+ * down until it cleared 4.5:1 on its own tint: `tealDeep` reads 6.4:1 and
+ * `accentPillInk` 4.8:1. The word is the whole message. Nothing in this
+ * product is said in color alone, so a pill is never the only place a row
+ * says what it is.
+ */
+const statusPills = {
+  settled: { ink: tealDeep, tint: cardTintTeal },
+  waiting: { ink: accentPillInk, tint: cardTint },
+} as const;
 
 /*
  * A figure that moved the right way, and one that did not. Both are read on
@@ -194,14 +254,20 @@ const brand = {
   panel,
   panelEdge,
   panelGlow: "0 30px 80px rgba(10, 2, 24, 0.7)",
-  /* Inputs are a hollow of the panel rather than a surface of their own. */
+  /* Inputs are a hollow of the panel rather than a surface of their own,
+   * and the edge is what makes that hollow a box. */
   inputField,
+  fieldEdge,
+  fieldEdgeHover,
   /* White paper on the field: the pricing cards, and whatever follows. */
   card,
   cardEdge: violet[950],
   cardInk,
   cardInkMuted,
   cardRule,
+  /* The same edge as `fieldEdge`, on the other kind of surface. */
+  cardFieldEdge,
+  cardFieldEdgeHover,
   /* The paper under the plan being pushed, and the badge beside its name. The
    * badge is painted in the nav pill's fade rather than the button's, for the
    * reason the nav pill is: it is small white text on the accent, and
@@ -221,9 +287,6 @@ const brand = {
   chromeLabel,
   chromeHover,
   chromeEdge,
-  /* A hollow in the chrome, the way `inputField` is one in the panel: the top
-   * bar's search field. */
-  chromeField,
   /* The pill under the page you are on, and what it is written in. */
   chromeSelected,
   chromeSelectedInk: "#ffffff",
@@ -249,7 +312,9 @@ const brand = {
    * read-only field, which on white would otherwise be white. */
   cardField: "rgba(31, 5, 56, 0.05)",
   /* The tint a stat tile's icon sits in. */
-  cardTint: "rgba(227, 79, 196, 0.12)",
+  cardTint,
+  /* What a row wears to say what is known about it. */
+  statusPills,
   rise,
   fall,
   chartSeries,
@@ -381,8 +446,8 @@ export const theme = createTheme({
         root: {
           borderRadius: 999,
           backgroundColor: inputField,
-          "& fieldset": { borderColor: "transparent" },
-          "&:hover fieldset": { borderColor: panelEdge },
+          "& fieldset": { borderColor: fieldEdge },
+          "&:hover fieldset": { borderColor: fieldEdgeHover },
           "&.Mui-focused fieldset": { borderColor: accent, borderWidth: 1 },
         },
         input: {

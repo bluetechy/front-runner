@@ -19,10 +19,11 @@ import { sendMessage } from "./send-message";
  * It is white paper on the field -- the same `CardSurface` the dashboard and
  * the profile page are made of -- rather than a panel raised off it. Nothing
  * inside it can be drawn in the app's usual white-on-violet, then: the fields
- * carry the card's own ink, the card's rule for a border and the card's
+ * carry the card's own ink, the card's own edge for a border and the card's
  * square-ish corners, the way a field on the profile page does. The theme's
  * own field is a pill hollowed out of the dark sign-in panel, which on this
- * paper is a white box on a white card with no edge to it.
+ * paper is a white box on a white card with no edge to it. A box is drawn
+ * against what is written in it -- see docs/style-guide.md.
  *
  * Nothing is announced until `sendMessage` has answered, the same rule the
  * profile form keeps: a form that says "sent" on the click has said it about
@@ -219,12 +220,14 @@ function Field({
           /* The card's own rule is 1.3:1 on its paper: enough to divide a
            * card into sections, not enough to tell a field from the card it
            * is cut into. So the outline is the card's muted ink, 6.5:1, and
-           * the hover takes it the rest of the way to the card's ink. */
+           * the hover takes it the rest of the way to the card's ink. Both
+           * are `brand.cardFieldEdge*`, which is where every field on card
+           * paper in this app now gets its edge. */
           "& fieldset": {
-            borderColor: (theme) => theme.palette.brand.cardInkMuted,
+            borderColor: (theme) => theme.palette.brand.cardFieldEdge,
           },
           "&:hover fieldset": {
-            borderColor: (theme) => theme.palette.brand.cardInk,
+            borderColor: (theme) => theme.palette.brand.cardFieldEdgeHover,
           },
           "&.Mui-focused fieldset": { borderColor: "primary.main" },
           "&.Mui-error fieldset": { borderColor: "error.main" },

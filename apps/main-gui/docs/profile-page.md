@@ -133,9 +133,13 @@ not show them would look like it had lost them.
 
 `card-field.tsx` holds them. The theme's own field is a pill hollowed out of
 the dark sign-in panel; on white paper that is a white box on a white card
-with no edge to it, so a field here takes the card's rule for a border, the
-card's ink for text, and square-ish corners — a page of pills reads as a page
-of buttons. `FieldRow` puts the label beside the control from `sm` up and
+with no edge to it, so a field here takes `brand.cardFieldEdge` for a border,
+the card's ink for text, and square-ish corners, because a page of pills reads
+as a page of buttons. These were outlined in `brand.cardRule` until the rule in
+[text boxes](style-guide.md#text-boxes) was written down; at **1.3:1** that
+divides a card into sections but cannot draw a box. A read-only field keeps
+the same edge under the pointer rather than deepening: the hover is the
+invitation to type, and there is nothing to type here. `FieldRow` puts the label beside the control from `sm` up and
 above it below that, and that is all it does.
 
 ## In two languages

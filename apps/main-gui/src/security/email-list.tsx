@@ -15,33 +15,46 @@ import { checkEmail } from "./email-schema";
 import type { UserEmail } from "./email-api";
 
 /*
- * The addresses on file, as three columns: the address, what is known about
- * it, and what can be done to it.
+ * The addresses on file, as four columns: which one is the login, the address
+ * itself, what is known about it, and what can be done to it.
  *
  * **The radio is the primary address**, which is the one its owner signs in
- * with, and there is exactly one across the list -- which is why this is a
- * single `RadioGroup` over the whole table rather than a control per row. The
- * same arrangement `wallet/method-list.tsx` uses for the default payment
- * method, and for the same reason: choosing one is a save, so the group shows
- * what is, not what was clicked. The list is replaced by what the API returns,
- * and a refused change leaves the mark where it was.
+ * with, and it is the only thing that says so: the column it stands in is
+ * headed Primary, and no row wears a pill saying the same word twice. There
+ * is exactly one across the list, which is why this is a single `RadioGroup`
+ * over the whole table rather than a control per row. The same arrangement
+ * `wallet/method-list.tsx` uses for the default payment method, and for the
+ * same reason: choosing one is a save, so the group shows what is, not what
+ * was clicked. The list is replaced by what the API returns, and a refused
+ * change leaves the mark where it was.
  *
- * An unverified address cannot take the radio. Nobody has proved they read it,
+ * An unverified address has no radio at all. Nobody has proved they read it,
  * and a login is not a thing to hand over on an unproven address; the database
- * refuses it too, so the disabled control is agreeing with the rule rather
- * than being the rule. The tooltip says why, because a disabled control that
- * does not explain itself reads as a bug.
+ * refuses it too, so the missing control is agreeing with the rule rather than
+ * being the rule. It is absent rather than disabled for the reason the primary
+ * row has no Delete: there is nothing to do about it in this column, and the
+ * row already says what it is in Status and offers the link that fixes it in
+ * Action.
  *
  * The last row is the one that adds an address: a field in the Email column,
- * nothing in Status because there is nothing known about it yet, and Add in
- * Action. It is a row rather than a dialog because it is one field, and a
- * dialog for one field is a door in front of a doorway.
+ * nothing in Primary or Status because there is nothing known about an
+ * address that does not exist yet, and Add in Action. It is a row rather than
+ * a dialog because it is one field, and a dialog for one field is a door in
+ * front of a doorway.
  */
 
 /* The column widths, in one place, because the head and every row have to
- * agree and three copies of a number is how they stop agreeing. Status and
- * Action are fixed and the address takes the rest. */
-const COLUMNS = { status: "9.5rem", action: "7rem" };
+ * agree and three copies of a number is how they stop agreeing. Primary,
+ * Status and Action are fixed and the address takes the rest. */
+const COLUMNS = { primary: "5rem", status: "7.5rem", action: "8rem" };
+
+/* The head and every row draw the same four columns. Below `sm` they stack,
+ * and the radio keeps a column of its own beside them rather than becoming a
+ * line above the address: it belongs to the whole row. */
+const TEMPLATE = {
+  xs: "auto 1fr",
+  sm: `${COLUMNS.primary} 1fr ${COLUMNS.status} ${COLUMNS.action}`,
+};
 
 export function EmailList({
   addresses,
@@ -118,13 +131,18 @@ function HeadRow() {
     <Box
       sx={{
         display: { xs: "none", sm: "grid" },
-        gridTemplateColumns: `1fr ${COLUMNS.status} ${COLUMNS.action}`,
+        gridTemplateColumns: TEMPLATE.sm,
         gap: 2,
         alignItems: "center",
         paddingBlock: 1,
         borderBottom: (theme) => `1px solid ${theme.palette.brand.cardRule}`,
       }}
     >
+      {/* Centered over the radio under it, which is the only thing this
+       * column holds. */}
+      <Box sx={{ textAlign: "center" }}>
+        <CardLabel>Primary</CardLabel>
+      </Box>
       <CardLabel>Email</CardLabel>
       <CardLabel>Status</CardLabel>
       {/* The only right-aligned one, because the control under it is. */}
@@ -146,30 +164,11 @@ function EmailRow({
   onRemove: () => void;
   onResend: () => void;
 }) {
-  const radio = (
-    <Radio
-      value={address.UserEmailUUID}
-      disabled={busy || !address.IsVerified}
-      slotProps={{
-        input: {
-          "aria-label": `Sign in with ${address.Email}`,
-        },
-      }}
-      sx={{
-        color: (theme) => theme.palette.brand.cardInkMuted,
-        "&.Mui-checked": { color: "primary.main" },
-      }}
-    />
-  );
-
   return (
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: {
-          xs: "1fr",
-          sm: `1fr ${COLUMNS.status} ${COLUMNS.action}`,
-        },
+        gridTemplateColumns: TEMPLATE,
         gap: { xs: 0.5, sm: 2 },
         alignItems: "center",
         paddingBlock: 1.5,
@@ -178,46 +177,56 @@ function EmailRow({
         transition: "opacity 150ms ease",
       }}
     >
-      <Stack direction="row" sx={{ alignItems: "center", minWidth: 0 }}>
-        {/* A disabled control takes no pointer events, so the tooltip goes on
-         * a wrapper rather than on the radio itself. Without this the one
-         * thing somebody needs to know -- why they cannot choose this row --
-         * is the one thing they cannot reach. */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: { sm: "center" },
+          /* Stacked, the radio stands beside the whole row rather than above
+           * the address: there is one of it per row, not one per line. */
+          gridRow: { xs: "1 / 4", sm: "auto" },
+        }}
+      >
+        {/* One per row, on every address somebody has proved they read, and
+         * none at all on the rest: an address that cannot be the login is not
+         * offered as one. */}
         {address.IsVerified ? (
-          radio
-        ) : (
-          <Tooltip title="Verify this address before you can sign in with it">
-            <Box component="span" sx={{ display: "inline-flex" }}>
-              {radio}
-            </Box>
-          </Tooltip>
-        )}
-        <Typography
-          sx={{
-            fontSize: "0.95rem",
-            color: (theme) => theme.palette.brand.cardInk,
-            overflowWrap: "anywhere",
-          }}
-        >
-          {address.Email}
-        </Typography>
-      </Stack>
+          <Radio
+            value={address.UserEmailUUID}
+            disabled={busy}
+            slotProps={{
+              input: {
+                "aria-label": `Sign in with ${address.Email}`,
+              },
+            }}
+            sx={{
+              color: (theme) => theme.palette.brand.cardInkMuted,
+              "&.Mui-checked": { color: "primary.main" },
+            }}
+          />
+        ) : null}
+      </Box>
+
+      <Typography
+        sx={{
+          minWidth: 0,
+          fontSize: "0.95rem",
+          color: (theme) => theme.palette.brand.cardInk,
+          overflowWrap: "anywhere",
+        }}
+      >
+        {address.Email}
+      </Typography>
 
       <Stack
         direction="row"
-        sx={{
-          gap: 0.75,
-          flexWrap: "wrap",
-          alignItems: "center",
-          pl: { xs: 5.5, sm: 0 },
-        }}
+        sx={{ gap: 0.75, flexWrap: "wrap", alignItems: "center" }}
       >
         {address.IsVerified ? (
           <Tag>Verified</Tag>
         ) : (
-          <Tag tone="fall">Unverified</Tag>
+          <Tag tone="waiting">Unverified</Tag>
         )}
-        {address.IsPrimary ? <Tag>Primary</Tag> : null}
       </Stack>
 
       <Stack
@@ -226,7 +235,6 @@ function EmailRow({
           gap: 0.5,
           justifyContent: { xs: "flex-start", sm: "flex-end" },
           alignItems: "center",
-          pl: { xs: 5.5, sm: 0 },
         }}
       >
         {/* Only where it can do something. An address already verified has
@@ -316,15 +324,16 @@ function AddRow({
       }}
       sx={{
         display: "grid",
-        gridTemplateColumns: {
-          xs: "1fr",
-          sm: `1fr ${COLUMNS.status} ${COLUMNS.action}`,
-        },
+        gridTemplateColumns: { xs: "1fr", sm: TEMPLATE.sm },
         gap: { xs: 1, sm: 2 },
         alignItems: "start",
         paddingBlock: 1.5,
       }}
     >
+      {/* Nothing in Primary: an address cannot be the login before it is an
+       * address, let alone a verified one. */}
+      <Box aria-hidden sx={{ display: { xs: "none", sm: "block" } }} />
+
       <TextField
         type="email"
         size="small"
@@ -342,6 +351,42 @@ function AddRow({
         helperText={problem ?? "Add another address you read mail at"}
         placeholder="you@example.com"
         slotProps={{ htmlInput: { "aria-label": "Add an email address" } }}
+        sx={{
+          /* A text box is drawn against what is written in it. The theme's
+           * own field is a hollow in the dark sign-in panel, which on card
+           * paper is a white box on a white card with no edge to it -- which
+           * is what this was, and it was hard to see that there was a box
+           * here at all. So it takes the card's edge, the card's ink and the
+           * square-ish corners every other field on this paper has. See
+           * docs/style-guide.md. */
+          "& .MuiOutlinedInput-root": {
+            borderRadius: "0.7rem",
+            backgroundColor: (theme) => theme.palette.brand.card,
+            color: (theme) => theme.palette.brand.cardInk,
+            "& fieldset": {
+              borderColor: (theme) => theme.palette.brand.cardFieldEdge,
+            },
+            "&:hover fieldset": {
+              borderColor: (theme) => theme.palette.brand.cardFieldEdgeHover,
+            },
+            "&.Mui-error fieldset": { borderColor: "error.main" },
+          },
+          /* The theme's placeholder is a violet for that dark hollow and is
+           * 3.2:1 here; the card's own muted ink is 6.5:1. */
+          "& .MuiInputBase-input::placeholder": {
+            color: (theme) => theme.palette.brand.cardInkMuted,
+            opacity: 1,
+          },
+          /* Material writes a helper line in `error.main`, which is 3.7:1 on
+           * card paper. `brand.fall` is the red this app reads on white, at
+           * 5.4:1. The outline keeps `error.main`: it is drawn rather than
+           * written, so its floor is 3:1 and it clears that. */
+          "& .MuiFormHelperText-root": {
+            marginLeft: "0.15rem",
+            color: (theme) => theme.palette.brand.cardInkMuted,
+            "&.Mui-error": { color: (theme) => theme.palette.brand.fall },
+          },
+        }}
       />
 
       {/* Nothing in Status: there is nothing known about an address that has
@@ -368,10 +413,18 @@ function AddRow({
   );
 }
 
-/* The pill in the Status column. Teal for what is settled, pink for what is
- * not, and the word is the whole message: nothing in this product is said in
- * color alone. */
-function Tag({ children, tone }: { children: React.ReactNode; tone?: "fall" }) {
+/* The pill in the Status column: teal for what is settled, the accent's pink
+ * for what is still waiting on somebody. The word is the whole message --
+ * nothing in this product is said in color alone -- and both pairs come off
+ * `brand.statusPills`, which is where the ratios behind them are written
+ * down. */
+function Tag({
+  children,
+  tone = "settled",
+}: {
+  children: React.ReactNode;
+  tone?: "settled" | "waiting";
+}) {
   return (
     <Typography
       component="span"
@@ -383,14 +436,8 @@ function Tag({ children, tone }: { children: React.ReactNode; tone?: "fall" }) {
         fontWeight: 600,
         letterSpacing: "0.04em",
         textTransform: "uppercase",
-        /* Both sides come off the theme: a path like "primary.main" is only
-         * resolved when sx is handed the string itself, not when a callback
-         * returns one, and a callback is what a ternary needs. */
-        color: (theme) =>
-          tone === "fall"
-            ? theme.palette.brand.fall
-            : theme.palette.primary.main,
-        backgroundColor: (theme) => theme.palette.brand.cardTint,
+        color: (theme) => theme.palette.brand.statusPills[tone].ink,
+        backgroundColor: (theme) => theme.palette.brand.statusPills[tone].tint,
       }}
     >
       {children}

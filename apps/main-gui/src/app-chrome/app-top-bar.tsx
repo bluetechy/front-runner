@@ -18,11 +18,13 @@ import { LanguageMenu } from "../language";
 import { NotificationMenu } from "../notifications";
 
 /*
- * The bar along the top of the application: the chrome, the same violet as the
+ * The bar along the top of the application: the chrome, the same black as the
  * rail it meets at the corner, so the two read as one surface the pages are
  * laid inside rather than as two edges of different colors.
  *
- * The search field is the mock-up's and does nothing yet. What is real is the
+ * The search field is the mock-up's and does nothing yet, and it is the one
+ * thing on this bar drawn on paper rather than on the black: a text box is
+ * drawn against what is written in it. What is real is the
  * language flag, which remembers what it is told; the bell, which reads the
  * signed-in person's notifications and marks them read; and what is on the
  * right: who is signed in, read from the session, and the menu that signs them
@@ -71,7 +73,7 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
                 <Box
                   sx={{
                     display: "flex",
-                    color: (theme) => theme.palette.brand.chromeLabel,
+                    color: (theme) => theme.palette.brand.cardInkMuted,
                   }}
                 >
                   <SearchIcon color="currentColor" size={18} />
@@ -82,14 +84,27 @@ export function AppTopBar({ onOpenNav }: { onOpenNav: () => void }) {
         }}
         sx={{
           flex: { xs: 1, md: "0 1 22rem" },
-          /* The theme's field is a hollow in the dark panel; this is the same
-           * hollow cut into the chrome, which is a shade lighter again. */
+          /* White paper, not a hollow in the chrome. It was `chromeField`
+           * once -- white at 8% on black, which is a box you have to look
+           * for on a bar that is already black edge to edge. A text box is
+           * drawn against what is written in it, so this is card paper with
+           * the card's ink in it and the card's edge round it, the same way
+           * every other field in the app is drawn. See docs/style-guide.md. */
           "& .MuiOutlinedInput-root": {
-            backgroundColor: (theme) => theme.palette.brand.chromeField,
-            color: (theme) => theme.palette.brand.chromeInk,
+            backgroundColor: (theme) => theme.palette.brand.card,
+            color: (theme) => theme.palette.brand.cardInk,
+            "& fieldset": {
+              borderColor: (theme) => theme.palette.brand.cardFieldEdge,
+            },
+            "&:hover fieldset": {
+              borderColor: (theme) => theme.palette.brand.cardFieldEdgeHover,
+            },
           },
+          /* The theme's placeholder is a violet for the dark panel's hollow
+           * and unreadable on this paper; the card's own muted ink is
+           * 6.5:1 here. */
           "& .MuiOutlinedInput-input::placeholder": {
-            color: (theme) => theme.palette.brand.chromeLabel,
+            color: (theme) => theme.palette.brand.cardInkMuted,
             opacity: 1,
           },
         }}

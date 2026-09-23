@@ -6,11 +6,11 @@ import { EmailList } from "./email-list";
 import type { UserEmail } from "./email-api";
 
 /*
- * The addresses on file, as three columns.
+ * The addresses on file, as four columns.
  *
  * Two rules carry most of this file. The radio is the primary address and
  * there is exactly one across the table, so choosing one is a save rather than
- * a selection. And an unverified address cannot take it: nobody has proved
+ * a selection. And an unverified address does not get one: nobody has proved
  * they read it, and a login is not something to hand over on an unproven
  * address.
  */
@@ -70,11 +70,11 @@ beforeEach(() => {
   onAdd.mockReset();
 });
 
-describe("the three columns", () => {
-  it("heads them Email, Status and Action", () => {
+describe("the four columns", () => {
+  it("heads them Primary, Email, Status and Action", () => {
     renderList();
 
-    for (const column of ["Email", "Status", "Action"])
+    for (const column of ["Primary", "Email", "Status", "Action"])
       expect(screen.getByRole("heading", { name: column })).toBeInTheDocument();
   });
 
@@ -91,12 +91,38 @@ describe("the three columns", () => {
 
   // The status is a word as well as a color: nothing in this product is said
   // in color alone.
-  it("says in words which addresses are verified and which is the login", () => {
+  it("says in words which addresses are verified and which are not", () => {
     renderList();
 
     expect(screen.getAllByText("Verified")).toHaveLength(2);
     expect(screen.getByText("Unverified")).toBeInTheDocument();
-    expect(screen.getByText("Primary")).toBeInTheDocument();
+  });
+
+  // Teal for what is settled, the accent's pink for what is still waiting on
+  // somebody. Both come off `brand.statusPills`, where the ratios behind them
+  // are written down.
+  it("writes the two statuses in the two colors the theme keeps for them", () => {
+    renderList();
+    const pills = theme.palette.brand.statusPills;
+
+    expect(screen.getAllByText("Verified")[0]).toHaveStyle({
+      color: pills.settled.ink,
+    });
+    expect(screen.getByText("Unverified")).toHaveStyle({
+      color: pills.waiting.ink,
+    });
+  });
+
+  // The radio in the Primary column is the only thing that says which address
+  // the account signs in with. The pill that used to say it as well was the
+  // same word twice, in the column that is about something else.
+  it("marks the login with the radio rather than with a pill beside it", () => {
+    renderList();
+
+    expect(screen.getAllByText("Primary")).toHaveLength(1);
+    expect(
+      screen.getByRole("heading", { name: "Primary" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -139,28 +165,29 @@ describe("the radio that marks the sign-in address", () => {
   });
 
   // The assertion this component exists to make. The database refuses it too,
-  // so the disabled control is agreeing with the rule rather than being it.
-  it("cannot be chosen on an address nobody has verified", () => {
+  // so the missing control is agreeing with the rule rather than being it.
+  it("is not drawn at all on an address nobody has verified", () => {
     renderList();
 
     expect(
-      screen.getByRole("radio", {
+      screen.queryByRole("radio", {
         name: "Sign in with marcus.new@example.test",
       }),
-    ).toBeDisabled();
+    ).toBeNull();
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
   });
 
-  // A disabled control that does not explain itself reads as a bug, and a
-  // disabled control takes no pointer events, so the explanation has to sit on
-  // something that does.
-  it("says why it cannot, somewhere a pointer can reach", () => {
+  // Absent rather than disabled, the way the primary row has no Delete. What
+  // is missing has to be answerable somewhere else on the row, and it is: the
+  // Status column says what the address is and the Action column offers the
+  // link that changes it.
+  it("leaves that row saying what it is and offering the way out", () => {
     renderList();
 
-    expect(
-      screen.getByLabelText(
-        "Verify this address before you can sign in with it",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Unverified")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Send link" })).toHaveLength(
+      1,
+    );
   });
 });
 

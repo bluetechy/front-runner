@@ -11,8 +11,9 @@ import type { ReactNode } from "react";
  *
  * The theme's own field is a pill hollowed out of the dark sign-in panel; on
  * white it is a white box on a white card with no edge to it. So a field here
- * takes the card's rule for a border, the card's ink for text, and square-ish
- * corners, because a page of pills reads as a page of buttons.
+ * takes the card's own edge for a border, the card's ink for text, and
+ * square-ish corners, because a page of pills reads as a page of buttons. A
+ * box is drawn against what is written in it -- see docs/style-guide.md.
  *
  * The label sits to the left of the control from `sm` up and above it below
  * that, which is the only thing the row does.
@@ -124,13 +125,15 @@ export function CardField({
               : theme.palette.brand.cardInk,
           padding: rows === undefined ? 0 : "0.2rem 0.3rem",
           "& fieldset": {
-            borderColor: (theme) => theme.palette.brand.cardRule,
+            borderColor: (theme) => theme.palette.brand.cardFieldEdge,
           },
+          /* Nothing deepens under the pointer on a field this application
+           * cannot change: the hover is the invitation to type in it. */
           "&:hover fieldset": {
             borderColor: (theme) =>
               readOnly
-                ? theme.palette.brand.cardRule
-                : theme.palette.brand.cardInkMuted,
+                ? theme.palette.brand.cardFieldEdge
+                : theme.palette.brand.cardFieldEdgeHover,
           },
           "&.Mui-focused fieldset": { borderColor: "primary.main" },
           "&.Mui-error fieldset": { borderColor: "error.main" },

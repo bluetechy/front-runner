@@ -189,6 +189,80 @@ describe("card paper", () => {
   });
 });
 
+describe("a text box", () => {
+  /*
+   * A box is drawn against its own fill rather than against the surface
+   * behind it: white held back around the dark hollow, the card's dark ink
+   * around white paper. That is the whole rule, and docs/style-guide.md is
+   * where it is written out.
+   */
+  const hollow = over(brand.inputField, brand.panel);
+
+  it("edges the dark hollow in white, clear of the floor for something drawn", () => {
+    expect(
+      contrast(over(brand.fieldEdge, hollow), hollow),
+    ).toBeGreaterThanOrEqual(DRAWN);
+  });
+
+  it("takes that edge the rest of the way under the pointer", () => {
+    expect(contrast(brand.fieldEdgeHover, hollow)).toBeGreaterThan(
+      contrast(over(brand.fieldEdge, hollow), hollow),
+    );
+  });
+
+  it("edges a box on card paper in the card's own ink, and deepens it too", () => {
+    expect(contrast(brand.cardFieldEdge, brand.card)).toBeGreaterThanOrEqual(
+      DRAWN,
+    );
+    expect(contrast(brand.cardFieldEdgeHover, brand.card)).toBeGreaterThan(
+      contrast(brand.cardFieldEdge, brand.card),
+    );
+  });
+
+  // The card's hairline is what the fields on card paper used to be drawn
+  // with, and it is why they could not be seen: it divides a card into
+  // sections, and it cannot draw a box.
+  it("is never the card's hairline, which is under the floor", () => {
+    expect(contrast(over(brand.cardRule, brand.card), brand.card)).toBeLessThan(
+      DRAWN,
+    );
+  });
+});
+
+describe("the pill a row wears to say what is known about it", () => {
+  // Named for the state rather than for the color, the same way the
+  // notification tints are: a token named for its color cannot be repainted.
+  it("has one for what is settled and one for what is still waiting", () => {
+    expect(Object.keys(brand.statusPills).toSorted()).toEqual([
+      "settled",
+      "waiting",
+    ]);
+  });
+
+  // 0.7rem, so the text floor rather than the large-text one -- and measured
+  // on the pill's own tint, not on the card under it.
+  it("writes each word above the floor on its own tint", () => {
+    for (const pill of Object.values(brand.statusPills))
+      expect(
+        contrast(pill.ink, over(pill.tint, brand.card)),
+      ).toBeGreaterThanOrEqual(TEXT);
+  });
+
+  // Not a fifth color: the same teal a face is drawn in, at its deep end.
+  // Teal is not a second accent here for the reason the teal toast is not
+  // one -- a pill says what happened, it does not offer anything.
+  it("takes the settled half from the teal this app already had", () => {
+    expect(brand.statusPills.settled.ink).toBe(endsOf(brand.avatarGradient)[1]);
+  });
+
+  it("separates the two by hue rather than by weight", () => {
+    const { settled, waiting } = brand.statusPills;
+
+    expect(settled.ink).not.toBe(waiting.ink);
+    expect(contrast(settled.ink, waiting.ink)).toBeLessThan(1.5);
+  });
+});
+
 describe("what a notification is about", () => {
   // Named for the subject rather than the color, so a tint can be repainted
   // without renaming it -- and so nothing in this product is said in color

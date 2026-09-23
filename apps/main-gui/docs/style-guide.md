@@ -86,6 +86,39 @@ The quieter ink is never a gray of its own on the dark surfaces — it is the
 same white held back, which keeps it the surface's own color as the surface
 changes underneath it.
 
+## Text boxes
+
+**A box is drawn against its own fill rather than against the surface behind
+it:** dark ink around white paper, white held back around a dark hollow. A
+field drawn in the surface's own hairline is a box you have to go looking for,
+and every field in the app was drawn that way at least once. The contact
+form's were the first to be fixed, and the rule is theirs.
+
+Two constants per surface, so no field names a color of its own:
+
+| Where                                                    | Fill               | Edge (ratio)                 | Under the pointer                  |
+| -------------------------------------------------------- | ------------------ | ---------------------------- | ---------------------------------- |
+| The dark panel: the sign-in dialog, the wallet's dialogs | `brand.inputField` | `brand.fieldEdge`, 4.0:1     | `brand.fieldEdgeHover`, white      |
+| Card paper: the profile, the contact form, the addresses | `brand.card`       | `brand.cardFieldEdge`, 6.5:1 | `brand.cardFieldEdgeHover`, 18.5:1 |
+
+An edge is drawn rather than written, so its floor is 3:1, and both clear it
+with room. The pointer deepens the edge rather than changing it for another
+color, except on a read-only field, where nothing deepens: the hover is the
+invitation to type.
+
+**The placeholder is text and takes the text floor.** `placeholder` `#a68fc0`
+is 4.9:1 on the dark hollow; the mock-up's own violet was 4.3:1 and is the hue
+this one was taken up from. On card paper a placeholder is
+`brand.cardInkMuted`, 6.5:1. The dark palette's is 3.2:1 there and unreadable.
+A placeholder is the shape of what goes in the field, never what the field is:
+that is the label's job, and the theme puts labels above the control.
+
+**The top bar's search field is card paper.** It used to be a hollow in the
+chrome at white 8%, which is a white box drawn on black by being slightly less
+black. It is now the same paper, the same ink and the same edge as every other
+field in the app, which is the one place the rule is visible as a change of
+surface rather than a change of border.
+
 ## The accent, and what wears it
 
 The accent is a magenta-to-violet fade, `brand.buttonGradient`. It marks the
@@ -138,10 +171,17 @@ magenta circle in a bar that already had a bell and a button in it.
 something it was asked to do was done. It is `tealLit` rather than `teal`,
 because a sentence in white needs 4.5:1 — see [contrast](#contrast).
 
+`brand.statusPills.settled` is the fourth: the pill a row wears to say that
+whatever it was waiting for has happened: **Verified**, on the security page's
+address table. It is `tealDeep` on the same teal at 12%, because the word is
+0.7rem and is read on card paper rather than on the color itself.
+
 Teal is not a second accent. Nothing is offered in it, nothing is selected in
 it, and no button is painted with it. A toast is not an offer: it says what
-happened, and the pink one beside it (`brand.toastFailure`, `accentPill`) is
-not the accent being spent either.
+happened, and the pink beside it (`brand.toastFailure`, and
+`brand.statusPills.waiting` on a row still waiting on somebody) is not the
+accent being spent either. **A status is a word first**: the pill
+carries **Verified** or **Unverified**, and the color only agrees with it.
 
 ## Contrast
 
@@ -168,6 +208,12 @@ Measured, against the surface each sits on:
 | The logo's fade on the field, both ends        | 5.3:1 / 4.7:1 |
 | `cardInk` on card paper                        | 18.5:1        |
 | `cardInkMuted` on card paper                   | 6.5:1         |
+| Card paper against the chrome (the search box) | 21:1          |
+| `fieldEdge` on the dark field                  | 4.0:1         |
+| `cardFieldEdge` on card paper                  | 6.5:1         |
+| `placeholder` on the dark field                | 4.9:1         |
+| **Verified** on its own teal tint              | 6.4:1         |
+| **Unverified** on its own pink tint            | 4.8:1         |
 | White on the panel                             | 16.5:1        |
 | `text.secondary` on the panel                  | 7.6:1         |
 | An outlined button's label on the panel        | 9.1:1         |
@@ -175,7 +221,7 @@ Measured, against the surface each sits on:
 | `navText` on the panel (the cookie pill)       | 10.4:1        |
 | An outlined button's border on the panel       | 2.8:1         |
 
-Three constants in the theme exist only because of this table, and each says so
+Five constants in the theme exist only because of this table, and each says so
 where it is defined:
 
 - **`accentPill` `#d1258f`.** A nav item is written at 0.92rem, which needs
@@ -192,6 +238,15 @@ where it is defined:
 - **`amber` `#c77b14`.** The mock-up's `#f5a623` is 2.0:1 against card paper
   and unreadable; this is the same hue taken down until it is 3.4:1, which is
   what a white glyph on a disc needs.
+- **`accentPillInk` `#c21f84`.** A status pill is the accent laid on card
+  paper at 12% with a 0.7rem word written on it. `accentPill` is 4.2:1 there,
+  so the pill's word is the same hue taken down one step further, at 4.8:1.
+  The nav pill keeps `accentPill`: it is white on the accent rather than the
+  accent on white, which is the other direction entirely.
+- **`placeholder` `#a68fc0`.** The mock-up's violet is 4.3:1 on the field it
+  sits in. This is the same hue taken **up** until it cleared, at 4.9:1: the
+  only one of these that moved that way, because a placeholder is quiet ink on
+  a dark surface rather than color on a light one.
 
 **The last row is under the floor, and it is the oldest number on this page.**
 An outlined button's border is `rgba(227, 79, 196, 0.65)`, which comes out at
@@ -252,8 +307,11 @@ headings use `clamp()` so they answer the viewport rather than a breakpoint.
 
 ## Shape
 
-- **999px** — anything pill-shaped: buttons, inputs, nav items, segmented
-  controls, chips.
+- **999px** — anything pill-shaped: buttons, the fields on the dark panel, nav
+  items, segmented controls, chips.
+- **0.7rem**: a text box on card paper. A page of pills reads as a page of
+  buttons, and a pill could not hold the contact form's five-line message box
+  anyway. See [text boxes](#text-boxes).
 - **12px** (`shape.borderRadius`) — cards, menus, panels, the notification
   panel.
 - **20px** — dialogs, which are the largest raised thing in the app.
