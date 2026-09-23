@@ -16,12 +16,12 @@ its own.** A literal hex outside `theme.ts` is a bug. See
 Every pixel in the product is on one of four surfaces, and which one it is
 decides what may be written on it.
 
-| Surface    | What it is                                                 | Where                                                                | Token                              |
-| ---------- | ---------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------- |
-| **Field**  | The deep violet everything is rendered on                  | Behind every page, marketing and application both                    | `brand.field`                      |
-| **Chrome** | The rail and the top bar, black, one surface in two pieces | Behind the login only                                                | `brand.chrome`, `brand.chromeRail` |
-| **Card**   | White paper laid on the field                              | Dashboard cards, pricing plans, the menus and the notification panel | `brand.card`                       |
-| **Panel**  | A violet panel raised off the field                        | The sign-in dialog, and whatever follows it                          | `brand.panel`                      |
+| Surface    | What it is                                                 | Where                                                                              | Token                              |
+| ---------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------- |
+| **Field**  | The deep violet everything is rendered on                  | Behind every page, marketing and application both                                  | `brand.field`                      |
+| **Chrome** | The rail and the top bar, black, one surface in two pieces | Behind the login only                                                              | `brand.chrome`, `brand.chromeRail` |
+| **Card**   | White paper laid on the field                              | Dashboard cards, pricing plans, the menus and the notification panel               | `brand.card`                       |
+| **Panel**  | A violet panel raised off the field                        | The sign-in dialog, the cookie box at the foot of every page, and whatever follows | `brand.panel`                      |
 
 The field is violet and the chrome is black, and everything on both of them is
 one dark room with white paper laid about in it. The chrome holding no color
@@ -48,6 +48,29 @@ surface in the field's violet. They are **black** now:
 
 The point of taking the color out of the chrome is that **the only lit thing
 in it is the page you are on.**
+
+### The box at the foot of the page
+
+The cookie notice is the panel used as a band rather than as a card: the same
+`brand.panel`, the same `brand.panelEdge` hairline, the same `brand.panelGlow`
+under it, fixed across the foot of the window and full bleed, so it is the one
+raised surface in the app with square corners. Its contents sit in a
+`MuiContainer`, which is what keeps it on `brand.gutter` with every page above
+it.
+
+It is worth knowing what actually separates it from the page. **The panel and
+the field are 1.04:1 to 1.12:1 apart**, depending on where down the gradient
+the window ends, and the hairline along its top is 1.22:1 to 1.52:1. Neither
+of those is a boundary anybody can see. What reads as an edge is
+`panelGlow`, the shadow, and the fact that the bar is flat where the field
+behind it is lit. That is enough here because the bar is the full width of the
+window and carries a heading, and it is the reason this surface is not used
+for anything smaller laid straight on the field.
+
+Once the box has been answered it is replaced by a pill in the same palette:
+panel, panel edge, `brand.navText` for the label, and the 999px radius every
+other pill in the app has. See
+[the cookie notice](cookie-consent.md#how-it-is-drawn).
 
 ## Ink
 
@@ -79,6 +102,15 @@ It is allowed on:
 - **the notification panel's heading**, which is the one card whose head is
   painted rather than written;
 - **the "most popular" badge** on the pricing page, as `brand.cardBadge`.
+
+**And it is forbidden on either answer in the cookie box.** That is the one
+place in this product where what a thing is painted is settled by something
+other than taste: **Reject all** and **Accept all** are the same outlined
+button twice, and painting one of them is the nudge that makes a consent
+unfree. A contained button in that box would be a design decision that a
+regulator reads as a dark pattern, so the only contained button in it is
+**Save my choices**, which is neither answer. See
+[the cookie notice](cookie-consent.md).
 
 `brand.chromeSelected` and `brand.cardBadge` are one constant: the button's
 fade with its magenta end taken down one step — see [contrast](#contrast) for
@@ -136,6 +168,12 @@ Measured, against the surface each sits on:
 | The logo's fade on the field, both ends        | 5.3:1 / 4.7:1 |
 | `cardInk` on card paper                        | 18.5:1        |
 | `cardInkMuted` on card paper                   | 6.5:1         |
+| White on the panel                             | 16.5:1        |
+| `text.secondary` on the panel                  | 7.6:1         |
+| An outlined button's label on the panel        | 9.1:1         |
+| `primary.light` as a link on the panel         | 4.9:1         |
+| `navText` on the panel (the cookie pill)       | 10.4:1        |
+| An outlined button's border on the panel       | 2.8:1         |
 
 Three constants in the theme exist only because of this table, and each says so
 where it is defined:
@@ -154,6 +192,18 @@ where it is defined:
 - **`amber` `#c77b14`.** The mock-up's `#f5a623` is 2.0:1 against card paper
   and unreadable; this is the same hue taken down until it is 3.4:1, which is
   what a white glyph on a disc needs.
+
+**The last row is under the floor, and it is the oldest number on this page.**
+An outlined button's border is `rgba(227, 79, 196, 0.65)`, which comes out at
+2.8:1 on the panel against the 3:1 something drawn rather than written needs.
+It has been that since the sign-in dialog's three social buttons, and it is
+noted here rather than in passing because the cookie box made it matter more:
+two outlined buttons there are the whole of somebody's choice. What carries
+those controls today is their labels, at 9.1:1, which is well clear. Taking
+the border to `0.70` gives 3.06:1 and clears it, and that is one constant in
+`theme.ts` changing every outlined button in the app at once, so it is written
+down as a decision to make rather than made quietly here. See
+[what is left](../../../docs/privacy-follow-ups.md).
 
 A fade is checked at **both ends**, because the text crosses all of it. The
 worst end is the number that counts.
@@ -214,6 +264,25 @@ headings use `clamp()` so they answer the viewport rather than a breakpoint.
 Motion is 150ms ease and nothing longer: a hover lifts a button 1px, the pill
 under a nav item changes color, a dialog fades. Nothing slides in from
 off-screen.
+
+## Layers
+
+Nothing in this app floated over anything until the cookie box, so what sits
+over what is written down here rather than discovered. The numbers are
+Material's own `theme.zIndex`, and reaching for a literal is the same kind of
+bug a literal hex is.
+
+| What                         | Layer               | Why it is there                                                                                            |
+| ---------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| The page                     | none                |                                                                                                            |
+| The rail and the top bar     | `drawer` (1200)     | A permanent drawer takes its own column from `lg` up                                                       |
+| The cookie box, and its pill | `drawer + 2` (1202) | The question has to be reachable from every page, and behind the login the rail owns the corner it sits in |
+| Dialogs                      | `modal` (1300)      | Including the cookie preferences, which the box opens                                                      |
+| The toast                    | `snackbar` (1400)   | It says what happened and then goes                                                                        |
+
+The cookie box is the only thing in the product that deliberately covers the
+chrome. It is also the only thing that is allowed to: it is a question that has
+to be answered, it is answered once, and it is gone.
 
 ## Spacing
 

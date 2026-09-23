@@ -145,9 +145,13 @@ function Choices({
       </Stack>
 
       {/* Refusing and accepting are the same press in the same place, which
-       * is the whole of what "as easy to refuse as to accept" asks for. */}
+       * is the whole of what "as easy to refuse as to accept" asks for. They
+       * stack in the order they are written rather than reversed, so that the
+       * order somebody meets them in is the order the bar uses too: a column
+       * that puts Accept above Reject on a phone is a nudge, even when the
+       * two buttons are drawn identically. */}
       <Stack
-        direction={{ xs: "column-reverse", sm: "row" }}
+        direction={{ xs: "column", sm: "row" }}
         sx={{ mt: 3, gap: 1.5, justifyContent: "flex-end" }}
       >
         <Button

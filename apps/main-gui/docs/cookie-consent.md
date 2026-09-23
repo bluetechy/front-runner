@@ -68,6 +68,106 @@ interface in a language they did not choose, and a category called
 "preferences" that quietly holds the one preference we keep is a category
 nobody can answer honestly.
 
+## How it is drawn
+
+[The style guide](style-guide.md) is where the surfaces and the numbers live;
+this is the box itself, and why it is shaped the way it is. There are three
+pieces and never more than two of them at once.
+
+### The bar
+
+A band across the foot of the window, fixed and full bleed, on the panel:
+`brand.panel`, a `brand.panelEdge` hairline along its top, `brand.panelGlow`
+under it. It is the one raised surface in the app with square corners, because
+it meets three edges of the window. Its contents are in a `MuiContainer`, so
+it keeps `brand.gutter` with the page above it.
+
+Left to right on `md` and up, and top to bottom below it:
+
+| Part                   | Drawn as                                                  |
+| ---------------------- | --------------------------------------------------------- |
+| "Cookies on this site" | 1.05rem, weight 600, the body face                        |
+| The sentence           | `body2` in `text.secondary`, held to 70ch                 |
+| "Privacy Policy"       | `primary.light`, underlined on hover, inside the sentence |
+| **Reject all**         | outlined                                                  |
+| **Accept all**         | outlined, identical                                       |
+| Manage preferences     | text button                                               |
+
+The heading is the body face rather than the display serif, which every other
+heading in the product uses: this is a notice, not the top of a page, and a
+Playfair line across the foot of the window reads as an advertisement for
+itself.
+
+**The two answers are the same button twice**, side by side, one press each.
+Neither is contained, so neither wears the accent. That is a rule set by the
+regulators rather than by this style guide, and it is written down in both
+places: [the accent](style-guide.md#the-accent-and-what-wears-it) and the
+table at the top of this page. **Manage preferences** is a text button because
+it is a third thing rather than a third answer.
+
+Below `sm` the three stack full width in the same order, so a phone meets
+refuse first and the two answers are still the same shape. Nothing about the
+box slides, fades or animates in: it is simply there on the first paint, the
+way [the style guide](style-guide.md#shape) says everything in this product
+arrives.
+
+### The pill
+
+What the bar becomes once it has been answered: the same panel, the same edge,
+`brand.navText` for the label, and the 999px radius every other pill has, at
+0.8rem. It sits 1rem off the bottom left corner.
+
+Bottom **left** because the toast owns the bottom right, and the two would
+otherwise land on each other for the six seconds a toast lasts. Behind the
+login the rail owns that corner from `lg` up, so the pill steps past
+`RAIL_WIDTH` there. That offset is the only thing in this vertical that knows
+another shell exists, and it reads the shell out of the router rather than
+guessing.
+
+### The dialog
+
+An ordinary dialog on the panel, 20px corners, the same one the sign-in and
+wallet dialogs are: a heading in `primary.light`, the intro in
+`text.secondary`, a link to the policy, then one row per category.
+
+A row is the category's name, the sentence about what it is for and what is
+kept under it, and a `Switch` on the right. The necessary row is drawn and
+disabled rather than left out, because somebody reading the list is owed the
+whole list.
+
+The footer is **Reject all**, **Accept all**, **Save my choices**, in that
+order, stacking in the same order on a phone rather than reversing. Reversing
+is the Material habit and it would put Accept above Reject on a narrow window,
+which is a nudge even when the two buttons are identical. Only **Save my
+choices** is contained: it is the one thing in the box that is neither answer.
+
+### What it does to the layers
+
+The bar and the pill sit at `zIndex.drawer + 2`, which is over the rail. It is
+the only thing in the product that deliberately covers the chrome, and the
+only thing allowed to: it is a question that has to be answered, it is
+answered once, and then it is gone. See
+[layers](style-guide.md#layers).
+
+### Reaching it without a mouse or a screen
+
+The bar is a named `section`, which makes it a `region` landmark somebody can
+jump to, with a heading inside it. It is deliberately **not** a `dialog`: a
+dialog implies a modal, and a modal here would be a cookie wall. Nothing traps
+focus and nothing steals it, so the page stays usable while the question
+stands.
+
+The preferences dialog is a real modal and Material handles it: focus moves
+in, Escape and the backdrop close it, focus returns to whatever opened it.
+Each switch is labelled by its category's heading and described by the
+sentence under it, so "Analytics, switch, off" comes with what analytics
+means rather than only the word.
+
+Every ratio in the box was measured against the panel and is in
+[the contrast table](style-guide.md#contrast). One of them, an outlined
+button's border at 2.8:1, is under the floor and is written down there as a
+decision to make rather than quietly left.
+
 ## How it is put together
 
 ```
@@ -138,3 +238,39 @@ rather than a page, so it is translated even though the marketing pages around
 it are not yet. On the marketing side there is no `LanguageProvider` above it,
 so it draws in the default language until one is mounted there; behind the
 login it follows the flag in the top bar. See [language](language.md).
+
+## Where this comes from
+
+The design decisions above are not all ours. The ones that are not, and what
+they were read against:
+
+**The rules.** None of these are primary sources and nobody here is a lawyer;
+they are the practitioner summaries this was built from, and the regulators'
+own texts are what they quote.
+
+- [EDPB cookie banner taskforce report](https://www.wsgrdataadvisor.com/2023/03/edpb-issues-guidance-on-cookie-banners/),
+  for equal prominence, no pre-ticked boxes, and per-category consent.
+- [CNIL's cookie guidelines and recommendations](https://www.cookieyes.com/blog/cnil-guidelines-and-recommendations-on-cookie-consent/),
+  for the six months a choice stands, and for the fine over a banner where
+  refusing took more presses than accepting.
+- [Cookie banner requirements under EU law](https://trustyourwebsite.com/eu/en/guides/cookie-banner-requirements),
+  for the shape of the box as a whole.
+- [Designing a compliant cookie banner](https://cookieinformation.com/blog/designing-compliant-cookie-banners/),
+  for what the categories are usually called and what belongs on the first
+  screen.
+
+**The standards.** These are primary, and they are what the numbers in the
+style guide are measured against.
+
+- [WCAG 2.2, SC 1.4.3 Contrast (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html),
+  the 4.5:1 every sentence in the box clears.
+- [WCAG 2.2, SC 1.4.11 Non-text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html),
+  the 3:1 for something drawn rather than written, which is the floor the
+  outlined border is measured against.
+- [WAI-ARIA Authoring Practices: landmarks](https://www.w3.org/WAI/ARIA/apg/patterns/landmarks/),
+  for the `region` the bar is, rather than the dialog it is not.
+- [WAI-ARIA Authoring Practices: the modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/),
+  for what the preferences dialog owes anybody arriving at it by keyboard.
+
+**What is still owed** is one list, and it is not here:
+[privacy and cookies: what is left](../../../docs/privacy-follow-ups.md).

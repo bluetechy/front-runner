@@ -186,6 +186,22 @@ describe("the two answers at the foot of it", () => {
 
   /* Material fades a dialog out rather than dropping it, so "closed" is a
    * moment later than the press. */
+  // Drawn the same, and met in the same order as the bar. A column that put
+  // Accept above Reject on a phone would be a nudge even with the two buttons
+  // identical, which is the kind of thing the order of a list quietly does.
+  it("keeps them adjacent, refuse first, with the save after both", () => {
+    renderDialog();
+
+    const labels = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent)
+      .filter((label) =>
+        ["Reject all", "Accept all", "Save my choices"].includes(label ?? ""),
+      );
+
+    expect(labels).toEqual(["Reject all", "Accept all", "Save my choices"]);
+  });
+
   it("closes once an answer has been recorded", async () => {
     renderDialog();
 
