@@ -35,9 +35,9 @@ import type { UserEmail } from "./email-api";
  * being the rule. It is absent rather than disabled for the reason the primary
  * row has no Delete: there is nothing to do about it in this column, and the
  * row already says what it is in Status and offers the link that fixes it in
- * Action.
+ * Action(s).
  *
- * The Action column is glyphs rather than words. Every row that is not
+ * The Action(s) column is glyphs rather than words. Every row that is not
  * verified offers the link again, and every row that is not the primary
  * offers Delete, which is every row but one: the login cannot be removed,
  * because an account whose login resolves to no address has no way back in.
@@ -46,14 +46,15 @@ import type { UserEmail } from "./email-api";
  *
  * The last row is the one that adds an address: a field in the Email column,
  * nothing in Primary or Status because there is nothing known about an
- * address that does not exist yet, and Add in Action. It is a row rather than
+ * address that does not exist yet, and Add in Action(s). It is a row rather
+ * than
  * a dialog because it is one field, and a dialog for one field is a door in
  * front of a doorway.
  */
 
 /* The column widths, in one place, because the head and every row have to
  * agree and three copies of a number is how they stop agreeing. Primary,
- * Status and Action are fixed and the address takes the rest. */
+ * Status and Action(s) are fixed and the address takes the rest. */
 const COLUMNS = { primary: "5rem", status: "7.5rem", action: "8rem" };
 
 /* Both row actions are a glyph and nothing else, so they are the same size or
@@ -155,9 +156,11 @@ function HeadRow() {
       </Box>
       <CardLabel>Email</CardLabel>
       <CardLabel>Status</CardLabel>
-      {/* The only right-aligned one, because the control under it is. */}
+      {/* The only right-aligned one, because the control under it is.
+       * Action(s), because a row can offer two of them and a heading that
+       * promised one would be counting wrong on most of the table. */}
       <Box sx={{ textAlign: "right" }}>
-        <CardLabel>Action</CardLabel>
+        <CardLabel>Action(s)</CardLabel>
       </Box>
     </Box>
   );

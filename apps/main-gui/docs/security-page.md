@@ -14,9 +14,9 @@ It replaced the "coming soon" placeholder that route used to render.
 
 ## The table
 
-`email-list.tsx`. Four columns, from a supplied mock-up: **Primary**, **Email**,
-**Status**, **Action**. One row per address, separated by the card's own rule,
-and a last row that adds one.
+`email-list.tsx`. Four columns, from a supplied mock-up: **Primary**,
+**Email**, **Status**, **Action(s)**. One row per address, separated by the
+card's own rule, and a last row that adds one.
 
 The Primary column holds the radio and nothing else. It was an unheaded column
 with a pill saying **Primary** two columns further along, which said the same
@@ -30,11 +30,12 @@ does not offer anything. The word is the whole message and the color only agrees
 it, which is the rule the rest of the product follows. See
 [text boxes and the pills beside them](style-guide.md#teal-and-faces).
 
-The Action column is **glyphs rather than words**: a bin to remove the address
-and a link to send the verification mail again, both at the same size, because
-two actions in one column at two sizes read as one important and one not.
-Each carries its name for anybody who cannot see it, Remove and Send link, and
-a tooltip that says the same thing to anybody who can.
+The Action(s) column is **glyphs rather than words**, and it is plural because
+most rows offer two of them: a bin to remove the address and a link to send
+the verification mail again, both at the same size, because two actions in one
+column at two sizes read as one important and one not. Each carries its name
+for anybody who cannot see it, Remove and Send link, and a tooltip that says
+the same thing to anybody who can.
 
 Neither appears where it could do nothing. **Delete is on every row but the
 primary**, whether or not anybody has verified it: reading the address has
@@ -82,14 +83,14 @@ agreeing with the rule rather than being it.
 It is absent rather than disabled, for the reason the primary row has no
 Delete: there is nothing to do about it in that column. What is missing has to
 be answerable somewhere else on the row, and it is. The Status column says
-**Unverified** and the Action column offers **Send link**, which is the thing
-that changes the answer.
+**Unverified** and the Action(s) column offers **Send link**, which is the
+thing that changes the answer.
 
 ## The last row adds an address
 
 A field in the Email column, nothing in Primary or Status, and **Add** in the
-Action column. A row rather than a dialog, because it is one field and a dialog
-for one field is a door in front of a doorway.
+Action(s) column. A row rather than a dialog, because it is one field and a
+dialog for one field is a door in front of a doorway.
 
 Nothing goes in either of the middle columns, because there is nothing known
 about an address that does not exist yet: it cannot be the login before it is

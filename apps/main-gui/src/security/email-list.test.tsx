@@ -71,10 +71,12 @@ beforeEach(() => {
 });
 
 describe("the four columns", () => {
-  it("heads them Primary, Email, Status and Action", () => {
+  // Action(s) rather than Action: most rows offer two of them, and a heading
+  // that promised one would be counting wrong on nearly the whole table.
+  it("heads them Primary, Email, Status and Action(s)", () => {
     renderList();
 
-    for (const column of ["Primary", "Email", "Status", "Action"])
+    for (const column of ["Primary", "Email", "Status", "Action(s)"])
       expect(screen.getByRole("heading", { name: column })).toBeInTheDocument();
   });
 
