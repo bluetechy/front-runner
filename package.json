@@ -13,6 +13,7 @@
     "dev": "turbo run dev",
     "start": "turbo run start",
     "test": "turbo run test",
+    "test:changed": "node scripts/test-changed.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:js": "oxlint",

@@ -110,12 +110,77 @@ because then the pairing is only in somebody's head.
 ## Running them
 
 ```sh
-npm run test                       # both apps, through Turborepo
+npm run test                       # every app, through Turborepo
+npm run test:changed               # only the slices that changed
 npm run test --workspace main-gui  # vitest
 npm run test --workspace main-api  # jest, over the compiled output
 npm run test:watch --workspace main-gui
 npm run lint:tests                 # only the "is there one?" check
 ```
+
+## Only the slices you changed
+
+The source is organized vertically — a folder per slice of the product,
+holding everything that slice needs and reaching its neighbours only through
+their public index. The usual argument for that is that code which changes
+together lives together. **The argument that matters while you work is about
+tests: what a change can break is bounded by the folder it was made in, so
+the tests worth running after it are the tests in that folder.**
+
+That is what `npm run test:changed` does. It asks git what changed, maps each
+file to the slice that owns it, and runs each app's own test runner over just
+those slices:
+
+```sh
+npm run test:changed                        # what is uncommitted, else HEAD~1
+npm run test:changed -- main                # everything since a branch or tag
+npm run test:changed -- --plan              # say what it would run, run nothing
+```
+
+```
+$ npm run test:changed -- --plan
+main-api: tallies
+main-gui: pricing, routes
+```
+
+Editing `contact/` runs `contact/` — a second or two — instead of the whole
+repository, and it does not compile main-api to find out that main-api is
+fine. The whole suite is about **22 seconds**; one slice of main-gui is about
+**two**.
+
+### What widens it
+
+Three kinds of change are not one slice's business, and each of them widens
+the run deliberately:
+
+| What changed                                                                              | What runs      |
+| ----------------------------------------------------------------------------------------- | -------------- |
+| A slice: `main-gui/src/contact`, `main-api/src/tallies`                                   | that slice     |
+| Something every slice draws on: the theme, `shared/`, main-api's infrastructure verticals | that whole app |
+| Anything outside `src/`: a config, a build script, the package                            | that whole app |
+| Anything at the root of the repository                                                    | every app      |
+| Documentation                                                                             | nothing        |
+
+Which slices count as "every slice draws on this" is a judgement, and it is
+written down in one place — the `WIDE` table at the top of
+[`scripts/test-changed.mjs`](../scripts/test-changed.mjs). main-gui's is the
+theme and `shared/`; main-api's is the `infrastructure` set its own
+`scripts/check-boundaries.mjs` already keeps. Adding a slice there makes the
+fast run slower and more honest; leaving one out that belongs there is how a
+green run hides a broken one.
+
+### It is the inner loop, not the gate
+
+`test:changed` answers "did I break what I was working on?" in seconds.
+`npm run test` answers "did I break anything?", and **that is the one that
+runs before a push and in CI.**
+
+The gap between the two is real and worth naming: a change inside a slice can
+break a _caller_ in another slice, and the caller's folder did not change, so
+nothing selects it. Vertical slicing narrows that risk — a slice is reached
+only through its index, so the surface a caller depends on is small and
+deliberate — but it does not remove it. The fast run is what you use while
+the edit is still in your head; the full run is what you believe.
 
 The two apps use different runners for reasons that predate this page —
 [main-gui](../apps/main-gui/docs/README.md) runs Vitest with jsdom and

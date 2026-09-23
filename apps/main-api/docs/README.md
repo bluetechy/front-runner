@@ -73,6 +73,7 @@ npm run lint --workspace main-api
 npm run test --workspace main-api
 npm run test:watch --workspace main-api
 npm run test:coverage --workspace main-api
+npm run test:changed                    # only the verticals that changed
 ```
 
 Jest compiles TypeScript into ignored `.test-dist` and executes ESM using Node's

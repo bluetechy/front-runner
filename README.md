@@ -27,6 +27,14 @@ that. A file that genuinely cannot be tested says so in its own header with
 `@no-test` and a reason. See [testing](docs/testing.md) for the practice, the
 house style, and what is outside the rule.
 
+`npm run test:changed` runs only the vertical slices that changed — the whole
+suite is about 22 seconds, one slice of an app is about two. That is the
+payoff of a vertical codebase: what an edit can break is bounded by the folder
+it was made in, so the tests worth running after it are the tests in that
+folder. Add `-- --plan` to see what it would run without running it. The full
+`npm run test` is still what goes before a push. See
+[only the slices you changed](docs/testing.md#only-the-slices-you-changed).
+
 ## Configuration
 
 Every credential, port and address lives in `.env` at the repository root. It is

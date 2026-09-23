@@ -66,6 +66,21 @@ a directory listing rather than a coverage report, and `npm run lint:tests`
 fails on a file that has neither a test nor a written reason. See
 [testing](../../../docs/testing.md).
 
+**A change is only as wide as its slice, and so is the test run after it.**
+This is the payoff of arranging the source this way, and the one you feel
+every day: a vertical is reached only through its `index.ts`, so what an edit
+inside it can break is bounded by the folder it was made in — and the tests
+worth running after that edit are the ones in the same folder.
+`npm run test:changed` is that sentence made into a command. It maps what git
+says changed onto the slices that own it and runs only those: editing
+`contact/` runs `contact/` in about two seconds rather than the whole
+repository in twenty-two, and it does not compile main-api to find out that
+main-api is fine. A change to something every slice draws on — the theme,
+`shared/` — widens to the whole app, because that is what "every slice draws
+on it" means. The full `npm run test` is still what runs before a push: a
+slice can break a _caller_, and the caller's folder did not change. See
+[testing](../../../docs/testing.md#only-the-slices-you-changed).
+
 **There are two shells, and the route says which one.** `__root.tsx` is an
 outlet and nothing else. The marketing pages sit under the pathless `_site`
 layout route, which wraps them in `site-chrome`; the pages behind the login
