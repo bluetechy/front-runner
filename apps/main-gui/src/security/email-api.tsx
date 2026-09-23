@@ -67,7 +67,10 @@ interface EmailSettings {
 export function useEmails() {
   const { status, getAccessToken } = useSession();
   const [addresses, setAddresses] = useState<UserEmail[]>([]);
-  const [isPrivate, setIsPrivate] = useState(false);
+  /* Private until the API says otherwise, which is also what it says for an
+   * account nobody has asked. The switch should not read Public for the
+   * moment before the first answer arrives and then correct itself. */
+  const [isPrivate, setIsPrivate] = useState(true);
   /* True until the first answer arrives, so the table can wait rather than
    * saying the account has no addresses and changing its mind a moment
    * later. */

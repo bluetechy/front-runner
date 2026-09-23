@@ -19,6 +19,9 @@ BEGIN
     PERFORM "test"."AssertTrue"(_Profile."BirthDate" IS NULL, 'an unedited profile came back with a birth date');
     PERFORM "test"."AssertTrue"(_Profile."WantsAwardEmails", 'award emails did not default to on');
     PERFORM "test"."AssertFalse"(_Profile."WantsDigestEmails", 'the weekly digest did not default to off');
+    -- Not an empty, and the one answer on this row that is a promise: an
+    -- account nobody has asked has not offered its address to anybody.
+    PERFORM "test"."AssertTrue"(_Profile."EmailIsPrivate", 'an unedited profile came back sharing its address');
 END;
 $$ LANGUAGE plpgsql;
 

@@ -1,7 +1,8 @@
 --
--- The security page's "keep my email addresses private" switch: that it can be
--- set before a profile exists, that it survives a profile save, and that it
--- actually withholds the address.
+-- The security page's email privacy switch: that it can be set before a
+-- profile exists, that it survives a profile save, and that it actually
+-- withholds the address. Private is the default, so this function is mostly
+-- read as the way an address is given away rather than taken back.
 --
 
 CREATE FUNCTION "test"."TestSetUserEmailPrivacy_TurnsTheSwitchOnAndOffAgain" () RETURNS void AS $$
@@ -80,14 +81,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Off by default, so nothing changes for an account that has never touched it.
-CREATE FUNCTION "test"."TestSetUserEmailPrivacy_IsOffUntilSomebodyTurnsItOn" () RETURNS void AS $$
+-- Private until its owner says otherwise, and that holds for an account with
+-- no profile row at all: the member has none in the fixtures, which is the
+-- state of everybody who has never opened the profile page.
+CREATE FUNCTION "test"."TestSetUserEmailPrivacy_IsOnUntilSomebodyTurnsItOff" () RETURNS void AS $$
 DECLARE
     _Profile record;
 BEGIN
     SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('member');
 
-    PERFORM "test"."AssertFalse"(_Profile."EmailIsPrivate", 'the privacy switch defaulted to on');
+    PERFORM "test"."AssertTrue"(_Profile."EmailIsPrivate", 'an address nobody had offered to share was public');
 END;
 $$ LANGUAGE plpgsql;
 

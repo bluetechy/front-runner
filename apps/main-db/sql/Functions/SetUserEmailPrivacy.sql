@@ -36,7 +36,7 @@ CREATE FUNCTION "dbo"."SetUserEmailPrivacy" (
         -- above shadow the table's, so a bare column list in ON CONFLICT is
         -- ambiguous. See apps/main-db/CLAUDE.md.
         INSERT INTO "dbo"."UserProfiles" ("UserUUID", "EmailIsPrivate", "CreatedBy")
-        VALUES (_UserUUID, COALESCE(_EmailIsPrivate, false), _LoginName)
+        VALUES (_UserUUID, COALESCE(_EmailIsPrivate, true), _LoginName)
         ON CONFLICT ON CONSTRAINT "UserProfiles_UserUUID_UniqueKey" DO UPDATE SET
             "EmailIsPrivate" = EXCLUDED."EmailIsPrivate",
             "UpdatedBy" = _LoginName;

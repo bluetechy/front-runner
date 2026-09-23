@@ -16,6 +16,12 @@
 -- names; a second identity provider issuing the same username would land on
 -- the same row. See SCHEMA-NOTES.md.
 --
+-- Creating an account also creates its dbo.UserProfiles row, holding nothing
+-- but "EmailIsPrivate" = true. Everything else on that table is the profile
+-- form's and stays empty until somebody fills it in; this one column is a
+-- promise the members list reads, and a new account has made nobody any
+-- promises. See dbo.GetOrganizationMembers.
+--
 -- Since dbo.UserEmails exists, this also keeps the primary row in that table
 -- pointing at the address the token carries. The two are the same fact seen
 -- from two sides: dbo.Users."Email" is what Keycloak says today, and the
@@ -105,6 +111,22 @@ CREATE FUNCTION "dbo"."ProvisionUser" (_SubjectId varchar(255), _LoginName varch
                 _LoginName
             )
             RETURNING "Users"."UserUUID" INTO _MatchedUserUUID;
+
+            -- A new account's addresses are private, and the row that says so
+            -- is written here rather than left to a column default no reader
+            -- ever looks at. dbo.GetOrganizationMembers reads
+            -- dbo.UserProfiles."EmailIsPrivate" to decide whether to hand an
+            -- address to the other people in an organization, and the answer
+            -- for somebody who has just arrived is no. The security page is
+            -- where it is given away.
+            --
+            -- Only on creation. A sign-in is not an occasion to reset a
+            -- setting its owner has since changed, and DO NOTHING covers the
+            -- seeded and imported rows claimed by login name above, which may
+            -- already have a profile.
+            INSERT INTO "dbo"."UserProfiles" ("UserUUID", "EmailIsPrivate", "CreatedBy")
+            VALUES (_MatchedUserUUID, true, _LoginName)
+            ON CONFLICT ON CONSTRAINT "UserProfiles_UserUUID_UniqueKey" DO NOTHING;
         ELSE
             -- The username and the email belong to Keycloak; this is a copy,
             -- so a change there wins here. The exception is an address this

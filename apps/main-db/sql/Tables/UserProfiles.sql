@@ -1,6 +1,8 @@
 --
 -- What a person chooses to say about themselves: the profile page's fields,
--- one row per account, created the first time anything is saved.
+-- one row per account. dbo.ProvisionUser writes the row when the account is
+-- created, so that "EmailIsPrivate" below is a fact in the table from the
+-- first sign-in; everything else on it is empty until somebody saves the form.
 --
 -- Separate from dbo.Users because the two have different owners. Everything in
 -- dbo.Users that identifies somebody -- "Name", "LoginName", "Email" -- is a
@@ -64,11 +66,13 @@ CREATE TABLE "dbo"."UserProfiles" (
     -- an administrator and this table all still hold it, and the security page
     -- says so rather than promising more than it does.
     --
-    -- False by default, because the members list has shown addresses since
-    -- there was a members list and turning that off for everybody at once
-    -- would be a change nobody asked for. A new account opting in is the
-    -- better default and is not this column's to make.
-    "EmailIsPrivate" boolean NOT NULL DEFAULT false,
+    -- True by default. An address is something a person hands out, not
+    -- something a members list helps itself to, so an account starts withheld
+    -- and shares by choosing to: the quiet state is the safe one, and nobody
+    -- has to find a switch to get it. dbo.ProvisionUser writes this row at
+    -- account creation rather than leaving the answer to a default no reader
+    -- ever sees.
+    "EmailIsPrivate" boolean NOT NULL DEFAULT true,
     "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "CreatedBy" varchar(64) NOT NULL,
     "UpdatedAt" TIMESTAMPTZ,

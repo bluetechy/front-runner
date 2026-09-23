@@ -59,12 +59,14 @@ CREATE FUNCTION "dbo"."SetOrganizationRole" (_LoginName varchar(64), _Organizati
             "Users"."UserUUID",
             "Users"."Name",
             "Users"."LoginName",
-            -- Withheld when its owner has asked for that on the security
-            -- page. Empty rather than NULL, because dbo.Users."Email" is
-            -- NOT NULL DEFAULT '' and an account that has never had an
-            -- address already reads as '' here: one representation, so no
-            -- caller has to handle two. See dbo.SetUserEmailPrivacy.
-            CASE WHEN COALESCE("UserProfiles"."EmailIsPrivate", false)
+            -- Withheld unless its owner has given it away on the security
+            -- page. Withheld is the default, here and on the column, so an
+            -- account nobody has asked is not published by silence. Empty
+            -- rather than NULL, because dbo.Users."Email" is NOT NULL
+            -- DEFAULT '' and an account that has never had an address already
+            -- reads as '' here: one representation, so no caller has to
+            -- handle two. See dbo.SetUserEmailPrivacy.
+            CASE WHEN COALESCE("UserProfiles"."EmailIsPrivate", true)
                 THEN ''::varchar(255)
                 ELSE "Users"."Email"
             END,

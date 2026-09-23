@@ -131,11 +131,15 @@ describe("reading the page", () => {
     expect(bodyOf().query).toContain("emailSettings");
   });
 
+  // Private while it waits, which is what every account is until it says
+  // otherwise. A switch that started on Public and corrected itself once the
+  // answer landed would be saying the wrong thing about somebody's address in
+  // the one moment they cannot check it.
   it("waits rather than saying the account has no addresses", () => {
     answeringSettings([address()]);
     render(<Reader />);
 
-    expect(screen.getByText("waiting")).toBeInTheDocument();
+    expect(screen.getByText("waiting: private")).toBeInTheDocument();
   });
 
   it("presents the session's token", async () => {

@@ -69,13 +69,15 @@ describe("reading the security page", () => {
     );
   });
 
-  // An account with no dbo.UserProfiles row has never opened the profile
-  // page, which is not the same as having asked to be private.
-  it("reads a missing profile row as the switch being off", async () => {
+  // An account with no dbo.UserProfiles row has never been asked, and an
+  // address nobody has offered to share is withheld. The column defaults to
+  // true and dbo.GetUserProfile answers true, so the fallback here has to say
+  // the same rather than publish an address by accident.
+  it("reads a missing profile row as private", async () => {
     const { service } = setup([]);
     await expect(service.settings("marcus")).resolves.toEqual({
       Addresses: [],
-      EmailIsPrivate: false,
+      EmailIsPrivate: true,
     });
   });
 });

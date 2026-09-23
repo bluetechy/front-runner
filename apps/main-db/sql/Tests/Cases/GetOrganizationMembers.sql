@@ -17,6 +17,10 @@ CREATE FUNCTION "test"."TestGetOrganizationMembers_ReportsWhoOwnsTheOrganization
 DECLARE
     _Member record;
 BEGIN
+    -- Addresses are private until somebody shares one, so the owner has to
+    -- share theirs before this list can be asked what it shows.
+    PERFORM "dbo"."SetUserEmailPrivacy"('owner', false);
+
     SELECT * INTO _Member FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"
     WHERE "Members"."LoginName" = 'owner';
     PERFORM "test"."AssertTrue"(_Member."IsOwner", 'the owner was not flagged as one');
@@ -68,6 +72,21 @@ $$ LANGUAGE plpgsql;
 -- The security page's privacy switch, read from here. Withholding an address
 -- has to hide it from the people in the room without hiding the person.
 --
+-- Withheld is where everybody starts: the fixtures give nobody a profile row,
+-- which is the state of every account that has never been asked, and the list
+-- treats that as a no.
+CREATE FUNCTION "test"."TestGetOrganizationMembers_WithholdsAnAddressNobodyHasSharedYet" () RETURNS void AS $$
+DECLARE
+    _Member record;
+BEGIN
+    SELECT * INTO _Member FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"
+    WHERE "Members"."UserUUID" = "test"."Fixture"('User.Member');
+
+    PERFORM "test"."AssertEquals"(_Member."Email"::text, '', 'an address its owner had never offered to share was handed over');
+    PERFORM "test"."AssertEquals"(_Member."Name"::text, 'Marcus Member', 'the member was hidden along with their address');
+END;
+$$ LANGUAGE plpgsql;
+
 
 CREATE FUNCTION "test"."TestGetOrganizationMembers_WithholdsAnAddressItsOwnerMadePrivate" () RETURNS void AS $$
 DECLARE
@@ -126,6 +145,7 @@ CREATE FUNCTION "test"."TestGetOrganizationMembers_LeavesEverybodyElsesAddressAl
 DECLARE
     _Owner record;
 BEGIN
+    PERFORM "dbo"."SetUserEmailPrivacy"('owner', false);
     PERFORM "dbo"."SetUserEmailPrivacy"('member', true);
 
     SELECT * INTO _Owner FROM "dbo"."GetOrganizationMembers"('owner', "test"."Fixture"('Organization.Acme')) AS "Members"

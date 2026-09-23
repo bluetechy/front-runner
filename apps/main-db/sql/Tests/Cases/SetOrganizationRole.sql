@@ -132,6 +132,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- And withheld is where an address starts, so a promotion is not a way to
+-- read one its owner has never offered.
+CREATE FUNCTION "test"."TestSetOrganizationRole_WithholdsAnAddressNobodyHasSharedYet" () RETURNS void AS $$
+DECLARE
+    _Promoted record;
+BEGIN
+    SELECT * INTO _Promoted FROM "dbo"."SetOrganizationRole"(
+        'owner', "test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), true
+    ) AS "Members";
+
+    PERFORM "test"."AssertEquals"(_Promoted."Email"::text, '', 'promoting a member handed over an address they had never shared');
+END;
+$$ LANGUAGE plpgsql;
+
 -- Promoting somebody is not a way to read an address they have withheld: the
 -- row this answers with is the one dbo.GetOrganizationMembers would return.
 CREATE FUNCTION "test"."TestSetOrganizationRole_WithholdsAPrivateAddressFromTheRowItAnswersWith" () RETURNS void AS $$

@@ -89,6 +89,62 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- The one thing a new account is given an opinion about. Everything else on
+-- dbo.UserProfiles is the profile form's and stays empty, but the members
+-- list reads this column, so the answer for somebody who has just arrived is
+-- written down rather than inferred.
+CREATE FUNCTION "test"."TestProvisionUser_StartsTheNewAccountsAddressPrivate" () RETURNS void AS $$
+DECLARE
+    _User record;
+    _Profile record;
+BEGIN
+    SELECT * INTO _User FROM "dbo"."ProvisionUser"('subject-newcomer', 'newcomer', 'New Comer', 'newcomer@example.test');
+
+    PERFORM "test"."AssertRowCount"(
+        format('SELECT * FROM "dbo"."UserProfiles" WHERE "UserUUID" = %L', _User."UserUUID"),
+        1,
+        'creating an account did not create its profile row'
+    );
+
+    SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('newcomer');
+    PERFORM "test"."AssertTrue"(_Profile."EmailIsPrivate", 'a new account''s address was not private');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Creation, not every sign-in. Somebody who has given their address away is
+-- not handed the default back the next time they arrive.
+CREATE FUNCTION "test"."TestProvisionUser_LeavesTheSwitchWhereItsOwnerPutIt" () RETURNS void AS $$
+DECLARE
+    _Profile record;
+BEGIN
+    PERFORM "dbo"."ProvisionUser"('subject-newcomer', 'newcomer', 'New Comer', 'newcomer@example.test');
+    PERFORM "dbo"."SetUserEmailPrivacy"('newcomer', false);
+
+    PERFORM "dbo"."ProvisionUser"('subject-newcomer', 'newcomer', 'New Comer', 'newcomer@example.test');
+
+    SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('newcomer');
+    PERFORM "test"."AssertFalse"(_Profile."EmailIsPrivate", 'signing in again put the privacy switch back');
+END;
+$$ LANGUAGE plpgsql;
+
+-- An account claimed by login name already exists, so it keeps whatever it
+-- had: the insert above gives way rather than writing over a profile.
+CREATE FUNCTION "test"."TestProvisionUser_DoesNotDisturbAClaimedAccountsProfile" () RETURNS void AS $$
+DECLARE
+    _Profile record;
+BEGIN
+    PERFORM "dbo"."SetUserProfile"(
+        'outsider', 'Oscar', 'Outsider', 'Ozzy', '', '', 'Male', '',
+        '', '', '', '', '', '', '', true, false
+    );
+
+    PERFORM "dbo"."ProvisionUser"('subject-outsider', 'outsider', 'Oscar Outsider', 'outsider@example.test');
+
+    SELECT * INTO _Profile FROM "dbo"."GetUserProfile"('outsider');
+    PERFORM "test"."AssertEquals"(_Profile."NickName"::text, 'Ozzy', 'claiming an account overwrote its profile');
+END;
+$$ LANGUAGE plpgsql;
+
 -- A brand new account has nothing but itself: no organization, no team. That
 -- is the whole point of the model -- membership is granted separately, by
 -- invitation.

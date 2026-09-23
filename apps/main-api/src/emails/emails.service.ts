@@ -45,7 +45,11 @@ export class EmailsService {
     ]);
     return {
       Addresses: addresses,
-      EmailIsPrivate: profile[0]?.EmailIsPrivate ?? false,
+      // No profile row at all reads as private, which is what the column
+      // defaults to and what dbo.GetUserProfile answers. An address is
+      // withheld until somebody offers it, so the fallback here has to agree
+      // rather than publish by accident.
+      EmailIsPrivate: profile[0]?.EmailIsPrivate ?? true,
     };
   }
 

@@ -59,7 +59,11 @@ CREATE FUNCTION "dbo"."GetUserProfile" (_LoginName varchar(64)) RETURNS TABLE(
             -- returned here because this is the function that says what an
             -- account's profile holds, and dbo.SetUserProfile returns this
             -- shape back; dbo.SetUserEmailPrivacy is what writes it.
-            COALESCE("UserProfiles"."EmailIsPrivate", false)
+            --
+            -- True for an account with no profile row at all, which is what
+            -- the column itself defaults to: an address nobody has offered to
+            -- share is withheld.
+            COALESCE("UserProfiles"."EmailIsPrivate", true)
         FROM
             "dbo"."Users"
             LEFT JOIN "dbo"."UserProfiles" ON ("UserProfiles"."UserUUID" = "Users"."UserUUID")
