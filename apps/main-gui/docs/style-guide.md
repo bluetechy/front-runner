@@ -67,17 +67,23 @@ changes underneath it.
 
 The accent is a magenta-to-violet fade, `brand.buttonGradient`. It marks the
 one thing on a surface that is being offered, and it is spent quickly: two of
-them in view means neither is the accent.
+them in view means neither is the accent. A row of pricing cards is the one
+place that reads as more than one accent at a time, and it is not: each card
+is its own surface with one offer on it, and which plan is being pushed is
+said by that card's paper and its badge rather than by its button.
 
 It is allowed on:
 
 - **contained buttons** — every one of them, everywhere;
 - **the page you are on** in the rail, as `brand.chromeSelected`;
 - **the notification panel's heading**, which is the one card whose head is
-  painted rather than written.
+  painted rather than written;
+- **the "most popular" badge** on the pricing page, as `brand.cardBadge`.
 
-`brand.chromeSelected` is the button's fade with its magenta end taken down one
-step — see [contrast](#contrast) for why it is not the same constant.
+`brand.chromeSelected` and `brand.cardBadge` are one constant: the button's
+fade with its magenta end taken down one step — see [contrast](#contrast) for
+why it is not the same fade a button takes. Both are small white text on the
+accent, which is the whole reason that step exists.
 
 The logo is the one thing wearing a fade that is not the accent's:
 `brand.logoGradient`, a lighter magenta-to-violet pair, painted through the

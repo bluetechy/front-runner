@@ -66,7 +66,7 @@ describe("the answers", () => {
 
     expect(question).toHaveAttribute("aria-expanded", "true");
     expect(
-      screen.getByText(/Free is free for as long as you want it/),
+      screen.getByText(/Basic is free for as long as you want it/),
     ).toBeVisible();
   });
 

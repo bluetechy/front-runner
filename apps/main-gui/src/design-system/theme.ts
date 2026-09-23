@@ -58,6 +58,15 @@ const cardInkMuted = "#6a5581";
 const cardRule = "rgba(31, 5, 56, 0.12)";
 
 /*
+ * The one card on the page being pushed is the same paper with the accent
+ * breathed onto it: the button's magenta at 9% over white. It takes no ink of
+ * its own -- `cardInk` reads 16.3:1 on it against 18.5:1 on the white cards,
+ * `cardInkMuted` 5.8:1 against 6.5:1, and the ticks down its feature list
+ * 3.6:1 against 4.1:1 -- so a card changing paper changes nothing else.
+ */
+const cardFeatured = "#fcedf6";
+
+/*
  * The chrome behind the login: a rail down the left edge and a bar across the
  * top. They were two surfaces of their own once -- the rail the accent itself,
  * the bar the card's paper stretched across the window -- then one surface in
@@ -99,7 +108,8 @@ const chromeField = "rgba(255, 255, 255, 0.08)";
  * on the violet, which is the point of taking the color out.
  */
 const accentPill = "#d1258f";
-const chromeSelected = `linear-gradient(95deg, ${accentPill}, ${accentDeep})`;
+const accentPillFade = `linear-gradient(95deg, ${accentPill}, ${accentDeep})`;
+const chromeSelected = accentPillFade;
 
 /*
  * The teal the charts' third series is drawn in, and the fade a person's face
@@ -192,6 +202,14 @@ const brand = {
   cardInk,
   cardInkMuted,
   cardRule,
+  /* The paper under the plan being pushed, and the badge beside its name. The
+   * badge is painted in the nav pill's fade rather than the button's, for the
+   * reason the nav pill is: it is small white text on the accent, and
+   * `accentStrong` gives white 4.1:1 where 4.5:1 is needed, against 4.8:1 at
+   * this fade's magenta end and 5.4:1 at its violet one. */
+  cardFeatured,
+  cardBadge: accentPillFade,
+  cardBadgeInk: "#ffffff",
   /* The chrome behind the login: the bar across the top, and the rail down
    * the left edge. Two names for one black, because they are two pieces and
    * a repaint may not want them to stay one. */

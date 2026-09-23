@@ -13,6 +13,15 @@
 
 export const ANNUAL_DISCOUNT = 0.2;
 
+/*
+ * The two buttons the page has. Every plan you can start on your own wears
+ * the first and the one you have to ask about wears the second, so they are
+ * two strings here rather than a label on each plan: five copies of "Get
+ * Started" is five places for it to end up four.
+ */
+export const START_BUTTON = "Get Started";
+export const CONTACT_BUTTON = "Contact Sales";
+
 export type Billing = "monthly" | "annual";
 
 export type AudienceId = "individual" | "business";
@@ -27,7 +36,6 @@ export interface Plan {
   unit: "account" | "member";
   /* The plan whose list this one starts from, named above its own features. */
   inherits?: string;
-  callToAction: string;
   /* Enterprise is the one plan you cannot start on your own. */
   contactSales?: boolean;
   /* The one card drawn forward. At most one per audience. */
@@ -53,12 +61,11 @@ export const audiences: readonly [Audience, Audience] = [
       "For one person running a program — a club, a class, a team you look after.",
     plans: [
       {
-        id: "free",
-        name: "Free",
+        id: "basic",
+        name: "Basic",
         tagline: "Enough to keep a real scoreboard for a small group.",
         monthlyPrice: 0,
         unit: "account",
-        callToAction: "Get started",
         features: [
           "One organization, up to 5 members",
           "One point currency, with levels and a leaderboard",
@@ -69,13 +76,12 @@ export const audiences: readonly [Audience, Audience] = [
         ],
       },
       {
-        id: "plus",
-        name: "Plus",
+        id: "standard",
+        name: "Standard",
         tagline: "For a program the people in it have started to care about.",
         monthlyPrice: 19,
         unit: "account",
-        inherits: "Free",
-        callToAction: "Start with Plus",
+        inherits: "Basic",
         featured: true,
         features: [
           "Up to 25 members, across as many teams as you like",
@@ -89,13 +95,12 @@ export const audiences: readonly [Audience, Audience] = [
         ],
       },
       {
-        id: "pro",
-        name: "Pro",
+        id: "premium",
+        name: "Premium",
         tagline: "The whole model, with nothing switched off.",
-        monthlyPrice: 99,
+        monthlyPrice: 49,
         unit: "account",
-        inherits: "Plus",
-        callToAction: "Start with Pro",
+        inherits: "Standard",
         features: [
           "Unlimited members, teams and point currencies",
           "Point transfers between members, with daily and monthly limits",
@@ -119,10 +124,9 @@ export const audiences: readonly [Audience, Audience] = [
         id: "team",
         name: "Team",
         tagline: "The same program, with several people behind it.",
-        monthlyPrice: 29,
+        monthlyPrice: 99,
         unit: "member",
-        inherits: "Pro",
-        callToAction: "Start with Team",
+        inherits: "Premium",
         featured: true,
         features: [
           "Per-member billing — add and remove people as the year goes",
@@ -141,7 +145,6 @@ export const audiences: readonly [Audience, Audience] = [
         monthlyPrice: null,
         unit: "member",
         inherits: "Team",
-        callToAction: "Contact sales",
         contactSales: true,
         features: [
           "Single sign-on against your own identity provider, by SAML or OIDC",

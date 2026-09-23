@@ -2,7 +2,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { theme } from "../design-system";
-import { audiences } from "./plans";
+import { audiences, CONTACT_BUTTON, START_BUTTON } from "./plans";
 
 /*
  * The pricing page: who the plans are for, how often you pay, a row of cards,
@@ -112,9 +112,9 @@ describe("starting a plan", () => {
   it("opens the sign-in dialog for a plan you can start", () => {
     renderPage();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: individual.plans[0]!.callToAction }),
-    );
+    /* Every card on the row wears the same button, so this is the first of
+     * them rather than the only one. */
+    fireEvent.click(screen.getAllByRole("button", { name: START_BUTTON })[0]!);
 
     expect(open).toHaveBeenCalledTimes(1);
   });
@@ -132,7 +132,7 @@ describe("starting a plan", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: business.label }));
 
-    expect(screen.getByRole("link", { name: "Contact sales" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: CONTACT_BUTTON })).toHaveAttribute(
       "href",
       "/contact-us",
     );

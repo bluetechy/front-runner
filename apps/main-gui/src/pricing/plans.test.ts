@@ -4,9 +4,11 @@ import {
   amountOf,
   annualTotal,
   audiences,
+  CONTACT_BUTTON,
   money,
   monthlyRate,
   percentOff,
+  START_BUTTON,
   type Plan,
 } from "./plans";
 
@@ -31,13 +33,23 @@ describe("the plans on offer", () => {
       expect(audience.plans.length).toBeGreaterThan(0);
   });
 
-  it("gives every plan a name, a tagline, something to press, and a list", () => {
+  it("gives every plan a name, a tagline and a list", () => {
     for (const plan of plans) {
       expect(plan.name).not.toBe("");
       expect(plan.tagline).not.toBe("");
-      expect(plan.callToAction).not.toBe("");
       expect(plan.features.length).toBeGreaterThan(0);
     }
+  });
+
+  // The words on a button are not a plan's to choose: there are two of them
+  // for the whole page, and which one a card wears is decided by whether the
+  // plan can be started at all.
+  it("keeps the two buttons off the plans themselves", () => {
+    expect(START_BUTTON).not.toBe("");
+    expect(CONTACT_BUTTON).not.toBe("");
+    expect(plans).not.toContainEqual(
+      expect.objectContaining({ callToAction: expect.anything() }),
+    );
   });
 
   it("gives every plan an id of its own", () => {
@@ -52,7 +64,7 @@ describe("the plans on offer", () => {
   });
 
   // A plan that starts from another names it, so the card can say
-  // "everything in Plus, and" rather than repeating eight lines.
+  // "everything in Standard, and" rather than repeating eight lines.
   it("names the plan each one starts from, where there is one", () => {
     const names = new Set(plans.map((plan) => plan.name));
 

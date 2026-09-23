@@ -24,7 +24,7 @@ const questions = [
   {
     question: "Do I need a credit card to start?",
     answer:
-      "No. Free is free for as long as you want it, and it does not ask for a card or start a trial clock. You give us a card when you move to a paid plan, and not before.",
+      "No. Basic is free for as long as you want it, and it does not ask for a card or start a trial clock. You give us a card when you move to a paid plan, and not before.",
   },
   {
     question: "What counts as a member?",
@@ -54,7 +54,7 @@ const questions = [
   {
     question: "What happens to our points and badges if we cancel?",
     answer:
-      "Nothing is deleted when a plan ends. The organization drops to Free, so anything above its limits becomes read-only rather than lost, and you can export your points, badges and event log at any time. Ask us to delete an account and we do, permanently, within 30 days.",
+      "Nothing is deleted when a plan ends. The organization drops to Basic, so anything above its limits becomes read-only rather than lost, and you can export your points, badges and event log at any time. Ask us to delete an account and we do, permanently, within 30 days.",
   },
   {
     question: "Do you give refunds?",
@@ -69,7 +69,7 @@ const questions = [
   {
     question: "What support comes with each plan?",
     answer:
-      "Free and Plus get email support and the documentation. Pro gets priority support, which means your message goes to the front of the queue. Team adds onboarding help and a reply inside one business day, and Enterprise adds a named account manager and an agreed response time in writing.",
+      "Basic and Standard get email support and the documentation. Premium gets priority support, which means your message goes to the front of the queue. Team adds onboarding help and a reply inside one business day, and Enterprise adds a named account manager and an agreed response time in writing.",
   },
 ] as const;
 

@@ -8,9 +8,11 @@ import CheckCircleIcon from "@/shared/icons/CheckCircleIcon";
 import {
   amountOf,
   annualTotal,
+  CONTACT_BUTTON,
   money,
   monthlyRate,
   percentOff,
+  START_BUTTON,
   type Billing,
   type Plan,
 } from "./plans";
@@ -20,9 +22,10 @@ import {
  * in the card's own ink rather than the app's -- see `brand.card*` in the
  * theme -- because the page's usual white-on-violet is invisible here.
  *
- * The featured card is not a different card: the border is the same dark rule
- * the others have, as asked, and it is the ribbon, the lit button and the
- * lift that carry it forward.
+ * The featured card sits on the same line as the others, takes the same dark
+ * rule round the outside and wears the same button. What carries it forward
+ * is its paper, which is the accent breathed onto white, the badge beside its
+ * name, and a deeper shadow.
  */
 
 /* The small print under the price, saying what the figure above it really
@@ -57,55 +60,58 @@ export function PlanCard({
   return (
     <Box
       sx={{
-        position: "relative",
         display: "flex",
         flexDirection: "column",
         height: "100%",
         padding: { xs: "1.75rem 1.5rem", sm: "2rem 1.9rem" },
         borderRadius: "1.75rem",
-        backgroundColor: (theme) => theme.palette.brand.card,
+        backgroundColor: (theme) =>
+          plan.featured
+            ? theme.palette.brand.cardFeatured
+            : theme.palette.brand.card,
         border: (theme) => `2px solid ${theme.palette.brand.cardEdge}`,
         color: (theme) => theme.palette.brand.cardInk,
         boxShadow: plan.featured
           ? "0 26px 60px rgba(10, 2, 24, 0.45)"
           : "0 14px 34px rgba(10, 2, 24, 0.25)",
-        transform: { md: plan.featured ? "translateY(-0.75rem)" : "none" },
       }}
     >
-      {plan.featured ? (
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", gap: 1, flexWrap: "wrap" }}
+      >
         <Typography
-          component="span"
+          component="h3"
           sx={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            paddingInline: "0.9rem",
-            paddingBlock: "0.3rem",
-            borderRadius: 999,
-            whiteSpace: "nowrap",
-            fontSize: "0.72rem",
+            fontFamily: (theme) => theme.typography.h1.fontFamily,
+            fontSize: "1.5rem",
             fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "common.white",
-            backgroundImage: (theme) => theme.palette.brand.buttonGradient,
           }}
         >
-          Most popular
+          {plan.name}
         </Typography>
-      ) : null}
 
-      <Typography
-        component="h3"
-        sx={{
-          fontFamily: (theme) => theme.typography.h1.fontFamily,
-          fontSize: "1.5rem",
-          fontWeight: 600,
-        }}
-      >
-        {plan.name}
-      </Typography>
+        {plan.featured ? (
+          <Typography
+            component="span"
+            sx={{
+              paddingInline: "0.7rem",
+              paddingBlock: "0.3rem",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+              fontSize: "0.68rem",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              lineHeight: 1,
+              color: (theme) => theme.palette.brand.cardBadgeInk,
+              backgroundImage: (theme) => theme.palette.brand.cardBadge,
+            }}
+          >
+            Most popular
+          </Typography>
+        ) : null}
+      </Stack>
 
       <Typography
         sx={{
@@ -182,30 +188,20 @@ export function PlanCard({
         </Typography>
       </Box>
 
+      {/* One button, on every card, painted the same way on all of them: the
+       * plan being pushed is said by its paper and its badge rather than by
+       * being the only card with a lit button. What changes here is whether
+       * it starts a plan or asks about one, and that is the same question
+       * that decides which of the two labels it wears. */}
       <Button
-        variant={plan.featured ? "contained" : "outlined"}
+        variant="contained"
         fullWidth
         {...(plan.contactSales
           ? { component: Link, to: "/contact-us" }
           : { onClick: onChoose })}
-        sx={{
-          mt: 2.5,
-          ...(plan.featured
-            ? {}
-            : {
-                /* The theme's outlined button is pink on violet, which on
-                 * white paper is barely there. On a card it takes the same
-                 * dark rule as the border. */
-                borderColor: (theme) => theme.palette.brand.cardEdge,
-                color: (theme) => theme.palette.brand.cardInk,
-                "&:hover": {
-                  borderColor: (theme) => theme.palette.brand.cardEdge,
-                  backgroundColor: (theme) => theme.palette.brand.cardRule,
-                },
-              }),
-        }}
+        sx={{ mt: 2.5 }}
       >
-        {plan.callToAction}
+        {plan.contactSales ? CONTACT_BUTTON : START_BUTTON}
       </Button>
 
       <Divider
