@@ -117,7 +117,7 @@ export function Dashboard() {
                     color: (theme) => theme.palette.brand.cardInkMuted,
                   }}
                 >
-                  Here is what is happening with your programme today.
+                  Here is what is happening with your program today.
                 </Typography>
 
                 <Stack

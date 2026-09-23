@@ -17,7 +17,7 @@ broken for exactly that reason.
 
 | What you changed                      | What else to touch                                                                                                                                                    |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sql/Functions/<Name>.sql`            | `sql/Tests/Cases/<Name>.sql` — add cases for the new behaviour, update the ones the change invalidates                                                                |
+| `sql/Functions/<Name>.sql`            | `sql/Tests/Cases/<Name>.sql` — add cases for the new behavior, update the ones the change invalidates                                                                 |
 | Added a function                      | the above, plus the list in `TestSchema_ExpectedFunctionsExist` (`sql/Tests/Cases/Schema.sql`)                                                                        |
 | Added a table                         | the list in `TestSchema_ExpectedTablesExist`, an insert in `sql/Tests/Helpers/InsertOneRowIntoEveryTable.sql`, and its two `ModifiedInfo` triggers in `sql/Triggers/` |
 | Added a foreign key                   | the list in `TestSchema_ExpectedForeignKeysExist`                                                                                                                     |
@@ -57,7 +57,7 @@ re-runnable.
 
 One object per file, file named exactly for the object. Two deliberate
 exceptions: `sql/Tests/Cases/` names the file for the object under test and holds
-every `test."Test<Object>_<Behaviour>"` function for it, and `sql/Seeds/Dev/`
+every `test."Test<Object>_<Behavior>"` function for it, and `sql/Seeds/Dev/`
 leads with an ordering number (`06_UserOrganizations.sql`) because rows have to
 load parents before children.
 
@@ -141,7 +141,7 @@ installed.
 
 ## Tests suffixed `_KnownIssue`
 
-These assert behaviour that is **wrong but current**, so the suite stays green
+These assert behavior that is **wrong but current**, so the suite stays green
 and the defect stays visible. If one fails, the underlying bug was probably
 fixed — read the comment above the test and replace it with the positive case.
 Never edit one just to get back to green.

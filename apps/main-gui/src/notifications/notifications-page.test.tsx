@@ -208,7 +208,7 @@ describe("the notifications page", () => {
     ).toBeNull();
   });
 
-  it("greys out mark-all when there is nothing to mark", () => {
+  it("grays out mark-all when there is nothing to mark", () => {
     answering([[notification({ ReadAt: new Date().toISOString() })]], {
       counts: { All: 1, Unread: 0, Read: 1 },
     });

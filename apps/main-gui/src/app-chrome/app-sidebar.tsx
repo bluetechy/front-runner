@@ -271,7 +271,7 @@ function RailContents({ onNavigate }: { onNavigate: () => void }) {
 
 /* The page you are on is a pill in the accent's fade, lit the way a contained
  * button is: on a rail that is now the same violet as the field, the one
- * coloured thing left in the chrome is where you are. TanStack Router marks
+ * colored thing left in the chrome is where you are. TanStack Router marks
  * the item for us. */
 const itemStyle: SxProps<Theme> = {
   borderRadius: 999,

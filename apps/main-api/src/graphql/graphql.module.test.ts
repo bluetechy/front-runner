@@ -104,7 +104,7 @@ describe("what an error is allowed to say", () => {
     ).toBe(false);
   });
 
-  // Anything that reached here unrecognised came out of the database or out
+  // Anything that reached here unrecognized came out of the database or out
   // of a bug, and either way its message is ours and not the caller's.
   it("replaces the message on an internal error", async () => {
     expect(
@@ -131,7 +131,7 @@ describe("what an error is allowed to say", () => {
     });
   });
 
-  // An error with no code is not an error we recognised.
+  // An error with no code is not an error we recognized.
   it("treats an uncoded error as an internal one", async () => {
     expect(
       await formatError({ message: "something", extensions: {} }),

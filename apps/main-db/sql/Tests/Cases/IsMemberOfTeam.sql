@@ -2,7 +2,7 @@ CREATE FUNCTION "test"."TestIsMemberOfTeam_AcceptsAMember" () RETURNS void AS $$
 BEGIN
     PERFORM "test"."AssertTrue"(
         "dbo"."IsMemberOfTeam"('member', "test"."Fixture"('Team.Core')),
-        'a member of the core team was not recognised'
+        'a member of the core team was not recognized'
     );
 END;
 $$ LANGUAGE plpgsql;

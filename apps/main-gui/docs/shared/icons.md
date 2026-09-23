@@ -23,17 +23,17 @@ interface IconProps {
 
 `size` accepts a string because it reaches an SVG `width`/`height`, which takes
 one. **`color` defaults to `#000000`** — every wrapper in the folder, no
-exceptions — and the colour an icon is actually drawn in is set **where it is
-used**, the way every other colour in this app is. An icon that should take the
-colour of whatever encloses it is passed the keyword for that:
+exceptions — and the color an icon is actually drawn in is set **where it is
+used**, the way every other color in this app is. An icon that should take the
+color of whatever encloses it is passed the keyword for that:
 
 ```tsx
 <CloseIcon color="currentColor" size={20} />
 ```
 
 which is most of the call sites, because the surface around an icon already
-knows what it is written in. The keyword is a colour a caller passes, never the
-default a wrapper assumes: a wrapper with no colour of its own is one that
+knows what it is written in. The keyword is a color a caller passes, never the
+default a wrapper assumes: a wrapper with no color of its own is one that
 draws differently depending on where it is dropped, and the contract is the
 same everywhere or it is not a contract. Nothing else is part of it — no `sx`,
 no `className`, no library-specific props — because anything more would leak
@@ -84,7 +84,7 @@ it into elements through [`SvgIcon`](../../src/shared/icons/SvgIcon.tsx).
 
 To add one:
 
-1. Find the glyph in a set whose licence allows it and **copy the path data**.
+1. Find the glyph in a set whose license allows it and **copy the path data**.
    Never hand-retype it — a single wrong digit is invisible in review and
    obvious on screen.
 2. Add it to `glyphs.ts` as a `Glyph`, with a comment naming the set it came
@@ -104,7 +104,7 @@ was a dependency for exactly these objects.
 `color` works at all:
 
 - **`fill` and `stroke` are dropped**, so the glyph inherits `currentColor`
-  from the `svg` instead of carrying a baked-in colour.
+  from the `svg` instead of carrying a baked-in color.
 - **Except** when a node is explicitly `fill="none"` with a `stroke` — that is
   an outline, and dropping the stroke would render it as a solid block. Those
   keep `fill: none` and take `stroke: currentColor`.
@@ -136,16 +136,16 @@ reason nothing outside this folder names `react-icons`.
 exceptions, the same three cases each:
 
 1. it renders without errors;
-2. it renders with custom props — the hex colour and the size reach the `svg`,
-   and the glyph itself is there, because an assertion about colour and size
+2. it renders with custom props — the hex color and the size reach the `svg`,
+   and the glyph itself is there, because an assertion about color and size
    passes just as happily against an **empty** `<svg>`;
-3. it takes a keyword colour as well as a hex one, since `currentColor` is what
+3. it takes a keyword color as well as a hex one, since `currentColor` is what
    most call sites pass and a wrapper that dropped it would draw black on
    black.
 
 That third case reads the keyword off the **inline style** rather than through
 `toHaveStyle`, which resolves `currentColor` against the element's computed
-colour and would compare black with black. jsdom lowercases it on the way in,
+color and would compare black with black. jsdom lowercases it on the way in,
 so the assertion is against `currentcolor`.
 
 `Icon.test.tsx` covers the renderer instead — that glyph nodes actually become

@@ -14,14 +14,14 @@
 -- the only thing any reader is shown is "Last4".
 --
 -- There is deliberately **no column for the security code**. The form asks
--- for one because a card cannot be authorised without it, and main-api checks
+-- for one because a card cannot be authorized without it, and main-api checks
 -- its shape and drops it. Storing it is forbidden outright, not merely unwise,
 -- so the place it would go does not exist.
 --
 -- "Brand" is derived from the number by dbo.AddCreditCard rather than asked
 -- for: the first digits of a card say which network issued it, and a person
 -- choosing "Visa" from a list for a Mastercard number would be recording their
--- own mistake. "Other" is what an unrecognised prefix reads as -- a network
+-- own mistake. "Other" is what an unrecognized prefix reads as -- a network
 -- this list has not heard of is still a card.
 --
 -- The billing address is this card's, not the person's. dbo.UserProfiles
@@ -39,7 +39,7 @@ CREATE TABLE "dbo"."CreditCards" (
     "CreditCardUUID" uuid PRIMARY KEY DEFAULT public.uuid_generate_v4(),
     "UserUUID" uuid NOT NULL,
     -- Derived from "Number", never asked for. Constrained to the four networks
-    -- this schema can recognise, plus the answer for the ones it cannot.
+    -- this schema can recognize, plus the answer for the ones it cannot.
     "Brand" varchar(20) NOT NULL DEFAULT 'Other',
     "NameOnCard" varchar(64) NOT NULL DEFAULT '',
     -- Encrypted, write-only, and on its way out. See the note above.

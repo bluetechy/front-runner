@@ -35,6 +35,23 @@ folder. Add `-- --plan` to see what it would run without running it. The full
 `npm run test` is still what goes before a push. See
 [only the slices you changed](docs/testing.md#only-the-slices-you-changed).
 
+## Writing
+
+**The base language of the project is `en-US`, spelling included, everywhere:
+page copy, source, SQL, Markdown and the commit log. And no em dashes.**
+
+The site is translated and the repository is not. The interface ships in
+`en-US` by default and `es-MX` when it is chosen, both declared in
+`apps/main-gui/src/language/languages.ts`; everything else is written in
+`en-US`, and another language appears in a document only as something being
+quoted or demonstrated.
+
+American spelling has three deliberate exceptions, all of them words we do not
+own: `'Cancelled'`, a status value the database stores in rows; the ARIA
+attribute `aria-labelledby`; and MUI's `palette.grey`. See
+[writing](docs/writing.md) for the rules and the reasoning, and
+[language](apps/main-gui/docs/language.md) for how translation works.
+
 ## Configuration
 
 Every credential, port and address lives in `.env` at the repository root. It is

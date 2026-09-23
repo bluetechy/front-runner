@@ -12,12 +12,12 @@ keys and therefore the cache, so a notification read in one is read in the
 other without either being told.
 
 Built from two supplied mock-ups. The first gave the panel its shape: a
-coloured heading, a scrolling list, a **Mark all read** control. The second
+colored heading, a scrolling list, a **Mark all read** control. The second
 gave a row its face — the person who caused the notification, with the kind of
 notification as a small disc on their shoulder.
 
 Three deliberate departures from them. The amber **Mark All Read** pill is
-white paper, because amber is not a colour this product has and the heading it
+white paper, because amber is not a color this product has and the heading it
 sits on is already the accent. The per-row chevron is gone — see
 [a row](#a-row). And the count on the bell is of **unread** notifications
 rather than of all of them, which is what makes the badge disappear when
@@ -52,16 +52,16 @@ card's own hairline, and the panel shadow.
 | List    | a page at a time, newest first, scrolling at about four and a half rows     |
 | Footer  | **View all**, which goes to `/notifications`                                |
 
-**Mark all read greys out rather than disappearing** when nothing is unread.
+**Mark all read grays out rather than disappearing** when nothing is unread.
 The heading keeps its shape as the last row is read, and the control stays
-where the person left it. Its disabled colours are the theme's `onAccent`
+where the person left it. Its disabled colors are the theme's `onAccent`
 pair — this app already has an answer for ink on a surface painted in the
 accent, which this heading still is even though the rail no longer is.
 
 The footer goes to [the page](#the-page), which is the same list with room to
 read it in.
 
-Both buttons in the panel repeat their colour under `&:hover`. The theme
+Both buttons in the panel repeat their color under `&:hover`. The theme
 paints a text button **white** on hover, which is right on the violet field
 and invisible on card paper — **View all** vanished under the cursor until it
 said otherwise. Any button this app puts on a card has to answer that.
@@ -85,7 +85,7 @@ and the chosen segment in white paper with the card's ink.
 
 ### When the list is not a list
 
-Waiting, broken and empty all render the same centred sentence in the same
+Waiting, broken and empty all render the same centered sentence in the same
 place, so the panel does not change shape between them. Empty says something
 different under each filter, because "you have no notifications yet" under
 Unread would be a lie told to somebody who has forty of them:
@@ -144,8 +144,8 @@ enum, because the list of things worth telling somebody grows with the
 product — so the table has a fallback, and a type shipped by an API newer than
 this bundle draws the bell itself on the quietest tint.
 
-The tints are named for what a notification is _about_, not for a colour, and
-two types sharing one is the point: a badge and a level are both the programme
+The tints are named for what a notification is _about_, not for a color, and
+two types sharing one is the point: a badge and a level are both the program
 rewarding you, and they look it.
 
 | Tint       | Types                                                |
@@ -312,7 +312,7 @@ their age where it was. After editing the ages in that file, use
 - `notification-menu.test.tsx` — the count on the badge, the badge's absence at
   zero, the count being the API's rather than the page's, the actor's name and
   initials, the filter asking the API again, the three empty sentences, the
-  greyed-out button, that a row marks itself read only while it is unread, and
+  grayed-out button, that a row marks itself read only while it is unread, and
   that the sentinel asks for the next page 220px early, once, and not at all
   once the last page has arrived. The API hooks are stubbed; the helpers beside
   them are real.

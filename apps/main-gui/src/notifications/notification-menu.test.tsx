@@ -10,7 +10,7 @@ import type { Notification, NotificationFilter } from "./notifications-api";
  *
  * The API hooks are stubbed rather than driven: this is a test about the
  * panel -- the count on the badge, the filter, the states the list can be in,
- * the button that greys out, and the sentinel that asks for the next page --
+ * the button that grays out, and the sentinel that asks for the next page --
  * and not about fetching.
  *
  * `Link` is stubbed because the footer's target is a route, and standing a
@@ -173,7 +173,7 @@ describe("the bell in the top bar", () => {
     expect(screen.getByText("You have no notifications yet.")).toBeVisible();
   });
 
-  it("greys out the mark-all button when there is nothing to mark", async () => {
+  it("grays out the mark-all button when there is nothing to mark", async () => {
     show();
     await openTheBell();
     expect(

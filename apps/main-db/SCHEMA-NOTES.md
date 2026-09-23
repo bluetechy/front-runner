@@ -58,7 +58,7 @@ their own fixtures. See the "Database" section of the repository README.
 | Foreign key                    | `FK_<Table>_<ReferencedTable>`                   | `FK_UserBadges_Badges`                             |
 | Foreign key, 2nd to same table | `FK_<Table>_<ReferencedTable>_<Column>`          | `FK_SharedBadges_Users_SharedWithUserUUID`         |
 | File name                      | exactly the object name + `.sql`                 | `Triggers/Users_ModifiedInfo_Insert.sql`           |
-| Test function                  | `test."Test<Object>_<Behaviour>"`                | `test."TestGetUser_ReturnsTheMatchingUser"`        |
+| Test function                  | `test."Test<Object>_<Behavior>"`                 | `test."TestGetUser_ReturnsTheMatchingUser"`        |
 | Test helper                    | PascalCase verb phrase in the `test` schema      | `test."AssertRowCount"`                            |
 | Seed file                      | `<NN>_<Table>.sql`, numbered in dependency order | `Seeds/Dev/06_UserOrganizations.sql`               |
 
@@ -131,7 +131,7 @@ Postgres folds them to lowercase — quote them and prefix `dbo.` on migration.
 
 ## Changes made during the reorg
 
-These alter behaviour. Revert any you disagree with.
+These alter behavior. Revert any you disagree with.
 
 1. `Tables/Organziations.sql` -> `Tables/Organizations.sql` (file name was misspelled;
    the table inside was always spelled correctly).
@@ -179,7 +179,7 @@ These alter behaviour. Revert any you disagree with.
 _TeamUUID`. Every call raised `column reference "..." is ambiguous`. The
     `ON CONFLICT` inference lists became `ON CONFLICT ON CONSTRAINT
 "UserOrganizations_UUIDs_UniqueKey"` / `"UserTeams_UUIDs_UniqueKey"`, and
-    the `UPDATE` predicate is now table-qualified. Behaviour is otherwise
+    the `UPDATE` predicate is now table-qualified. Behavior is otherwise
     unchanged. Found by the test suite.
 12. `Security/Permissions.sql` took its database name and application user from
     psql variables instead of hard-coding `dbo` and `root`, and lost its
@@ -207,14 +207,14 @@ _TeamUUID`. Every call raised `column reference "..." is ambiguous`. The
 - **`UserTallies` has no `CreatedAt`/`CreatedBy`**, so its `..._ModifiedInfo_Insert`
   trigger calls `update_modified_info` rather than `insert_modified_info`. That works,
   but the trigger name is misleading.
-- **`GetUsers` authorises with `_LoginName = 'admin'`** — a hardcoded string — rather
+- **`GetUsers` authorizes with `_LoginName = 'admin'`** — a hardcoded string — rather
   than checking `Users."IsAdmin"`. Anyone who registers the login `admin` gets the
   full user list.
-- **`JoinTeam` takes no authorisation check**, unlike `InviteToOrganization` which
+- **`JoinTeam` takes no authorization check**, unlike `InviteToOrganization` which
   requires `IsOwnerOfOrganization`. Any caller can add any user to any team, and the
   following `UPDATE` lets them set `IsManager`. Teams are still the old model: the
   organization side went to invitations and consent, and the team side did not.
-- **`LeaveTeam` takes no authorisation check** either, unlike `LeaveOrganization`.
+- **`LeaveTeam` takes no authorization check** either, unlike `LeaveOrganization`.
 - **`GetTeams` returns one row per team _membership_, not per team.** It joins
   `UserTeams` without filtering or de-duplicating, so a team with three members
   comes back three times. The `IsManager` column is already computed by a
@@ -227,7 +227,7 @@ _TeamUUID`. Every call raised `column reference "..." is ambiguous`. The
   Either `JoinTeam` should reject it or it should add the organization
   membership as well. Found while writing the tests.
 
-Each of these has a `_KnownIssue` test locking in the current behaviour — see
+Each of these has a `_KnownIssue` test locking in the current behavior — see
 below.
 
 ## Identity lives in Keycloak
@@ -303,18 +303,18 @@ Two rough edges this deliberately leaves:
 
 ## Known issues covered by tests
 
-These tests assert behaviour that is **wrong but current**, so that the suite
+These tests assert behavior that is **wrong but current**, so that the suite
 stays green and the defect stays visible and documented. Every one carries a
 comment describing what correct would look like, and a failure message telling
 you to replace the test rather than to fix the code.
 
 | Test                                                                | Issue                                                                                                                                  |
 | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `TestGetUsers_IgnoresIsAdmin_KnownIssue`                            | `GetUsers` authorises on the literal login `'admin'`, not on `Users."IsAdmin"`                                                         |
+| `TestGetUsers_IgnoresIsAdmin_KnownIssue`                            | `GetUsers` authorizes on the literal login `'admin'`, not on `Users."IsAdmin"`                                                         |
 | `TestGetTeams_DuplicatesTeamsPerMember_KnownIssue`                  | `GetTeams` emits one row per membership rather than per team                                                                           |
-| `TestJoinTeam_AllowsAnyCaller_KnownIssue`                           | `JoinTeam` performs no authorisation check                                                                                             |
+| `TestJoinTeam_AllowsAnyCaller_KnownIssue`                           | `JoinTeam` performs no authorization check                                                                                             |
 | `TestJoinTeam_CreatesUnreachableMembershipsForOutsiders_KnownIssue` | `JoinTeam` creates team memberships the read functions cannot see                                                                      |
-| `TestLeaveTeam_AllowsAnyCaller_KnownIssue`                          | `LeaveTeam` performs no authorisation check                                                                                            |
+| `TestLeaveTeam_AllowsAnyCaller_KnownIssue`                          | `LeaveTeam` performs no authorization check                                                                                            |
 | `TestUpdateModifiedInfo_LeavesUpdatedByToTheCaller`                 | `update_modified_info` maintains `UpdatedAt` but not `UpdatedBy`; a caller who forgets it leaves the previous author's name on the row |
 
 If one of these starts failing, the underlying bug was probably fixed — read the
@@ -575,7 +575,7 @@ point: most of them were one query with a different `WHERE` clause.
 | `GetPointTransfers`       | `GetPointTransferHistory`                                                                                                                                       |
 | `CheckPointTransferLimit` | `CheckPointTransferLimits`                                                                                                                                      |
 
-**Every one of them now authorises.** The drafts had none at all —
+**Every one of them now authorizes.** The drafts had none at all —
 `GetUserPointTransactions(UserId)` handed any caller any user's ledger. All
 seven take `(_LoginName, _OrganizationUUID)` and check
 `IsMemberOfOrganization` the way `GetBadges` and `GetPoints` do, and each has a
@@ -706,7 +706,7 @@ independently, so it can cite a stage from a workflow the request is not
 running. Closing it means carrying `ApprovalWorkflowUUID` on the decision and
 using a composite foreign key, the way `SurveyAnswers` does below.
 `TestApprovalDecisions_AcceptAStageFromAnotherWorkflow` records the current
-behaviour.
+behavior.
 
 ### Surveys
 

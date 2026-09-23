@@ -50,7 +50,7 @@ function passesLuhn(number: string): boolean {
  * The ABA check digit, which is Luhn's counterpart for a routing number:
  * weights of 3, 7 and 1 across the nine digits, and the total is divisible by
  * ten. It is worth doing for the same reason -- it catches a typo in a number
- * nobody has memorised, at the point where the person can still look it up.
+ * nobody has memorized, at the point where the person can still look it up.
  */
 function passesAba(routing: string): boolean {
   const weights = [3, 7, 1, 3, 7, 1, 3, 7, 1];

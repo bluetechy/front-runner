@@ -2,7 +2,7 @@
 -- The draft file called UserRoles defined roles and assigned none. dbo.Roles
 -- is that definition; this is the assignment that makes it mean something.
 --
--- Nothing reads either. The live functions authorise on organization and team
+-- Nothing reads either. The live functions authorize on organization and team
 -- membership and on the boolean flags -- see SCHEMA-NOTES.md.
 --
 

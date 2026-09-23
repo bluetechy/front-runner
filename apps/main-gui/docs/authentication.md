@@ -113,12 +113,12 @@ page. `LoginPromptProvider` is in `PageShell`, inside the router, because the
 dialog navigates when a sign-in completes — to `/dashboard`, which is the one
 page that is not inside `PageShell`; see [the dashboard](dashboard.md).
 
-## Colour
+## Color
 
 The mock-up draws this card in slate with a blue button. Those are the only
-colours in it that do not belong to this product, so the card is rebuilt in the
+colors in it that do not belong to this product, so the card is rebuilt in the
 violet field's palette and the button takes the same magenta gradient as every
-other contained button. The layout is the mock-up's; nothing defines a colour
+other contained button. The layout is the mock-up's; nothing defines a color
 of its own, per [codebase structure](codebase-structure.md).
 
 ## Verifying it

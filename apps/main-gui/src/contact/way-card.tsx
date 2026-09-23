@@ -8,7 +8,7 @@ import type { Way } from "./ways";
  * One way of reaching us, in the shape the supplied page draws it: a glyph on
  * a disc, the heading under it, and the thing itself under that.
  *
- * The supplied page paints the discs in a flat grey, which is a colour this
+ * The supplied page paints the discs in a flat gray, which is a color this
  * product does not own. They are the panel's violet here with the panel's own
  * hairline round them -- the same surface the questions on the pricing page
  * sit on -- and the glyph inside is `primary.light`, which is 4.86:1 against

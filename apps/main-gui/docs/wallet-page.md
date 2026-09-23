@@ -21,7 +21,7 @@ for a card whose month has passed. A card can expire while it sits here —
 what cannot happen is adding one that has already expired.
 
 The surface is `CardSurface`, the white card the dashboard and the profile both
-use. See [the dashboard](dashboard.md#colour) for what that card is.
+use. See [the dashboard](dashboard.md#color) for what that card is.
 
 ## The default is a radio, and there is one of it
 
@@ -64,7 +64,7 @@ that hold it.
 field in `method-dialog.tsx`. The supplied mock-ups are Google's payment sheets
 — a white card with a blue button — so, exactly as [the sign-in
 dialog](authentication.md) did, what is taken from them is the layout and what
-is not is the colour: a dialog here is the violet panel the theme already
+is not is the color: a dialog here is the violet panel the theme already
 draws, with the pill fields hollowed out of it.
 
 **The expiry is one field here and two everywhere else.** A card prints MM/YY
@@ -86,7 +86,7 @@ short.
 
 ## The security code is collected and never stored
 
-The card form asks for it, because a card cannot be authorised without one, and
+The card form asks for it, because a card cannot be authorized without one, and
 the line under the heading says plainly that it is not kept. Today main-api
 checks its shape and drops it; when a payment processor is wired up it is what
 gets handed over. **`dbo.CreditCards` has no column for it** — storing one is
@@ -136,7 +136,7 @@ Both copies check the two things a form can know on its own:
   catches a transposed pair, which is the mistake somebody actually makes
   typing sixteen digits.
 - **The ABA check digit** on a routing number — weights of 3, 7 and 1, and the
-  total is divisible by ten. Same idea, for a number nobody has memorised.
+  total is divisible by ten. Same idea, for a number nobody has memorized.
 
 The database checks less and differently: it refuses what its columns cannot
 hold. What the digits _mean_ is settled here.

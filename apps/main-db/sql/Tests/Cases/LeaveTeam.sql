@@ -32,14 +32,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- KNOWN ISSUE: like JoinTeam, LeaveTeam performs no authorisation check, so
+-- KNOWN ISSUE: like JoinTeam, LeaveTeam performs no authorization check, so
 -- any caller can remove any user from any team.
 CREATE FUNCTION "test"."TestLeaveTeam_AllowsAnyCaller_KnownIssue" () RETURNS void AS $$
 BEGIN
     PERFORM "dbo"."LeaveTeam"('outsider', "test"."Fixture"('Team.Core'), "test"."Fixture"('User.Member'));
     PERFORM "test"."AssertFalse"(
         "dbo"."IsMemberOfTeam"('member', "test"."Fixture"('Team.Core')),
-        'LeaveTeam now refuses unauthorised callers -- replace this test with the rejection case'
+        'LeaveTeam now refuses unauthorized callers -- replace this test with the rejection case'
     );
 END;
 $$ LANGUAGE plpgsql;

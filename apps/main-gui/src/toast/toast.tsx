@@ -12,12 +12,12 @@ import Snackbar from "@mui/material/Snackbar";
  * Three tones, and the two that matter are the two a save has: teal when it
  * saved, pink when it did not. `info` is neither -- it is the page saying
  * something nobody asked it to do anything about -- so it is the panel's own
- * violet rather than Material's blue, which is a colour this product does not
+ * violet rather than Material's blue, which is a color this product does not
  * own.
  *
  * The tone is never the whole message. Each one carries Material's icon for
- * its severity and a sentence that reads the same in grey, because nothing in
- * this product is said in colour alone.
+ * its severity and a sentence that reads the same in gray, because nothing in
+ * this product is said in color alone.
  */
 
 export type ToastTone = "success" | "info" | "error";
@@ -61,7 +61,7 @@ export function Toast({
               ? `1px solid ${theme.palette.brand.panelEdge}`
               : "none",
           /* Material tints a filled alert's icon and its close button off its
-           * own severity colour; on these three surfaces both are white. */
+           * own severity color; on these three surfaces both are white. */
           "& .MuiAlert-icon, & .MuiAlert-action": { color: "inherit" },
         }}
       >

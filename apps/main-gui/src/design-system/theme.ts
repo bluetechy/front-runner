@@ -3,7 +3,7 @@ import { createTheme } from "@mui/material/styles";
 /*
  * The palette from the gamification mock-up: a deep violet field, lit from
  * behind the artwork, with magenta as the only accent. Everything visual in
- * this app comes from here — no component defines a colour of its own.
+ * this app comes from here — no component defines a color of its own.
  */
 const violet = {
   950: "#1f0538",
@@ -17,7 +17,7 @@ const accentDeep = "#8f3ce0";
 
 /*
  * The wordmark's own fade. It is a lighter pair than the button's, because a
- * logo is read rather than pressed and these are the two colours the supplied
+ * logo is read rather than pressed and these are the two colors the supplied
  * mock-up sets it in: 6.5:1 and 5.7:1 on the black chrome, 5.3:1 and 4.7:1 on
  * the field behind the marketing header. The mark beside the word in the rail
  * takes the magenta end, so the glyph and the word are one lockup.
@@ -34,7 +34,7 @@ const gutter = "clamp(1.25rem, 4vw, 3.5rem)";
 
 /*
  * The sign-in dialog's surfaces. The supplied mock-up draws this card in
- * slate with a blue button; those are the only colours in it that do not
+ * slate with a blue button; those are the only colors in it that do not
  * belong to this product, so the card is rebuilt here in the violet field's
  * own palette and the button takes the same magenta gradient as every other
  * contained button in the app.
@@ -61,13 +61,13 @@ const cardRule = "rgba(31, 5, 56, 0.12)";
  * The chrome behind the login: a rail down the left edge and a bar across the
  * top. They were two surfaces of their own once -- the rail the accent itself,
  * the bar the card's paper stretched across the window -- then one surface in
- * the field's own violet, and they are black now: the chrome holds no colour
+ * the field's own violet, and they are black now: the chrome holds no color
  * at all, so the only lit thing in it is the page you are on.
  *
  * Both pieces are flat. The rail used to sink from the field's violet to the
  * darkest one as it fell, which was how it pulled below the field by the foot
  * of the window; there is nothing below black to sink to, so the fade is gone
- * and the two pieces are one colour edge to edge.
+ * and the two pieces are one color edge to edge.
  */
 const black = "#000000";
 const chrome = black;
@@ -75,7 +75,7 @@ const chromeRail = black;
 
 /*
  * Everything written on the chrome is white -- 21:1 on black -- and the
- * quieter half of it is white held back rather than a grey of its own, at
+ * quieter half of it is white held back rather than a gray of its own, at
  * 8.8:1. Both are far above the 4.5:1 text needs, and the number no longer
  * changes down the rail, because the surface under it no longer does.
  */
@@ -96,7 +96,7 @@ const chromeField = "rgba(255, 255, 255, 0.08)";
  * end the fade runs to. The pill itself is 4.4:1 against the black chrome at
  * its magenta end and 3.9:1 at its violet end, both above the 3:1 floor for
  * something drawn rather than written -- it reads brighter here than it did
- * on the violet, which is the point of taking the colour out.
+ * on the violet, which is the point of taking the color out.
  */
 const accentPill = "#d1258f";
 const chromeSelected = `linear-gradient(95deg, ${accentPill}, ${accentDeep})`;
@@ -116,10 +116,10 @@ const tealLit = "#0f7f93";
 const tealDeep = "#0a5f72";
 
 /*
- * Series colours for the dashboard's charts, drawn on card paper rather than
+ * Series colors for the dashboard's charts, drawn on card paper rather than
  * on the field. The first two are the accent pair every button is painted
  * with; the third is a teal chosen to stay separable from both for a
- * colour-blind reader -- the worst adjacent pair is 11.4 apart under
+ * color-blind reader -- the worst adjacent pair is 11.4 apart under
  * protanopia, against a floor of 8. They are assigned in this order and never
  * cycled: a fourth series is not a fourth hue, it is a different chart.
  */
@@ -137,7 +137,7 @@ const fall = "#c2344d";
 
 /*
  * The discs a notification's icon sits on in the bell's menu, named for what
- * the notification is about rather than for the colour: the vertical maps a
+ * the notification is about rather than for the color: the vertical maps a
  * notification type onto one of these, so a type nobody has drawn an icon for
  * still lands somewhere deliberate.
  *
@@ -151,7 +151,7 @@ const amber = "#c77b14";
 const noticeTints = {
   /* Work: a task assigned, a task past due. */
   task: accentDeep,
-  /* Anything the programme awarded -- a badge, a level, points. */
+  /* Anything the program awarded -- a badge, a level, points. */
   reward: accentStrong,
   /* Money moving: an order, a redemption. */
   commerce: rise,

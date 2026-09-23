@@ -11,7 +11,7 @@ import { theme } from "../design-system";
  * happens here, once, and this is where that is pinned -- including what
  * happens to an expiry that cannot be read at all.
  *
- * The security code is collected because a card cannot be authorised without
+ * The security code is collected because a card cannot be authorized without
  * one, and is never stored: the dialog says so, and the API drops it.
  */
 
@@ -94,7 +94,7 @@ describe("the dialog", () => {
     );
   });
 
-  // Collected because a card cannot be authorised without one, and never
+  // Collected because a card cannot be authorized without one, and never
   // stored -- dbo.CreditCards has no column for it.
   it("says the security code is not kept", () => {
     renderDialog();

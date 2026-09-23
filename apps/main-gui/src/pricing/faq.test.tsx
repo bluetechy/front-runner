@@ -8,7 +8,7 @@ import { Faq } from "./faq";
  * The questions somebody asks between reading the prices and signing up.
  *
  * All closed to begin with, so the page ends short rather than in a wall of
- * prose -- which is the one behaviour here worth holding on to, along with
+ * prose -- which is the one behavior here worth holding on to, along with
  * each question being a control somebody can reach rather than a heading
  * that happens to expand.
  *

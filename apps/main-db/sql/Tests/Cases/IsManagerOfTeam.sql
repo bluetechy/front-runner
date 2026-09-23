@@ -2,7 +2,7 @@ CREATE FUNCTION "test"."TestIsManagerOfTeam_AcceptsTheManager" () RETURNS void A
 BEGIN
     PERFORM "test"."AssertTrue"(
         "dbo"."IsManagerOfTeam"('member', "test"."Fixture"('Team.Core')),
-        'the manager of the core team was not recognised'
+        'the manager of the core team was not recognized'
     );
 END;
 $$ LANGUAGE plpgsql;

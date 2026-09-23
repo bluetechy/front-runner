@@ -15,7 +15,7 @@ const complete: Message = {
   firstName: "Marcus",
   lastName: "Member",
   email: "marcus@member.example",
-  comments: "We run a reading programme for 300 children. Does this fit?",
+  comments: "We run a reading program for 300 children. Does this fit?",
 };
 
 describe("a message worth sending", () => {

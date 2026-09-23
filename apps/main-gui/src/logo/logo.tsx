@@ -17,7 +17,7 @@ import KpiIcon from "@/shared/icons/KpiIcon";
  * face the rest of the product's headings are, it is selectable, it is read
  * aloud, and it survives being made bigger -- none of which a traced path
  * would do. The mark beside it *is* a vector, through `shared/icons`, so what
- * a caller would want to manipulate -- its size, its colour -- is already
+ * a caller would want to manipulate -- its size, its color -- is already
  * props. The day this becomes a real wordmark somebody drew, it is a `<svg>`
  * in here and the two callers do not learn about it.
  */

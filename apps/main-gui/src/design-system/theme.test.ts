@@ -6,14 +6,14 @@ import { theme } from "./theme";
  *
  * docs/style-guide.md carries a table of contrast ratios and a floor under
  * them -- 4.5:1 for text, 3:1 for something drawn rather than written. This
- * is that table as arithmetic, so a colour taken one step lighter for the
+ * is that table as arithmetic, so a color taken one step lighter for the
  * look of it fails here rather than in somebody's eyes. The numbers are
  * recomputed from the theme, not copied from the documentation: if the two
  * disagree, the theme is right and the page is stale.
  *
  * A fade is checked at both ends, because the text crosses all of it, and
  * translucent ink is blended against its surface first -- `white at 66%` is
- * not a colour until you know what is behind it.
+ * not a color until you know what is behind it.
  */
 
 const channels = (hex: string) =>
@@ -38,7 +38,7 @@ const contrast = (one: string, other: string) => {
   return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
 };
 
-/* `rgba(255, 255, 255, 0.66)` is not a colour until it is laid on something. */
+/* `rgba(255, 255, 255, 0.66)` is not a color until it is laid on something. */
 const over = (translucent: string, surface: string) => {
   const [red = 0, green = 0, blue = 0, alpha = 1] = translucent
     .replace(/rgba?\(|\)/g, "")
@@ -65,7 +65,7 @@ const TEXT = 4.5;
 const DRAWN = 3;
 
 describe("the chrome, which is black", () => {
-  it("is one colour in both of its pieces", () => {
+  it("is one color in both of its pieces", () => {
     expect(brand.chrome).toBe("#000000");
     expect(brand.chromeRail).toBe(brand.chrome);
   });
@@ -162,7 +162,7 @@ describe("the toast a page throws", () => {
   // These two are deliberately the same weight -- 1.02:1 apart -- because
   // both carry white at the same 4.7:1 and 4.8:1. They are told apart by hue
   // and, more to the point, by the icon and the sentence in them: nothing in
-  // this product is said in colour alone. See toast.test.tsx, which asserts
+  // this product is said in color alone. See toast.test.tsx, which asserts
   // the icon, and docs/style-guide.md.
   it("separates its two toasts by hue rather than by weight", () => {
     expect(brand.toastSuccess).not.toBe(brand.toastFailure);
@@ -190,10 +190,10 @@ describe("card paper", () => {
 });
 
 describe("what a notification is about", () => {
-  // Named for the subject rather than the colour, so a tint can be repainted
-  // without renaming it -- and so nothing in this product is said in colour
+  // Named for the subject rather than the color, so a tint can be repainted
+  // without renaming it -- and so nothing in this product is said in color
   // alone: each of these carries an icon too.
-  it("has a tint for each kind, none of them named for its colour", () => {
+  it("has a tint for each kind, none of them named for its color", () => {
     expect(Object.keys(brand.noticeTints).toSorted()).toEqual([
       "alert",
       "commerce",

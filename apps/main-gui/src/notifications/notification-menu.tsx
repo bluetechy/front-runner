@@ -155,14 +155,14 @@ export function NotificationMenu() {
                 fontSize: "0.78rem",
                 backgroundColor: (theme) => theme.palette.brand.card,
                 color: (theme) => theme.palette.brand.cardInk,
-                /* The colour has to be repeated here: the theme paints a text
+                /* The color has to be repeated here: the theme paints a text
                  * button white on hover, which is what it should be on the
                  * field and is invisible on this button's own paper. */
                 "&:hover": {
                   backgroundColor: (theme) => theme.palette.brand.card,
                   color: (theme) => theme.palette.brand.cardInk,
                 },
-                /* Nothing unread is nothing to do, so it greys out rather
+                /* Nothing unread is nothing to do, so it grays out rather
                  * than disappearing: the heading keeps its shape as the last
                  * row is read, and the control stays where somebody left it.
                  * The two whites are the theme's `onAccent` pair -- what
@@ -243,7 +243,7 @@ export function NotificationMenu() {
                 textTransform: "uppercase",
                 color: "primary.main",
                 /* Darker rather than the theme's white, which on this
-                 * footer's grey is the link disappearing under the cursor. */
+                 * footer's gray is the link disappearing under the cursor. */
                 "&:hover": {
                   backgroundColor: "transparent",
                   color: "primary.dark",

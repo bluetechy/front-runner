@@ -6,7 +6,7 @@ Lives in `src/pricing` and renders at `/pricing`. It replaced the
 The shape is borrowed from two pages the design was drawn against:
 **ChatGPT's** — a segmented control over a row of plan cards, each one a price,
 a sentence and a ticked list — and **Gamma's**, which closes on an FAQ and a
-band rather than on the last card. The colours are this app's, with one
+band rather than on the last card. The colors are this app's, with one
 deliberate exception below.
 
 ## The white cards
@@ -25,7 +25,7 @@ so `theme.palette.brand` carries a small set of card-only tokens:
 | `cardRule`     | hairlines and dividers inside a card             |
 
 A card reaching for `text.secondary` or the theme's `outlined` button would be
-grey-violet and pink on white, both close to invisible; that is what those
+gray-violet and pink on white, both close to invisible; that is what those
 tokens exist to prevent. `segmentTrack` is beside them, for the two segmented
 controls, which are themed as `MuiToggleButtonGroup` / `MuiToggleButton`
 because the page has two of them and neither should own the look.
@@ -58,7 +58,7 @@ with their own expiry and reset rules, badge criteria that fire from events,
 transfers with daily and monthly limits, redemptions, approval stages, the
 event log, invitations that the invitee accepts — so each line names something
 this product is built to do rather than something invented for a card. What
-distributes them across the plans is a judgement, not a constraint anything
+distributes them across the plans is a judgment, not a constraint anything
 enforces: nothing in the API or the database knows what a plan is yet.
 
 ## What is real and what is not
@@ -79,9 +79,9 @@ states refund windows, proration, tax handling and a deletion period as if
 somebody had decided them; each one has to be checked against the real terms
 before this page is shown to anyone who could pay. The questions themselves
 are the ones SaaS pricing pages are asked most — trials and cards, what a seat
-is, changing plans, cancelling, refunds, payment and tax, data and support.
+is, changing plans, canceling, refunds, payment and tax, data and support.
 
-## Responsive behaviour
+## Responsive behavior
 
 `md` (900px) is where the cards form a row; below it they stack full width and
 the lift on the featured card is dropped. Three cards take a third of the row

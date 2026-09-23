@@ -24,9 +24,9 @@ import UpdateIcon from "@/shared/icons/UpdateIcon";
  * shipped by an API that is newer than this bundle draws the bell on the
  * quietest tint rather than an empty circle.
  *
- * The tints are named for what a notification is about, not for a colour --
+ * The tints are named for what a notification is about, not for a color --
  * see `design-system/theme.ts`. Two types sharing one is the point: a badge
- * and a level are both the programme rewarding you, and they look it.
+ * and a level are both the program rewarding you, and they look it.
  */
 
 type Tint = keyof Theme["palette"]["brand"]["noticeTints"];

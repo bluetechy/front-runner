@@ -86,7 +86,7 @@ export class CreditCardInput {
   // place a card number exists in this API.
   @Field(() => String)
   Number!: string;
-  // Checked for shape and then **dropped**. A card cannot be authorised
+  // Checked for shape and then **dropped**. A card cannot be authorized
   // without one, so the form has to collect it and it has to arrive here; what
   // it must never do is be stored, and dbo.CreditCards has no column for it.
   // When a payment processor is wired up this is what gets handed to it, at

@@ -3,7 +3,7 @@
 Lives in `src/profile` and renders at `/profile`, which is the Profile item in
 the rail. Built from a supplied mock-up of an edit-profile screen: who this
 person is down the left, and the same profile as a form down the right, in
-this app's colours rather than the mock-up's blue-on-grey.
+this app's colors rather than the mock-up's blue-on-gray.
 
 ## The two columns
 
@@ -23,7 +23,7 @@ their gender. Google+ is not among the social fields; it has been dead since
 
 Both columns are `CardSurface` — the white card the dashboard uses, which
 moved into `src/card-surface` when this page turned out to want the same
-surface. See [the dashboard](dashboard.md#colour) for what that card is.
+surface. See [the dashboard](dashboard.md#color) for what that card is.
 
 ## Where the profile comes from
 
@@ -104,7 +104,7 @@ both report through the same `onNotice`.
 
 It is **teal when the profile was written and pink when it was not**, and the
 tone is never the whole message: each toast carries Material's icon for its
-severity and a sentence that reads the same in grey. The two colours are
+severity and a sentence that reads the same in gray. The two colors are
 `brand.toastSuccess` and `brand.toastFailure`, a step deeper than the teal and
 the magenta they belong to so that white clears 4.5:1 on them — see
 [the style guide](style-guide.md#contrast).
@@ -118,12 +118,12 @@ while the save is in flight, and that it is told, in the failing tone, when
 the save is refused.
 
 The wallet says the same kinds of thing through its own copy of the Snackbar,
-in the bottom centre. It has not moved onto this component yet; when it does,
+in the bottom center. It has not moved onto this component yet; when it does,
 the two pages agree on where a notice appears.
 
 ## Two fields nobody here may edit
 
-**User name** and **Email** are shown, greyed, with a line saying where to
+**User name** and **Email** are shown, grayed, with a line saying where to
 change them. They belong to Keycloak: `dbo.ProvisionUser` copies them out of
 the token on every sign-in, so a value typed here would last until the next
 sign-in and no longer. They are on the form because a profile page that did

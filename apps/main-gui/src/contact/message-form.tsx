@@ -17,7 +17,7 @@ import { sendMessage } from "./send-message";
  *
  * It is a panel raised off the field rather than white paper, so the fields
  * inside it are the theme's own -- the hollow the sign-in dialog's are cut
- * out of -- and it needs no colours of its own. The one thing it overrides is
+ * out of -- and it needs no colors of its own. The one thing it overrides is
  * the corner of the message box: the theme rounds an input to a pill, and a
  * pill cannot hold five lines of prose without the first and last of them
  * running into the curve.

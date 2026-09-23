@@ -127,7 +127,7 @@ export function AddBankDialog({
         placeholder="021000021"
         inputMode="numeric"
         maxLength={11}
-        hint="Nine digits, printed to the left of the account number on a cheque."
+        hint="Nine digits, printed to the left of the account number on a check."
       />
 
       <DialogField

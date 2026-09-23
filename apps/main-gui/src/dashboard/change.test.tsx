@@ -7,9 +7,9 @@ import { Change } from "./change";
 /*
  * How far a figure moved, and which way.
  *
- * The arrow is there so the direction is not carried by the colour alone,
+ * The arrow is there so the direction is not carried by the color alone,
  * and the word beside it is there for somebody who sees neither -- nothing in
- * this product is said in colour alone. Both are what this file is for.
+ * this product is said in color alone. Both are what this file is for.
  */
 
 const renderChange = (element: React.ReactElement) =>
@@ -22,9 +22,9 @@ describe("which way a figure went", () => {
     expect(screen.getByText("5.5%")).toBeInTheDocument();
   });
 
-  // Three ways at once: the colour, the arrow, and the word. A reader who
+  // Three ways at once: the color, the arrow, and the word. A reader who
   // cannot tell green from red still has two of them.
-  it("draws an arrow as well as colouring it", () => {
+  it("draws an arrow as well as coloring it", () => {
     const { container } = renderChange(<Change percent={5.5} direction="up" />);
 
     expect(container.querySelector("svg")).not.toBeNull();
@@ -41,7 +41,7 @@ describe("which way a figure went", () => {
     expect(screen.getByText("down")).toBeInTheDocument();
   });
 
-  it("colours a fall differently from a rise", () => {
+  it("colors a fall differently from a rise", () => {
     const { container } = renderChange(
       <Change percent={1.5} direction="down" />,
     );

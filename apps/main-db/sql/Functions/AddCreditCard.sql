@@ -82,7 +82,7 @@ CREATE FUNCTION "dbo"."AddCreditCard" (
         -- The issuer identification number, which is the first one to six
         -- digits. Approximate on purpose: these ranges move, and the answer
         -- decides which logo is drawn beside the card rather than whether the
-        -- payment works. An unrecognised prefix is still a card.
+        -- payment works. An unrecognized prefix is still a card.
         _Brand := CASE
             WHEN _Digits ~ '^4' THEN 'Visa'
             WHEN _Digits ~ '^(5[1-5]|2(22[1-9]|2[3-9][0-9]|[3-6][0-9][0-9]|7[01][0-9]|720))' THEN 'Mastercard'

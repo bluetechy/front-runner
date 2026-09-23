@@ -25,10 +25,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- KNOWN ISSUE: GetUsers authorises on the literal string 'admin' rather than
+-- KNOWN ISSUE: GetUsers authorizes on the literal string 'admin' rather than
 -- on Users.IsAdmin, so a genuine admin under any other login gets nothing --
 -- and anyone who registers the login 'admin' gets everything. This test locks
--- in the behaviour as it stands; when GetUsers is fixed to check IsAdmin, it
+-- in the behavior as it stands; when GetUsers is fixed to check IsAdmin, it
 -- should be replaced with its opposite.
 CREATE FUNCTION "test"."TestGetUsers_IgnoresIsAdmin_KnownIssue" () RETURNS void AS $$
 DECLARE
@@ -36,6 +36,6 @@ DECLARE
 BEGIN
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "IsAdmin", "CreatedBy") VALUES ('Second Admin', 'admin2', true, 'test');
     SELECT count(*) INTO _Count FROM "dbo"."GetUsers"('admin2');
-    PERFORM "test"."AssertEquals"(_Count, 0::bigint, 'GetUsers now honours IsAdmin -- replace this test with the positive case');
+    PERFORM "test"."AssertEquals"(_Count, 0::bigint, 'GetUsers now honors IsAdmin -- replace this test with the positive case');
 END;
 $$ LANGUAGE plpgsql;

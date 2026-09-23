@@ -81,7 +81,7 @@ describe("what the page says back", () => {
       target: { value: "marcus@member.example" },
     });
     fireEvent.change(screen.getByLabelText("Message"), {
-      target: { value: "Does this fit a reading programme?" },
+      target: { value: "Does this fit a reading program?" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 

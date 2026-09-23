@@ -73,7 +73,7 @@ const messages: Record<string, string> = {
     "This application is not registered with the identity provider.",
 };
 
-function capitalise(text: string): string {
+function capitalize(text: string): string {
   const trimmed = text.trim();
   if (!trimmed) return trimmed;
   const sentence = trimmed[0]!.toUpperCase() + trimmed.slice(1);
@@ -113,7 +113,7 @@ async function exchange(body: URLSearchParams): Promise<TokenSet> {
       described && described !== "Invalid user credentials";
     throw new SignInError(
       useDescription
-        ? capitalise(described)
+        ? capitalize(described)
         : (messages[code] ?? "Sign-in failed. Please try again."),
       code,
     );

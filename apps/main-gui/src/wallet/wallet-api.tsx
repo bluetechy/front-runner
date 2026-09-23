@@ -117,14 +117,14 @@ export function useWallet() {
 
   useEffect(() => {
     if (status !== "signed-in") return;
-    let cancelled = false;
+    let canceled = false;
 
     call(READ, {})
       .then((loaded) => {
-        if (!cancelled) setMethods(loaded);
+        if (!canceled) setMethods(loaded);
       })
       .catch((failure: unknown) => {
-        if (!cancelled)
+        if (!canceled)
           setError(
             failure instanceof Error
               ? failure.message
@@ -132,11 +132,11 @@ export function useWallet() {
           );
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!canceled) setLoading(false);
       });
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [status, call]);
 

@@ -6,7 +6,7 @@ import type { Direction } from "./metrics";
 
 /*
  * How far a figure moved, and which way. The arrow is there so the direction
- * is not carried by the colour alone, which is the same reason the label
+ * is not carried by the color alone, which is the same reason the label
  * spells it out for a screen reader.
  *
  * Up is green and down is red throughout, including on refunds and shipping,

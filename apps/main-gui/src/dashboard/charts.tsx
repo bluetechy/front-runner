@@ -7,14 +7,14 @@ import { money } from "./metrics";
 /*
  * The dashboard's three charts, drawn as SVG by hand. No chart library: these
  * are seven points, seven bars and three slices, and a dependency that draws
- * them would still have to be told this app's colours one by one.
+ * them would still have to be told this app's colors one by one.
  *
  * The rules they follow, which the next chart should follow too:
  *
- * - Series colours come from `brand.chartSeries` in fixed order and are never
- *   cycled. They are validated to stay apart for a colour-blind reader.
- * - Identity is never colour alone: two series carry a legend, and the slices
- *   are labelled in a list beside the ring.
+ * - Series colors come from `brand.chartSeries` in fixed order and are never
+ *   cycled. They are validated to stay apart for a color-blind reader.
+ * - Identity is never color alone: two series carry a legend, and the slices
+ *   are labeled in a list beside the ring.
  * - Marks are thin, gridlines recessive, and no number is printed on every
  *   point -- the headline figure is above the chart.
  * - Every mark carries a `<title>`, so the value is one hover away and is
@@ -27,7 +27,7 @@ const compact = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
-/* The gridlines the axis is labelled with, and the value the plot is drawn
+/* The gridlines the axis is labeled with, and the value the plot is drawn
  * against at its full height.
  *
  * The step is picked from 1, 2, 2.5 and 5 times a power of ten, so that every
@@ -76,7 +76,7 @@ export function SalesLines({
   labels: readonly string[];
 }) {
   const theme = useTheme();
-  const colours = theme.palette.brand.chartSeries;
+  const colors = theme.palette.brand.chartSeries;
   const { ceiling, ticks } = scaleFor(series.flatMap((one) => [...one.values]));
   const plotWidth = LINE.width - LINE.left - LINE.right;
   const plotHeight = LINE.height - LINE.top - LINE.bottom;
@@ -106,7 +106,7 @@ export function SalesLines({
                 width: 10,
                 height: 10,
                 borderRadius: "50%",
-                backgroundColor: colours[index % colours.length],
+                backgroundColor: colors[index % colors.length],
               }}
             />
             <Typography
@@ -165,7 +165,7 @@ export function SalesLines({
               .map((value, at) => `${x(at)},${y(value)}`)
               .join(" ")}
             fill="none"
-            stroke={colours[index % colours.length]}
+            stroke={colors[index % colors.length]}
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -200,7 +200,7 @@ export function SalesLines({
                 cx={x(at)}
                 cy={y(one.values[at] ?? 0)}
                 r={4.5}
-                fill={colours[index % colours.length]}
+                fill={colors[index % colors.length]}
                 stroke={theme.palette.brand.card}
                 strokeWidth={2}
               />
@@ -293,7 +293,7 @@ export function EarningsDonut({
   slices: readonly { label: string; value: number }[];
 }) {
   const theme = useTheme();
-  const colours = theme.palette.brand.chartSeries;
+  const colors = theme.palette.brand.chartSeries;
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
   const circumference = 2 * Math.PI * DONUT.radius;
   /* Card paper shows through between segments, the same 2px the bars leave. */
@@ -335,7 +335,7 @@ export function EarningsDonut({
                 cy={DONUT.size / 2}
                 r={DONUT.radius}
                 fill="none"
-                stroke={colours[index % colours.length]}
+                stroke={colors[index % colors.length]}
                 strokeWidth={DONUT.thickness}
                 strokeDasharray={`${Math.max(length - gap, 0)} ${
                   circumference - Math.max(length - gap, 0)
@@ -363,7 +363,7 @@ export function EarningsDonut({
                 height: 10,
                 flexShrink: 0,
                 borderRadius: "50%",
-                backgroundColor: colours[index % colours.length],
+                backgroundColor: colors[index % colors.length],
               }}
             />
             <Typography sx={{ fontSize: "0.82rem" }}>

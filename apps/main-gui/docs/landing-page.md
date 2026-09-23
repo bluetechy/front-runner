@@ -6,7 +6,7 @@ body copy.
 
 It lives in `src/landing` and renders at `/`. `src/site-chrome` supplies the
 header and the field it sits on, so both are available to every later page.
-Every colour, size and font on the page comes from the MUI theme in
+Every color, size and font on the page comes from the MUI theme in
 `src/design-system`; the page itself is Container, Grid, Stack, Typography and
 Button with layout in `sx`.
 
@@ -19,7 +19,7 @@ Button with layout in `sx`.
 | `landing/hero-placeholder.png` | Placeholder — to be replaced with the real illustration              |
 | "More details" / "View demo"   | Buttons are styled; the hrefs are `#` anchors                        |
 | "Login"                        | Real — opens the sign-in dialog; see [signing in](authentication.md) |
-| Search button                  | Styled and labelled; does nothing                                    |
+| Search button                  | Styled and labeled; does nothing                                     |
 | About / Features / Contact     | Real routes, rendering `coming-soon`                                 |
 | Pricing                        | Real — see [the pricing page](pricing-page.md)                       |
 | The sign-in dialog             | Real — opens on "Login", and on nothing else                         |
@@ -60,9 +60,9 @@ it, so the fade is still ~70% opaque where it meets the edge and the seam stays
 visible. When the real artwork lands, delete the mask along with the note above
 it.
 
-## Responsive behaviour
+## Responsive behavior
 
 Handled with MUI's breakpoints rather than media queries of its own. Below `md`
-(900px) the hero's two `Grid` columns stack and centre, and the nav moves to its
+(900px) the hero's two `Grid` columns stack and center, and the nav moves to its
 own row under the logo; below `sm` (600px) the nav drops to 0.85rem so five
 links still fit. Verified at 390px and 1440px.

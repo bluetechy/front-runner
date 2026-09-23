@@ -65,7 +65,7 @@ beforeEach(() => {
   session.mockReturnValue({
     identity: { name: "Thomas John", loginName: "member", email: "t@j.test" },
   });
-  profile.mockReturnValue({ profile: { Designation: "Programme manager" } });
+  profile.mockReturnValue({ profile: { Designation: "Program manager" } });
 });
 
 describe("the top of the rail", () => {
@@ -81,7 +81,7 @@ describe("the top of the rail", () => {
     const { rail } = renderRail();
 
     expect(within(rail).getByText("Thomas John")).toBeInTheDocument();
-    expect(within(rail).getByText("Programme manager")).toBeInTheDocument();
+    expect(within(rail).getByText("Program manager")).toBeInTheDocument();
     expect(within(rail).getByText("TJ")).toBeInTheDocument();
   });
 
@@ -91,12 +91,12 @@ describe("the top of the rail", () => {
     const { rail } = renderRail();
 
     expect(within(rail).getByText("Thomas John")).toBeInTheDocument();
-    expect(within(rail).queryByText("Programme manager")).toBeNull();
+    expect(within(rail).queryByText("Program manager")).toBeNull();
   });
 });
 
 describe("the navigation", () => {
-  it("groups the pages the way the product is organised", () => {
+  it("groups the pages the way the product is organized", () => {
     const { rail } = renderRail();
 
     for (const group of ["Dashboard", "Account", "Support"])

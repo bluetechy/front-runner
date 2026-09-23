@@ -14,7 +14,7 @@ const valid: ProfileInput = {
   FirstName: "Marcus",
   LastName: "Member",
   NickName: "Marc",
-  Designation: "Programme manager",
+  Designation: "Program manager",
   Biography: "Runs the scoreboard.",
   Gender: "Male",
   BirthDate: "1990-04-17",

@@ -52,7 +52,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION "test"."TestRequestPointTransfer_HonoursTheTransferLimit" () RETURNS void AS $$
+CREATE FUNCTION "test"."TestRequestPointTransfer_HonorsTheTransferLimit" () RETURNS void AS $$
 BEGIN
     UPDATE "dbo"."UserTallies" SET "DailyTransferLimit" = 1.0000, "UpdatedBy" = 'test'
     WHERE "UserTallies"."UserUUID" = "test"."Fixture"('User.Member')

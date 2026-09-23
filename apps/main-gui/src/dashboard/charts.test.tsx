@@ -26,7 +26,7 @@ describe("the weekly lines", () => {
     { label: "Last week", values: [2410, 2680, 3050, 3890, 3260, 4020, 2880] },
   ];
 
-  it("names each series once, beside its colour", () => {
+  it("names each series once, beside its color", () => {
     renderChart(<SalesLines series={series} labels={labels} />);
 
     expect(screen.getByText("This week")).toBeInTheDocument();
@@ -156,7 +156,7 @@ describe("the earnings doughnut", () => {
       expect(titles.some((title) => title.includes(slice.label))).toBe(true);
   });
 
-  // Nothing at all rather than a full circle of the first colour.
+  // Nothing at all rather than a full circle of the first color.
   it("survives a doughnut with nothing in it", () => {
     expect(() => renderChart(<EarningsDonut slices={[]} />)).not.toThrow();
   });

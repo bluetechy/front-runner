@@ -164,7 +164,7 @@ Separately, `joinTeam` is the last operation that adds someone to something
 without their consent: an owner or manager places a member on a team, where the
 organization side now requires an invitation and an acceptance.
 
-None of this was introduced by the move to Keycloak. Each behaviour is locked in
+None of this was introduced by the move to Keycloak. Each behavior is locked in
 by a `_KnownIssue` test, with the detail in `apps/main-db/SCHEMA-NOTES.md` under
 “Still broken — not touched, your call.” The fix is to push the checks down into
 the two functions and drop the TypeScript equivalents. `GetUsers` has a related

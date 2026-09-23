@@ -18,7 +18,7 @@ import { audiences, percentOff, type AudienceId, type Billing } from "./plans";
  * and the questions people ask before they sign up.
  *
  * The shape is ChatGPT's -- a segmented control over a row of cards, each one
- * a price and a list -- with the closing FAQ from Gamma's. The colours are
+ * a price and a list -- with the closing FAQ from Gamma's. The colors are
  * this app's, except for the cards themselves, which are white paper on the
  * violet field. See docs/pricing-page.md.
  *
@@ -59,7 +59,7 @@ export function Pricing() {
           variant="body1"
           sx={{ maxWidth: "46ch", mt: 2, color: "text.secondary" }}
         >
-          Start free, and pay only once the programme is worth paying for. Every
+          Start free, and pay only once the program is worth paying for. Every
           plan carries points, badges and levels; the plans above it add the
           machinery around them.
         </Typography>

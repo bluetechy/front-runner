@@ -13,7 +13,7 @@ import type { PaymentMethod } from "./wallet-api";
  * save is in flight, and what it says when one finishes or fails.
  *
  * This page still has its own `Snackbar` rather than the shared `<Toast>`,
- * and it sits bottom-centre rather than bottom-right. That is the one thing
+ * and it sits bottom-center rather than bottom-right. That is the one thing
  * left to do about the duplication -- see docs/codebase-structure.md -- so
  * the assertions below are about what it says, not where it sits.
  */

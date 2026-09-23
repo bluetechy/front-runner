@@ -107,19 +107,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const saved = stored();
     if (!saved) return;
 
-    let cancelled = false;
+    let canceled = false;
     void (async () => {
       try {
         const next = await refreshTokens(saved.token);
-        if (!cancelled) apply(next, saved.remember);
+        if (!canceled) apply(next, saved.remember);
       } catch {
         /* Expired, revoked, or Keycloak is down. Either way: signed out. */
-        if (!cancelled) clear();
+        if (!canceled) clear();
       }
     })();
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [apply, clear]);
 

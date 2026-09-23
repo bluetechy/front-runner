@@ -2,7 +2,7 @@ CREATE FUNCTION "test"."TestIsOwnerOfOrganization_AcceptsTheOwner" () RETURNS vo
 BEGIN
     PERFORM "test"."AssertTrue"(
         "dbo"."IsOwnerOfOrganization"('owner', "test"."Fixture"('Organization.Acme')),
-        'the owner of Acme was not recognised'
+        'the owner of Acme was not recognized'
     );
 END;
 $$ LANGUAGE plpgsql;

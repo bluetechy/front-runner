@@ -50,7 +50,7 @@ export const audiences: readonly [Audience, Audience] = [
     id: "individual",
     label: "Individual",
     summary:
-      "For one person running a programme — a club, a class, a team you look after.",
+      "For one person running a program — a club, a class, a team you look after.",
     plans: [
       {
         id: "free",
@@ -71,7 +71,7 @@ export const audiences: readonly [Audience, Audience] = [
       {
         id: "plus",
         name: "Plus",
-        tagline: "For a programme the people in it have started to care about.",
+        tagline: "For a program the people in it have started to care about.",
         monthlyPrice: 19,
         unit: "account",
         inherits: "Free",
@@ -113,13 +113,12 @@ export const audiences: readonly [Audience, Audience] = [
   {
     id: "business",
     label: "Business",
-    summary:
-      "For an organization where more than one person runs the programme.",
+    summary: "For an organization where more than one person runs the program.",
     plans: [
       {
         id: "team",
         name: "Team",
-        tagline: "The same programme, with several people behind it.",
+        tagline: "The same program, with several people behind it.",
         monthlyPrice: 29,
         unit: "member",
         inherits: "Pro",
@@ -138,7 +137,7 @@ export const audiences: readonly [Audience, Audience] = [
       {
         id: "enterprise",
         name: "Enterprise",
-        tagline: "For a programme that has to pass a security review.",
+        tagline: "For a program that has to pass a security review.",
         monthlyPrice: null,
         unit: "member",
         inherits: "Team",

@@ -18,7 +18,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- GetUserUUID is a lookup, not an authorisation check: the callers that care
+-- GetUserUUID is a lookup, not an authorization check: the callers that care
 -- about IsEnabled test it themselves.
 CREATE FUNCTION "test"."TestGetUserUUID_ResolvesADisabledUser" () RETURNS void AS $$
 BEGIN

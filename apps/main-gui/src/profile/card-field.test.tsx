@@ -9,7 +9,7 @@ import { CardField, FieldRow } from "./card-field";
  *
  * The theme's own field is a pill hollowed out of the dark sign-in panel; on
  * white it would be a white box on a white card. What this component adds is
- * therefore mostly appearance -- but three of its behaviours are not: a field
+ * therefore mostly appearance -- but three of its behaviors are not: a field
  * that is loading stands in for itself rather than showing an empty box, an
  * error replaces the hint rather than sitting beside it, and a read-only
  * field is shown without being editable.

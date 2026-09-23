@@ -12,11 +12,11 @@ BEGIN
     PERFORM "test"."AssertEquals"(_Count, 0::bigint, 'the fixtures already carry a profile for this account');
 
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', '', 'Programme manager', 'Runs the scoreboard.',
+        'member', 'Marcus', 'Member', '', 'Program manager', 'Runs the scoreboard.',
         'Female', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
 
-    PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Programme manager', 'the save did not return what it wrote');
+    PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Program manager', 'the save did not return what it wrote');
 
     SELECT count(*) INTO _Count FROM "dbo"."UserProfiles" WHERE "UserProfiles"."UserUUID" = "test"."Fixture"('User.Member');
     PERFORM "test"."AssertEquals"(_Count, 1::bigint, 'the first save did not create exactly one row');
@@ -31,17 +31,17 @@ DECLARE
     _Saved record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', 'Marc', 'Programme manager', 'First.',
+        'member', 'Marcus', 'Member', 'Marc', 'Program manager', 'First.',
         'Female', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', '', 'Head of programmes', 'Second.',
+        'member', 'Marcus', 'Member', '', 'Head of programs', 'Second.',
         'Male', '', '', '', '', '', '', '', '', true, false
     );
 
     SELECT count(*) INTO _Count FROM "dbo"."UserProfiles" WHERE "UserProfiles"."UserUUID" = "test"."Fixture"('User.Member');
     PERFORM "test"."AssertEquals"(_Count, 1::bigint, 'the second save created a second profile');
-    PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Head of programmes', 'the second save did not replace the designation');
+    PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Head of programs', 'the second save did not replace the designation');
     PERFORM "test"."AssertEquals"(_Saved."Biography"::text, 'Second.', 'the second save did not replace the biography');
     PERFORM "test"."AssertEquals"(_Saved."NickName"::text, '', 'a field cleared by the second save kept its old value');
     PERFORM "test"."AssertEquals"(_Saved."Gender"::text, 'Male', 'the second save did not replace the gender');
@@ -73,12 +73,12 @@ DECLARE
     _Saved record;
 BEGIN
     SELECT * INTO _Saved FROM "dbo"."SetUserProfile"(
-        'member', '  Marcus  ', '  Member ', '', '  Programme manager  ', '  Runs it.  ',
+        'member', '  Marcus  ', '  Member ', '', '  Program manager  ', '  Runs it.  ',
         '  Male  ', '  1990-04-17  ', '', '', '', '', '', '', '', true, false
     );
 
     PERFORM "test"."AssertEquals"(_Saved."FirstName"::text, 'Marcus', 'the first name was stored with its whitespace');
-    PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Programme manager', 'the designation was stored with its whitespace');
+    PERFORM "test"."AssertEquals"(_Saved."Designation"::text, 'Program manager', 'the designation was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."Biography"::text, 'Runs it.', 'the biography was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."Gender"::text, 'Male', 'the gender was stored with its whitespace');
     PERFORM "test"."AssertEquals"(_Saved."BirthDate"::text, '1990-04-17', 'the birth date was not read through its whitespace');
@@ -173,7 +173,7 @@ DECLARE
     _User record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Somebody', 'Else', 'Nick', 'Programme manager', '',
+        'member', 'Somebody', 'Else', 'Nick', 'Program manager', '',
         'Male', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
 

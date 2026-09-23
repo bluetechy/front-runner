@@ -27,7 +27,7 @@ DECLARE
     _Profile record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', 'Marc', 'Programme manager',
+        'member', 'Marcus', 'Member', 'Marc', 'Program manager',
         'Runs the scoreboard.', 'Male', '1990-04-17',
         '+1 555 0134', 'San Francisco, CA',
         'facebook.com/marcus', 'github.com/marcus',
@@ -39,7 +39,7 @@ BEGIN
 
     PERFORM "test"."AssertEquals"(_Profile."FirstName"::text, 'Marcus', 'the saved first name did not come back');
     PERFORM "test"."AssertEquals"(_Profile."NickName"::text, 'Marc', 'the saved nickname did not come back');
-    PERFORM "test"."AssertEquals"(_Profile."Designation"::text, 'Programme manager', 'the saved designation did not come back');
+    PERFORM "test"."AssertEquals"(_Profile."Designation"::text, 'Program manager', 'the saved designation did not come back');
     PERFORM "test"."AssertEquals"(_Profile."Gender"::text, 'Male', 'the saved gender did not come back');
     PERFORM "test"."AssertEquals"(_Profile."Github"::text, 'github.com/marcus', 'the saved GitHub handle did not come back');
     PERFORM "test"."AssertEquals"(_Profile."TikTok"::text, 'tiktok.com/@marcus', 'the saved TikTok handle did not come back');
@@ -73,7 +73,7 @@ DECLARE
     _Other record;
 BEGIN
     PERFORM "dbo"."SetUserProfile"(
-        'member', 'Marcus', 'Member', '', 'Programme manager', '',
+        'member', 'Marcus', 'Member', '', 'Program manager', '',
         'Male', '1990-04-17', '', '', '', '', '', '', '', true, false
     );
 

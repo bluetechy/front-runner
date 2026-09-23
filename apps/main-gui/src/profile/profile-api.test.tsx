@@ -30,7 +30,7 @@ const stored = {
   FirstName: "Marcus",
   LastName: "Member",
   NickName: "",
-  Designation: "Programme manager",
+  Designation: "Program manager",
   Biography: "",
   Gender: "Not specified",
   BirthDate: "1990-04-17",
@@ -111,7 +111,7 @@ describe("reading the profile", () => {
     renderProvider();
 
     expect(screen.getByText("waiting")).toBeInTheDocument();
-    expect(await screen.findByText("Programme manager")).toBeInTheDocument();
+    expect(await screen.findByText("Program manager")).toBeInTheDocument();
   });
 
   // The `_app` route sends a signed-out visitor back to the landing page, so
@@ -148,7 +148,7 @@ describe("saving the profile", () => {
   it("sends what the schema parsed rather than what was typed", async () => {
     answering(stored);
     renderProvider();
-    await screen.findByText("Programme manager");
+    await screen.findByText("Program manager");
 
     answering({ ...stored, FirstName: "Marc" });
     await act(() =>
@@ -166,22 +166,22 @@ describe("saving the profile", () => {
   it("keeps what came back, so everything reading it sees the new one", async () => {
     answering(stored);
     renderProvider();
-    await screen.findByText("Programme manager");
+    await screen.findByText("Program manager");
 
-    answering({ ...stored, Designation: "Head of programme" });
+    answering({ ...stored, Designation: "Head of program" });
     await act(() =>
       api()
         .save(edited)
         .then(() => undefined),
     );
 
-    expect(screen.getByText("Head of programme")).toBeInTheDocument();
+    expect(screen.getByText("Head of program")).toBeInTheDocument();
   });
 
   it("hands the failure back to the caller rather than swallowing it", async () => {
     answering(stored);
     renderProvider();
-    await screen.findByText("Programme manager");
+    await screen.findByText("Program manager");
 
     answering(null, [{ message: "BirthDate: Use the format YYYY-MM-DD" }]);
 

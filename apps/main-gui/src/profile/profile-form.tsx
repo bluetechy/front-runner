@@ -363,7 +363,7 @@ export function ProfileForm({
                 <Preference
                   checked={form.WantsDigestEmails}
                   onChange={(next) => set("WantsDigestEmails", next)}
-                  label={t("A weekly digest of the programme's scoreboard")}
+                  label={t("A weekly digest of the program's scoreboard")}
                 />
               </Stack>
             )}

@@ -2,7 +2,7 @@
  * Run the tests for the slices that changed, and nothing else.
  *
  * The source is organized vertically -- a folder per slice of the product,
- * holding everything that slice needs and importing its neighbours only
+ * holding everything that slice needs and importing its neighbors only
  * through their public index. The payoff of that arrangement is not only that
  * code which changes together lives together: it is that **what a change can
  * break is bounded by the folder it was made in**, so the tests worth running
@@ -48,7 +48,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
  * `scripts/check-boundaries.mjs` already keeps, and it is the same idea: the
  * verticals a vertical is allowed to depend on.
  *
- * It is a judgement, and this is where it is written down. Adding a slice
+ * It is a judgment, and this is where it is written down. Adding a slice
  * here makes the fast run slower and more honest; leaving one out that
  * belongs here is how a green run hides a broken one.
  */
@@ -152,7 +152,7 @@ function appNames() {
  * main-api are the compiled ones under `.test-dist`, so the `src/` in front
  * of a slice would match nothing there.
  *
- * A runner this does not recognise gets no filter and runs all of its tests.
+ * A runner this does not recognize gets no filter and runs all of its tests.
  * A filter in the wrong dialect does not fail loudly -- it selects nothing,
  * and a suite that ran no tests looks exactly like a suite that passed.
  */

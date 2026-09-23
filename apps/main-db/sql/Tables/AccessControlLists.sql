@@ -1,9 +1,9 @@
 --
 -- Per-task permission grants. Kept as the draft had it -- a user, a task and a
--- permission type -- rather than generalised to every table, because nothing
+-- permission type -- rather than generalized to every table, because nothing
 -- reads it and a wider design would be guesswork.
 --
--- Note what this is not: the live read functions authorise on organization and
+-- Note what this is not: the live read functions authorize on organization and
 -- team membership, and none of them consults this table. See SCHEMA-NOTES.md
 -- on the schema now carrying several unconnected authorization mechanisms.
 --

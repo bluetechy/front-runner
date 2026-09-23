@@ -56,7 +56,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- KNOWN ISSUE: JoinTeam has no authorisation check at all, where its sibling
+-- KNOWN ISSUE: JoinTeam has no authorization check at all, where its sibling
 -- JoinOrganization requires IsOwnerOfOrganization. Anyone can add anyone to
 -- any team and hand them the manager flag while doing it.
 CREATE FUNCTION "test"."TestJoinTeam_AllowsAnyCaller_KnownIssue" () RETURNS void AS $$
@@ -68,7 +68,7 @@ BEGIN
     SELECT "UserTeams"."IsManager" INTO _IsManager FROM "dbo"."UserTeams"
     WHERE "UserTeams"."TeamUUID" = "test"."Fixture"('Team.Core')
         AND "UserTeams"."UserUUID" = "test"."Fixture"('User.Outsider');
-    PERFORM "test"."AssertTrue"(_IsManager, 'JoinTeam now refuses unauthorised callers -- replace this test with the rejection case');
+    PERFORM "test"."AssertTrue"(_IsManager, 'JoinTeam now refuses unauthorized callers -- replace this test with the rejection case');
 END;
 $$ LANGUAGE plpgsql;
 

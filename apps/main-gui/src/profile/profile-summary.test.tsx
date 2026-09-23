@@ -32,7 +32,7 @@ const stored = (overrides: Partial<StoredProfile> = {}): StoredProfile =>
     FirstName: "Marcus",
     LastName: "Member",
     NickName: "",
-    Designation: "Programme manager",
+    Designation: "Program manager",
     Biography: "Runs the scoreboard.",
     Gender: "Not specified",
     BirthDate: "1990-04-17",
@@ -78,7 +78,7 @@ describe("who this is", () => {
   it("shows what they are here as", () => {
     renderSummary();
 
-    expect(screen.getByText("Programme manager")).toBeInTheDocument();
+    expect(screen.getByText("Program manager")).toBeInTheDocument();
   });
 
   // Rather than an empty line where a title would be.
@@ -107,7 +107,7 @@ describe("the bio", () => {
   // A card that grows to hold a thousand words pushes everything under it off
   // the screen, so a long one is folded until it is asked for.
   it("folds a long one away, and opens it when asked", () => {
-    const long = "A sentence about the programme. ".repeat(20);
+    const long = "A sentence about the program. ".repeat(20);
     renderSummary({ profile: stored({ Biography: long }) });
 
     expect(screen.queryByText(long)).toBeNull();

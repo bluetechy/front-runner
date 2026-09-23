@@ -13,7 +13,7 @@ import { theme } from "../design-system";
  * and that nothing was signed in locally.
  *
  * Keycloak, the session and the router are all stubbed. What is under test is
- * the dialog's own behaviour: what it does while a sign-in is in flight, what
+ * the dialog's own behavior: what it does while a sign-in is in flight, what
  * it says when one fails, and where it goes when one works.
  */
 

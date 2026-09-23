@@ -13,7 +13,7 @@ BEGIN
         JOIN "dbo"."Tasks" ON ("Tasks"."TaskUUID" = "TaskLabels"."TaskUUID")
     WHERE "TaskLabels"."LabelUUID" = "test"."Fixture"('Label.Urgent');
 
-    PERFORM "test"."AssertEquals"(_Names, 'Build, Ship', 'two tasks are labelled Urgent');
+    PERFORM "test"."AssertEquals"(_Names, 'Build, Ship', 'two tasks are labeled Urgent');
 END;
 $$ LANGUAGE plpgsql;
 

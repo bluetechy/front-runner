@@ -37,8 +37,8 @@ describe("a kind of notification the app knows", () => {
   });
 
   // Two types sharing a tint is the point rather than an oversight: a badge
-  // and a level are both the programme rewarding you, and they look it.
-  it("paints things that mean the same thing the same colour", () => {
+  // and a level are both the program rewarding you, and they look it.
+  it("paints things that mean the same thing the same color", () => {
     expect(kindOf("BadgeEarned").tint).toBe(kindOf("LevelReached").tint);
     expect(kindOf("Mention").tint).toBe(kindOf("ReviewReceived").tint);
   });

@@ -3,11 +3,11 @@
 Everything visual in this app comes from one file,
 [`src/design-system/theme.ts`](../src/design-system/theme.ts). This page is
 that file read from the outside: what the surfaces are, what may be written on
-each of them, where the accent is allowed, and what a new colour has to clear
+each of them, where the accent is allowed, and what a new color has to clear
 before it goes in. It is not a second copy of the palette — when a number here
 disagrees with `theme.ts`, `theme.ts` is right and this page is stale.
 
-The one rule under all of it: **no component defines a colour, font or size of
+The one rule under all of it: **no component defines a color, font or size of
 its own.** A literal hex outside `theme.ts` is a bug. See
 [codebase structure](codebase-structure.md#the-rules).
 
@@ -24,10 +24,10 @@ decides what may be written on it.
 | **Panel**  | A violet panel raised off the field                        | The sign-in dialog, and whatever follows it                          | `brand.panel`                      |
 
 The field is violet and the chrome is black, and everything on both of them is
-one dark room with white paper laid about in it. The chrome holding no colour
+one dark room with white paper laid about in it. The chrome holding no color
 at all is the end of a direction this app has been walking: the rail was the
 accent, then the field's own violet, and it is now the only surface in the
-product with no hue in it. Nothing is drawn in a fifth colour to mean "this is
+product with no hue in it. Nothing is drawn in a fifth color to mean "this is
 different" — it goes on card paper, or it goes on the field.
 
 ### The chrome
@@ -36,17 +36,17 @@ The rail down the left edge and the bar across the top used to be two surfaces
 — the rail painted in the accent, the bar in the card's paper — and then one
 surface in the field's violet. They are **black** now:
 
-- both pieces are flat `#000000`, so they meet at the corner in one colour and
-  stay one colour edge to edge;
+- both pieces are flat `#000000`, so they meet at the corner in one color and
+  stay one color edge to edge;
 - the rail used to fade to `violet[950]` as it fell, which was how it pulled
   below the field by the foot of the window. There is nothing below black to
-  fall to, so the fade is gone and `brand.chromeRail` is a colour rather than
+  fall to, so the fade is gone and `brand.chromeRail` is a color rather than
   a gradient;
 - both carry a `brand.chromeEdge` hairline on the side the field is on: black
   and the field's violet are 1.2:1 apart, so the two run together without it.
   The hairline is the only thing separating them.
 
-The point of taking the colour out of the chrome is that **the only lit thing
+The point of taking the color out of the chrome is that **the only lit thing
 in it is the page you are on.**
 
 ## Ink
@@ -59,8 +59,8 @@ in it is the page you are on.**
 | Panel             | white                     | `brand.navText` `#d7c6ec`          |
 | The accent's fade | white                     | `brand.onAccentLabel` white at 62% |
 
-The quieter ink is never a grey of its own on the dark surfaces — it is the
-same white held back, which keeps it the surface's own colour as the surface
+The quieter ink is never a gray of its own on the dark surfaces — it is the
+same white held back, which keeps it the surface's own color as the surface
 changes underneath it.
 
 ## The accent, and what wears it
@@ -87,7 +87,7 @@ the only place the logo is drawn — the marketing header and the rail both
 render `<Logo>`, because a logo that changes either side of a login is two
 logos. The word is text in the display face rather than artwork, so it is
 selectable, read aloud, and still the logo at any size; the mark beside it is
-a vector from `shared/icons` and takes its size and colour as props.
+a vector from `shared/icons` and takes its size and color as props.
 
 ## Teal, and faces
 
@@ -139,7 +139,7 @@ where it is defined:
   fade starts one step deeper. The button keeps `accentStrong`: a contained
   button's label is heavier and larger, and the pair still reads as one family.
   Against black the pill reads brighter than it did on the violet — 4.4:1 and
-  3.9:1 at its two ends, against 3.6:1 before — which is what taking the colour
+  3.9:1 at its two ends, against 3.6:1 before — which is what taking the color
   out of the chrome buys.
 - **`tealLit` / `tealDeep`.** White on `teal` itself is 3.1:1. The initials
   inside an avatar are white, so the fade is drawn between the same hue taken
@@ -164,10 +164,10 @@ console.log(((x+0.05)/(y+0.05)).toFixed(2)+":1")' "#ffffff" "#d1258f"
 ```
 
 Translucent ink is blended against its surface first — `rgba(255,255,255,0.66)`
-is not a colour until you know what is behind it, and on the two ends of the
+is not a color until you know what is behind it, and on the two ends of the
 rail it is two different ones.
 
-## Colour-blind separation
+## Color-blind separation
 
 The charts' three series — `accentStrong`, `accentDeep`, `teal` — are checked
 for separation under protanopia as well as for contrast; the worst adjacent
@@ -176,8 +176,8 @@ never cycled. **A fourth series is not a fourth hue, it is a different chart.**
 
 The same thinking is why the notification tints are named for what a
 notification is _about_ (`task`, `reward`, `commerce`, `message`, `people`,
-`alert`, `general`) rather than for their colours, and why each of them carries
-an icon as well as a colour. Nothing in this product is said in colour alone.
+`alert`, `general`) rather than for their colors, and why each of them carries
+an icon as well as a color. Nothing in this product is said in color alone.
 
 ## Type
 
@@ -206,7 +206,7 @@ headings use `clamp()` so they answer the viewport rather than a breakpoint.
   and at the chrome's outer edges.
 
 Motion is 150ms ease and nothing longer: a hover lifts a button 1px, the pill
-under a nav item changes colour, a dialog fades. Nothing slides in from
+under a nav item changes color, a dialog fades. Nothing slides in from
 off-screen.
 
 ## Spacing
@@ -219,7 +219,7 @@ the rail is already holding one gutter's worth of the window.
 ## Adding to the palette
 
 1. Put the constant in `theme.ts`, near the others it belongs with, with a
-   comment saying what it is _for_ — not what colour it is. The file is read
+   comment saying what it is _for_ — not what color it is. The file is read
    top to bottom by whoever comes next.
 2. Measure it against the surface it will sit on and put the number in the
    comment. If it does not clear the floor, take the hue down until it does
@@ -227,7 +227,7 @@ the rail is already holding one gutter's worth of the window.
 3. Add it to the `brand` object; the module augmentation under it types
    `theme.palette.brand.<x>` everywhere.
 4. Name it for its role — `chromeLabel`, `cardInkMuted`, `noticeTints.commerce`
-   — never for its colour. A token named `purple2` cannot be repainted.
+   — never for its color. A token named `purple2` cannot be repainted.
 5. Add a row here if it is a surface, an ink, or a number in the contrast
    table.
 

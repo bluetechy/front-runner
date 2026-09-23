@@ -20,7 +20,7 @@ import { useId, type FormEvent, type ReactNode } from "react";
  *
  * The two supplied mock-ups are Google's payment sheets -- a white card with a
  * blue button -- so, exactly as the sign-in dialog did, what is taken from
- * them is the layout and what is not is the colour. A dialog here is the
+ * them is the layout and what is not is the color. A dialog here is the
  * violet panel the theme already draws, and a field in it is the pill hollowed
  * out of that panel. The alternative would be the app's only white surface
  * that is not a card.

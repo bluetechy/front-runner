@@ -14,8 +14,8 @@ import { ways } from "./ways";
  * three ways to reach us across the top, then a message form with the reason
  * to use it written beside it rather than above it.
  *
- * The colours are this app's. The supplied page bands the top half in teal
- * and paints the discs grey; here the three ways sit straight on the violet
+ * The colors are this app's. The supplied page bands the top half in teal
+ * and paints the discs gray; here the three ways sit straight on the violet
  * field like every other section in the product, because a band would be a
  * fifth surface and this app has four -- see docs/style-guide.md.
  *
@@ -84,8 +84,8 @@ export function Contact() {
             sx={{ maxWidth: "40ch", mt: 2, color: "text.secondary" }}
           >
             Tell us what you are trying to get people to do (a class, a team, a
-            customer programme) and we will say whether this does it, what it
-            would cost, and what moving an existing programme across would take.
+            customer program) and we will say whether this does it, what it
+            would cost, and what moving an existing program across would take.
           </Typography>
           {/* The same redirect the supplied page makes, pointed at the thing
            * this product actually has: somebody already signed in has a way

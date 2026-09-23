@@ -155,7 +155,7 @@ describe("what a bank account is allowed to contain", () => {
   });
 
   // The ABA check digit, which is Luhn's counterpart: it catches a typo in a
-  // number nobody has memorised.
+  // number nobody has memorized.
   it("catches a wrong digit in a routing number", () => {
     expect(
       bankAccountSchema.safeParse({

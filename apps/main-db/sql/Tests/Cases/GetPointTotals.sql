@@ -58,7 +58,7 @@ $$ LANGUAGE plpgsql;
 -- The daily/weekly/monthly drafts are this parameter. Fixture rows are created
 -- inside the test transaction, so they are all "now" -- a window that starts in
 -- the future is what proves the filter bites.
-CREATE FUNCTION "test"."TestGetPointTotals_HonourTheSinceWindow" () RETURNS void AS $$
+CREATE FUNCTION "test"."TestGetPointTotals_HonorTheSinceWindow" () RETURNS void AS $$
 DECLARE
     _Recent bigint;
     _Future bigint;

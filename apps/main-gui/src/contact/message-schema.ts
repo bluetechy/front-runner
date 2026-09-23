@@ -25,7 +25,7 @@ export const messageSchema = z.object({
   firstName: line(64, "First name").min(1, "Tell us what to call you"),
   lastName: line(64, "Last name"),
   email: z.email("Enter an address we can reply to").max(160),
-  /* Long enough for somebody to explain a programme they already run, which
+  /* Long enough for somebody to explain a program they already run, which
    * is the message this page is most likely to be sent. */
   comments: line(4000, "Message").min(1, "Tell us what you are after"),
 });

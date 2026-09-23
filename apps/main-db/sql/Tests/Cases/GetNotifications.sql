@@ -68,7 +68,7 @@ $$ LANGUAGE plpgsql;
 
 -- The same optional cap the point readers take. The API passes nothing, so
 -- the badge counting the unread ones is counting all of them.
-CREATE FUNCTION "test"."TestGetNotifications_HonoursTheRowLimit" () RETURNS void AS $$
+CREATE FUNCTION "test"."TestGetNotifications_HonorsTheRowLimit" () RETURNS void AS $$
 DECLARE
     _Count bigint;
 BEGIN

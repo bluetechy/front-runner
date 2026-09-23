@@ -15,7 +15,7 @@
 -- longest rather than the one they happened to add last. An empty wallet has
 -- no default and needs none.
 --
--- The mock-up this was built from greys out a card with payments pending and
+-- The mock-up this was built from grays out a card with payments pending and
 -- says it cannot be removed. There are no payments in this schema yet, so
 -- there is nothing to check and every method can be removed. Whatever adds
 -- payments adds that guard here.

@@ -25,7 +25,7 @@ export interface Way {
   /* The thing itself: the number, the address, the mailbox. The first line
    * is the one that carries the link, where there is one. */
   lines: readonly string[];
-  /* Where pressing that first line goes -- a dialler, a mail client. An
+  /* Where pressing that first line goes -- a dialer, a mail client. An
    * address is a place rather than an action, so it has none and is read
    * rather than pressed. */
   href?: string;

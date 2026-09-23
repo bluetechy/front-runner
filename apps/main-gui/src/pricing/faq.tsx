@@ -29,7 +29,7 @@ const questions = [
   {
     question: "What counts as a member?",
     answer:
-      "Anyone who has accepted an invitation into your organization and can sign in — the people earning points and badges, and the people running the programme. Invitations you have sent but nobody has accepted do not count, and removing someone frees their place immediately.",
+      "Anyone who has accepted an invitation into your organization and can sign in — the people earning points and badges, and the people running the program. Invitations you have sent but nobody has accepted do not count, and removing someone frees their place immediately.",
   },
   {
     question: "Should I be on an Individual plan or a Business one?",

@@ -147,7 +147,7 @@ const renderField = (
 };
 
 describe("a field on the panel", () => {
-  it("is labelled, and says when what is in it changes", () => {
+  it("is labeled, and says when what is in it changes", () => {
     const { onChange } = renderField();
 
     fireEvent.change(screen.getByLabelText("Routing number"), {

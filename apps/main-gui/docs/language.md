@@ -3,6 +3,29 @@
 The flag in the top bar is what picks the language the interface is in. It is
 remembered in this browser, and it is not on the account.
 
+## Which languages
+
+Two, site wide:
+
+| Tag     | Label            | Flag | Default |
+| ------- | ---------------- | ---- | ------- |
+| `en-US` | US English       | `US` | yes     |
+| `es-MX` | Español (México) | `MX` |         |
+
+`languages.ts` is the one list, and `defaultLanguage` is its first entry rather
+than a second copy of the tag, so the two cannot drift. `en-US` is also what a
+preference nobody has set resolves to, what a tag that is no longer offered
+falls back to, and what `i18n.ts` passes as both `lng` and `fallbackLng`.
+`index.html` carries `lang="en-US"` to match, so the document says the same
+thing before any JavaScript runs.
+
+**The site is translated; the repository is not.** `en-US` is the base language
+of the project as a whole, so the source, the SQL and the documentation are
+written in it, in American spelling. This file quotes Spanish in a few places
+because it is about Spanish; that is an example under an en-US sentence rather
+than a document in another language. See
+[writing](../../../docs/writing.md).
+
 ## Why not on the profile
 
 It was, until 2026-09-22: `dbo.UserProfiles."Language"`, a dropdown in the

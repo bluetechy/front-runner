@@ -91,7 +91,7 @@ describe('icons/SvgIcon', () => {
 		expect(render(<SvgIcon icon={one} title="A line" />).container.querySelector('title')).toHaveTextContent('A line');
 	});
 
-	// The whole point of the renderer: the svg takes `currentColor`, so whatever colour a
+	// The whole point of the renderer: the svg takes `currentColor`, so whatever color a
 	// wrapper was given reaches the glyph.
 	test('leaves the fill to whatever encloses it', () => {
 		const { container } = render(<SvgIcon icon={glyph([{ name : 'path', attribs : { d : 'M0 0h10' }}])} />);

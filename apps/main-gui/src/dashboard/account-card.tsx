@@ -33,7 +33,7 @@ export function AccountCard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
 
     async function load() {
       const token = await getAccessToken();
@@ -50,13 +50,13 @@ export function AccountCard() {
         data?: { me: Account | null };
         errors?: { message: string }[];
       };
-      if (cancelled) return;
+      if (canceled) return;
       if (body.errors?.length) throw new Error(body.errors[0]!.message);
       setAccount(body.data?.me ?? null);
     }
 
     load().catch((failure: unknown) => {
-      if (!cancelled)
+      if (!canceled)
         setError(
           failure instanceof Error
             ? failure.message
@@ -65,7 +65,7 @@ export function AccountCard() {
     });
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [getAccessToken]);
 

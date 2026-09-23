@@ -73,7 +73,7 @@ BEGIN
     SELECT * INTO _Row FROM "dbo"."UserPoints"
     WHERE "UserPoints"."Details" ->> 'PointRedemptionUUID' = "test"."Fixture"('PointRedemption.Pending')::text;
     PERFORM "test"."AssertEquals"(_Row."Amount", -2.0000::decimal(19,4), 'the ledger row is the negative of the redemption');
-    PERFORM "test"."AssertEquals"(_Row."Reason"::text, 'Redeemed', 'and it is categorised as a redemption');
+    PERFORM "test"."AssertEquals"(_Row."Reason"::text, 'Redeemed', 'and it is categorized as a redemption');
 END;
 $$ LANGUAGE plpgsql;
 

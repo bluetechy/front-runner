@@ -74,7 +74,7 @@ export function NotificationsPage() {
           </Typography>
         </Box>
 
-        {/* Nothing unread is nothing to do, so it greys out rather than
+        {/* Nothing unread is nothing to do, so it grays out rather than
          * disappearing -- the heading keeps its shape as the last row is
          * read. This one is on the field rather than on card paper, so it is
          * the app's ordinary contained button. */}

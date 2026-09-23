@@ -36,7 +36,7 @@ about.
 
 ## What a test file is for
 
-This repository writes tests as sentences about behaviour, not as a
+This repository writes tests as sentences about behavior, not as a
 transcription of the implementation. The house style, which the existing files
 show better than a list can:
 
@@ -52,7 +52,7 @@ than calling when the session has gone")`.
   what came back. A test that reaches into private state is a test that has
   to be rewritten every time the file is tidied.
 
-What a file's test covers is a judgement, not a quota. A barrel's test is
+What a file's test covers is a judgment, not a quota. A barrel's test is
 three lines about its public surface; `authentication/keycloak.test.ts` is two
 hundred about token verification, because that is where the risk is. Neither
 is padded to look like the other.
@@ -64,7 +64,7 @@ itself**, not in a list somewhere else, so the reason travels with the code:
 
 ```ts
 /* @no-test  An interface and nothing else: it is erased at compile time, so
- * there is no behaviour here to assert. */
+ * there is no behavior here to assert. */
 ```
 
 The marker goes in the file's header comment — the checker reads the first 40
@@ -121,7 +121,7 @@ npm run lint:tests                 # only the "is there one?" check
 ## Only the slices you changed
 
 The source is organized vertically — a folder per slice of the product,
-holding everything that slice needs and reaching its neighbours only through
+holding everything that slice needs and reaching its neighbors only through
 their public index. The usual argument for that is that code which changes
 together lives together. **The argument that matters while you work is about
 tests: what a change can break is bounded by the folder it was made in, so
@@ -161,7 +161,7 @@ the run deliberately:
 | Anything at the root of the repository                                                    | every app      |
 | Documentation                                                                             | nothing        |
 
-Which slices count as "every slice draws on this" is a judgement, and it is
+Which slices count as "every slice draws on this" is a judgment, and it is
 written down in one place — the `WIDE` table at the top of
 [`scripts/test-changed.mjs`](../scripts/test-changed.mjs). main-gui's is the
 theme and `shared/`; main-api's is the `infrastructure` set its own

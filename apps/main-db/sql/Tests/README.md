@@ -33,7 +33,7 @@ Tests/
 ```
 
 `Cases/<Object>.sql` holds every test for `dbo.<Object>`, as functions named
-`test."Test<Object>_<Behaviour>"`. This is the one place the repository's
+`test."Test<Object>_<Behavior>"`. This is the one place the repository's
 one-object-per-file rule bends: the file is named for the object under test,
 not for the functions inside it.
 
@@ -89,7 +89,7 @@ Two gotchas worth knowing:
 
 ## Tests named `_KnownIssue`
 
-These assert behaviour that is wrong but current, so the suite stays green and
+These assert behavior that is wrong but current, so the suite stays green and
 the defect stays visible. Each one carries a comment explaining what correct
 would look like, and a failure message telling you to replace the test rather
 than to fix the code. If one starts failing, the bug was probably fixed --

@@ -1,6 +1,6 @@
 --
 -- Named roles per organization. Nothing reads them: the live functions
--- authorise on organization and team membership and on the boolean flags
+-- authorize on organization and team membership and on the boolean flags
 -- (Users."IsAdmin", UserOrganizations."IsOwner", UserTeams."IsManager"). See
 -- SCHEMA-NOTES.md on the schema carrying several unconnected authorization
 -- mechanisms.

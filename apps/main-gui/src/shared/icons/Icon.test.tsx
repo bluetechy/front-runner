@@ -3,7 +3,7 @@ import { Icon } from '@/shared/icons/Icon';
 import { twoHorizontal } from '@/shared/icons/glyphs';
 import type { Glyph } from '@/shared/icons/glyphs';
 
-// The ~140 wrapper tests assert colour and size on the <svg>, which an EMPTY <svg> satisfies
+// The ~140 wrapper tests assert color and size on the <svg>, which an EMPTY <svg> satisfies
 // just as well. These cover the renderer itself: that the glyph's nodes actually become
 // elements, and that the attribute rules the walker implements are applied.
 
@@ -46,7 +46,7 @@ describe('icons/Icon', () => {
 
 	// The walker drops fill/stroke rather than passing them through, so the icon inherits
 	// `currentColor` from the wrapper and a caller's `color` prop actually reaches the glyph.
-	test('drops a glyph fill so the icon takes its colour from the parent', () => {
+	test('drops a glyph fill so the icon takes its color from the parent', () => {
 		const filled: Glyph = {
 			viewBox : '0 0 10 10',
 			children : [{ name : 'path', attribs : { d : 'M0 0h10v10H0z', fill : '#FF0000' }}]

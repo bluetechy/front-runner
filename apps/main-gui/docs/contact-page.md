@@ -54,10 +54,10 @@ enforces as well. A first name and an address to reply to are required; a last
 name is not, because plenty of people have one name and a form that insists on
 two is asking them to invent one.
 
-## Colours
+## Colors
 
 The supplied page bands its top half in teal and paints the three discs flat
-grey. Neither is a colour this product owns, and a band would be a fifth
+gray. Neither is a color this product owns, and a band would be a fifth
 surface where [the style guide](style-guide.md) has four. So:
 
 - the three ways sit straight on the violet field, like every other section in
@@ -68,7 +68,7 @@ surface where [the style guide](style-guide.md) has four. So:
   thing needs;
 - the form is a panel raised off the field, so its fields are the theme's own
   (the hollow the sign-in dialog's fields are cut out of) and it defines no
-  colour of its own.
+  color of its own.
 
 The discs are deliberately **not** the accent's fade. What is being offered on
 this page is the button at the bottom of the form; if the three discs wore the
@@ -102,5 +102,5 @@ so under itself, and the corner says once that some of them do.
 - Give `send-message.ts` somewhere to send to, and decide what the reply to a
   message is: an email, a ticket, a row somebody reads.
 - The copy beside the form is copy, not policy. "What it would cost" and
-  "moving an existing programme across" are promises somebody has to be
+  "moving an existing program across" are promises somebody has to be
   willing to keep.

@@ -21,7 +21,7 @@ import {
  * those two digits into a year happens once, here, rather than being guessed
  * at again in the API and a third time in the database. See `readExpiry`.
  *
- * The security code is collected because a card cannot be authorised without
+ * The security code is collected because a card cannot be authorized without
  * one, and it is **never stored** -- there is no column for it, and storing it
  * is forbidden rather than merely unwise. Today the API checks its shape and
  * drops it; when a payment processor is wired up it is what gets handed over.
@@ -141,7 +141,7 @@ export function AddCardDialog({
       open={open}
       onClose={onClose}
       title="Add a card"
-      note="All fields are required. The security code is used to authorise the card and is never stored."
+      note="All fields are required. The security code is used to authorize the card and is never stored."
       error={failure}
       busy={busy}
       submitLabel="Save card"

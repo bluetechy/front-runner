@@ -34,9 +34,9 @@ export const placeholderTallies = [
 
 /* One figure each rather than a series of anything, so they are all drawn in
  * the same gradient every other progress bar in the app uses. Four different
- * colours would say these four are being compared. */
+ * colors would say these four are being compared. */
 export const placeholderSkills = [
-  { label: "Programme design", percent: 82 },
+  { label: "Program design", percent: 82 },
   { label: "Facilitation", percent: 68 },
   { label: "Data literacy", percent: 74 },
   { label: "Community building", percent: 55 },

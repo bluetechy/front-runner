@@ -115,7 +115,7 @@ describe("a code that did not", () => {
 });
 
 describe("coming back with no code at all", () => {
-  // The provider was cancelled, Keycloak refused, or this is a password reset
+  // The provider was canceled, Keycloak refused, or this is a password reset
   // coming back, which ends at Keycloak and has nothing to exchange. None of
   // those is an error worth a page.
   it.each([

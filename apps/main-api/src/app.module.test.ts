@@ -53,7 +53,7 @@ const userProfile = {
   FirstName: "Alice",
   LastName: "Example",
   NickName: "Al",
-  Designation: "Programme manager",
+  Designation: "Program manager",
   Biography: "Runs the scoreboard.",
   Gender: "Not specified",
   BirthDate: "1990-04-17",
@@ -533,7 +533,7 @@ describe("GraphQL application", () => {
     const read = await execute("{ profile { Designation Gender BirthDate } }");
     expect(read.body.errors).toBeUndefined();
     expect(read.body.data.profile).toEqual({
-      Designation: "Programme manager",
+      Designation: "Program manager",
       Gender: "Not specified",
       BirthDate: "1990-04-17",
     });
@@ -556,7 +556,7 @@ describe("GraphQL application", () => {
         "Alice",
         "Example",
         "Al",
-        "Programme manager",
+        "Program manager",
         "Runs the scoreboard.",
         "Not specified",
         "1990-04-17",

@@ -20,7 +20,7 @@ import { NotificationMenu } from "../notifications";
 /*
  * The bar along the top of the application: the chrome, the same violet as the
  * rail it meets at the corner, so the two read as one surface the pages are
- * laid inside rather than as two edges of different colours.
+ * laid inside rather than as two edges of different colors.
  *
  * The search field is the mock-up's and does nothing yet. What is real is the
  * language flag, which remembers what it is told; the bell, which reads the

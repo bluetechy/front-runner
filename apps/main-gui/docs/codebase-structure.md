@@ -48,7 +48,7 @@ gradients, and the component defaults all live in `theme.ts`, and
 `main.tsx` is the only place a `ThemeProvider` appears. Nothing in it knows
 about the landing page.
 
-**No component defines a colour, font or size of its own.** Styling goes through
+**No component defines a color, font or size of its own.** Styling goes through
 MUI: `sx` for one-off layout, the theme for anything a second component would
 want. A literal hex outside `design-system/theme.ts` is a bug — reach for
 `palette.brand`, `palette.primary`, or `text.secondary` instead. There are no
@@ -122,7 +122,7 @@ the two callers pass only where it goes and where it sits.
 
 `toast/` is the rule being got ahead of by one: the profile page and the
 wallet each had the same `Snackbar` and `Alert` written out inside them, and
-the profile page's moved out when it was asked for a corner and two colours of
+the profile page's moved out when it was asked for a corner and two colors of
 its own. The wallet still has its copy, and adopting this is the whole of what
 is left to do about that — see [the profile page](profile-page.md#saying-so).
 
@@ -163,10 +163,10 @@ its own when a second one does.
 
 [The style guide](style-guide.md) is this theme read from the outside: the
 four surfaces, the ink each one carries, where the accent is allowed, and the
-contrast a new colour has to clear. Read it before adding one.
+contrast a new color has to clear. Read it before adding one.
 
 `theme.ts` augments MUI's `Palette` with a `brand` section for the things
 Material has no slot for — the page's background gradient, the artwork's glow,
-the button gradient, the nav text colour, the gutter width. Add to that object
+the button gradient, the nav text color, the gutter width. Add to that object
 and the module augmentation beneath it, and `theme.palette.brand.<x>` is typed
 everywhere.

@@ -192,7 +192,7 @@ export function Wallet() {
           sx={{
             borderRadius: 2,
             /* Material's "info" is a blue this product does not own. The
-             * other two keep their colours: green and red mean the same
+             * other two keep their colors: green and red mean the same
              * thing everywhere, and saying so is the point. */
             ...(notice?.tone === "info"
               ? {

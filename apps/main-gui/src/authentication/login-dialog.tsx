@@ -31,7 +31,7 @@ import { useSession } from "./session";
 
 /*
  * The sign-in dialog from the supplied mock-up. Its layout is the mock-up's;
- * its colours are this app's, because a slate card with a blue button would
+ * its colors are this app's, because a slate card with a blue button would
  * be the only thing on the site not drawn from the violet field.
  *
  * Only the email-and-password form completes here. Everything else on the

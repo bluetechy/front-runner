@@ -86,14 +86,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (status !== "signed-in") return;
-    let cancelled = false;
+    let canceled = false;
 
     call<StoredProfile>(READ, {})
       .then((loaded) => {
-        if (!cancelled) setProfile(loaded);
+        if (!canceled) setProfile(loaded);
       })
       .catch((failure: unknown) => {
-        if (!cancelled)
+        if (!canceled)
           setError(
             failure instanceof Error
               ? failure.message
@@ -101,11 +101,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           );
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!canceled) setLoading(false);
       });
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [status, call]);
 

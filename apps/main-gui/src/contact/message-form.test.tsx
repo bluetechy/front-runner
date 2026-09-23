@@ -43,7 +43,7 @@ function fillIn() {
     target: { value: "marcus@member.example" },
   });
   fireEvent.change(field("Message"), {
-    target: { value: "We run a reading programme for 300 children." },
+    target: { value: "We run a reading program for 300 children." },
   });
 }
 
@@ -81,7 +81,7 @@ describe("sending a message", () => {
       firstName: "Marcus",
       lastName: "Member",
       email: "marcus@member.example",
-      comments: "We run a reading programme for 300 children.",
+      comments: "We run a reading program for 300 children.",
     });
   });
 
@@ -113,7 +113,7 @@ describe("sending a message", () => {
       ),
     );
     expect(field("Message")).toHaveValue(
-      "We run a reading programme for 300 children.",
+      "We run a reading program for 300 children.",
     );
     expect(send()).toBeEnabled();
   });

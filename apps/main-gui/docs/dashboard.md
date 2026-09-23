@@ -12,9 +12,9 @@ that were asked for:
   **fixed to the left edge** and runs the full height of the window
 - the rail is not the mock-up's blue — it was the **accent pink** at first,
   then the chrome's violet, and the rail and the top bar are both **black**
-  now, so the only coloured thing in the chrome is the page you are on
+  now, so the only colored thing in the chrome is the page you are on
 - the cards are laid on this app's own field rather than on the mock-up's pale
-  grey
+  gray
 
 ## The two shells
 
@@ -84,10 +84,10 @@ the rail and [the profile page](profile-page.md) make one request between
 them. It is blank until they fill it in, rather than a title invented for
 them.
 
-## Colour
+## Color
 
 Four surfaces, all of them from `theme.palette.brand`, and nothing on the page
-defines a colour of its own:
+defines a color of its own:
 
 | Surface             | Token                                    | What it is                                 |
 | ------------------- | ---------------------------------------- | ------------------------------------------ |
@@ -113,14 +113,14 @@ tile's icon sits in.
 
 Drawn by hand as SVG in `charts.tsx`. There is no chart library: these are
 seven points, seven bars and three slices, and a dependency that drew them
-would still have to be told this app's colours one by one. The rules the next
+would still have to be told this app's colors one by one. The rules the next
 chart should follow too:
 
-- **Series colours come from `brand.chartSeries`, in order, never cycled.**
+- **Series colors come from `brand.chartSeries`, in order, never cycled.**
   The first two are the accent pair every button uses; the third is a teal
-  picked so the three stay apart for a colour-blind reader — the worst
+  picked so the three stay apart for a color-blind reader — the worst
   adjacent pair is 11.4 apart under protanopia, against a floor of 8.
-- **Identity is never colour alone.** Two lines carry a legend; the ring's
+- **Identity is never color alone.** Two lines carry a legend; the ring's
   slices are named and priced in a list beside it.
 - **The axis does not lie.** Gridline steps are 1, 2, 2.5 or 5 times a power
   of ten, so no label is ever a rounded-off version of the number it sits on.
@@ -132,12 +132,12 @@ chart should follow too:
 
 | Piece                            | State                                                  |
 | -------------------------------- | ------------------------------------------------------ |
-| Layout, chrome, colour           | Final                                                  |
+| Layout, chrome, color            | Final                                                  |
 | Every figure on every card       | **Placeholder** — all of it is in `metrics.ts`         |
 | The "Your account" card          | **Real** — Keycloak's identity and main-api's `me`     |
 | Who is signed in, in the top bar | Real — from the session                                |
 | Logout, in the account menu      | Real                                                   |
-| Search, in the top bar           | Styled and labelled; it does nothing                   |
+| Search, in the top bar           | Styled and labeled; it does nothing                    |
 | The bell                         | **Real** — see [notifications](notifications.md)       |
 | The language flag                | **Real** — remembers the choice, translates the chrome |
 | "Create KPI"                     | Styled; there is nothing to create yet                 |

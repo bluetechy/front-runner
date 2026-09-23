@@ -64,7 +64,7 @@ describe("the links a profile carries", () => {
     ).toBe("http://github.com/marcus");
   });
 
-  it("does not mind how the scheme was capitalised", () => {
+  it("does not mind how the scheme was capitalized", () => {
     expect(
       linksOf(profile({ Github: "HTTPS://github.com/marcus" }))[0]?.href,
     ).toBe("HTTPS://github.com/marcus");

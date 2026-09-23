@@ -2,7 +2,7 @@ CREATE FUNCTION "test"."TestIsMemberOfOrganization_AcceptsAMember" () RETURNS vo
 BEGIN
     PERFORM "test"."AssertTrue"(
         "dbo"."IsMemberOfOrganization"('member', "test"."Fixture"('Organization.Acme')),
-        'a member of Acme was not recognised'
+        'a member of Acme was not recognized'
     );
 END;
 $$ LANGUAGE plpgsql;

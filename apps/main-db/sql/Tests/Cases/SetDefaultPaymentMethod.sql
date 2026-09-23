@@ -84,7 +84,7 @@ BEGIN
     );
 
     PERFORM "test"."AssertRaises"(
-        format('SELECT * FROM "dbo"."SetDefaultPaymentMethod"(%L, %L, %L)', 'member', 'Cheque', _Card),
+        format('SELECT * FROM "dbo"."SetDefaultPaymentMethod"(%L, %L, %L)', 'member', 'Check', _Card),
         'a kind of payment method that does not exist was accepted',
         'CreditCard or a BankAccount'
     );

@@ -108,7 +108,7 @@ describe("the token on the request", () => {
     );
   });
 
-  it("accepts the scheme however it was capitalised", async () => {
+  it("accepts the scheme however it was capitalized", async () => {
     const { guard, context, verify } = setup({ header: "bearer a-token" });
 
     await expect(guard.canActivate(context)).resolves.toBe(true);

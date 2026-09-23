@@ -41,7 +41,7 @@ function AuthCallback() {
   const attempt = useRef<Promise<TokenSet> | null>(null);
 
   useEffect(() => {
-    /* No code on the URL: the provider was cancelled, Keycloak refused, or
+    /* No code on the URL: the provider was canceled, Keycloak refused, or
      * this is a password reset coming back, which ends at Keycloak and has
      * nothing to exchange. None of those is an error worth a page. */
     if (error || !code) {
@@ -62,17 +62,17 @@ function AuthCallback() {
           );
     })());
 
-    let cancelled = false;
+    let canceled = false;
     void (async () => {
       try {
         const tokens = await pending;
-        if (cancelled) return;
+        if (canceled) return;
         /* A redirect flow crossed a page load to get here, so it only makes
          * sense as a remembered session. */
         adoptTokens(tokens, true);
         await navigate({ to: "/dashboard", replace: true });
       } catch (reason: unknown) {
-        if (!cancelled)
+        if (!canceled)
           setFailure(
             reason instanceof Error ? reason.message : "Sign-in failed.",
           );
@@ -80,7 +80,7 @@ function AuthCallback() {
     })();
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [code, state, error, adoptTokens, navigate]);
 

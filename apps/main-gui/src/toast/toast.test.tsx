@@ -8,9 +8,9 @@ import { Toast, type Notice } from "./toast";
  * What a page says back when something it was asked to do has finished.
  *
  * The thing worth pinning here is that the tone is never the whole message:
- * each one carries Material's icon for its severity as well as its colour,
- * and the sentence reads the same in grey. Nothing in this product is said in
- * colour alone -- see docs/style-guide.md.
+ * each one carries Material's icon for its severity as well as its color,
+ * and the sentence reads the same in gray. Nothing in this product is said in
+ * color alone -- see docs/style-guide.md.
  */
 
 const renderIn = (element: React.ReactElement) =>
@@ -43,7 +43,7 @@ describe("saying something", () => {
     ["it was done", "success"] as const,
     ["it was not", "error"] as const,
     ["nobody asked", "info"] as const,
-  ])("draws an icon as well as a colour when %s", (_case, tone) => {
+  ])("draws an icon as well as a color when %s", (_case, tone) => {
     const { container } = renderIn(
       <Toast notice={notice(tone)} onClose={vi.fn()} />,
     );

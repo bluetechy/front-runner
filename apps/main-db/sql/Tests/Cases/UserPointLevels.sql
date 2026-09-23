@@ -1,7 +1,7 @@
 --
 -- Reaching a level is recorded once and kept. The table holds history rather
 -- than a current-level pointer, so a balance falling back below the threshold
--- does not erase the row -- that is the behaviour these pin down.
+-- does not erase the row -- that is the behavior these pin down.
 --
 
 CREATE FUNCTION "test"."TestUserPointLevels_RecordWhenALevelWasReached" () RETURNS void AS $$
