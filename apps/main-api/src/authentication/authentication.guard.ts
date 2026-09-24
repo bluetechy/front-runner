@@ -94,7 +94,12 @@ export class AuthenticationGuard implements CanActivate {
 
     await this.recordLogin(identity, account.LoginName, userAgent);
 
-    return { userId: account.UserUUID, loginName: account.LoginName };
+    return {
+      userId: account.UserUUID,
+      loginName: account.LoginName,
+      sessionId: identity.sessionId,
+      device: deviceName(userAgent),
+    };
   }
 
   // Write the login into the account's security log, once per login.

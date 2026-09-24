@@ -396,8 +396,9 @@ Three things make that safe to do on every request.
 **One login is one session, so the session is the key.** The token's `sid`
 claim is the only thing in it that says "these requests are all the same login"
 and survives a restart, so `dbo.SecurityEvents` holds it on a login row and a
-unique constraint on `("UserUUID", "SessionId")` is what actually prevents a
-second one. `dbo.LogLoginEvent` inserts with `ON CONFLICT DO NOTHING`, so the
+unique constraint on `("UserUUID", "EventType", "SessionId")` is what actually
+prevents a second one. (`EventType` is in that key so the logout below can sit
+beside the login it ends rather than colliding with it.) `dbo.LogLoginEvent` inserts with `ON CONFLICT DO NOTHING`, so the
 tenth request of a session writes nothing, a genuine second login is a second
 row, and two requests racing at the start of a brand new session cannot both
 win. A token carrying no `sid` is a machine's, and is not a login.
@@ -443,7 +444,7 @@ token, no request, and no moment anywhere in main-api at which a failed login
 could be written down. The request path cannot help here at all.
 
 So this one is **pulled rather than pushed**. Keycloak keeps its own event log,
-`LoginFailuresService` asks it once a minute what it refused, and writes what is
+`ProviderEventsService` asks it once a minute what it refused, and writes what is
 new onto the page. It is the only timer in this API, and the only thing on this
 page read out of the provider rather than out of what we did.
 
@@ -494,6 +495,62 @@ of every event type. Left at the default it would hold a second copy of every
 successful login, logout and token refresh, in a store nothing reads and the
 twelve-month rule below does not reach.
 
+### Logouts, which are three facts that are really one
+
+A login with nothing under it reads as a session that may still be open. So the
+end of a session is recorded too, and **there are three ways to find out about
+one, none of which sees the other two**:
+
+1. **Somebody pressed Logout.** The browser reports it through `recordLogout`
+   while it still holds a token. This is the only one of the three that arrives
+   at once and the only one that knows the device.
+2. **The provider recorded a `LOGOUT`.** That is what a logout from Keycloak's
+   own account pages, or from another application on the same realm, or from a
+   browser closed before step 1 could land, looks like from here.
+3. **The provider refused to refresh a token for a session that was already
+   gone.** A `REFRESH_TOKEN_ERROR`, and the only trace of a session that ended
+   with nobody deciding to end it: an idle timeout, a session past its maximum
+   lifespan, or one somebody revoked.
+
+All three say _this session is over_, so **all three write the same row and the
+database keeps it one row.** `dbo.LogLogoutEvent` inserts with
+`ON CONFLICT DO NOTHING` against `("UserUUID", "EventType", "SessionId")`, so
+whichever arrives first wins and the rest are quiet no-ops. That is what makes
+this need no coordination between the browser and the sweep, and it is also why
+**a logout needs no off switch where a failed login does**: a session can cost
+this page one login row and one logout row, and never a third.
+
+Order matters for one reason. Our own logout produces a `LOGOUT` and then, from
+any other tab still holding a token, a refused refresh moments later, so the
+sweep writes **oldest first** and the page says "You logged out." rather than
+"This session ended without a logout."
+
+**The writer takes no account and no subject, only a session**, and resolves who
+it was from the login row already on this table. Two things forced that and both
+are worth keeping. A `REFRESH_TOKEN_ERROR` carries no user at all, which was
+found by asking a running realm rather than assumed, so something had to resolve
+it. And resolving it from our own log means **nothing here trusts a subject the
+provider handed back**. The consequence is deliberate: a session this
+installation never saw a request from has no login row, so its logout is not
+recorded either, which is the same rule failed logins follow.
+
+There is no risk of a stranger writing one of these. Keycloak validates a token's
+signature _before_ it records a session id, so a refusal over an invented token
+names no session and `readEndedSession` drops it. Verified the same way: by
+posting a forged token at a running realm and reading what the event log kept.
+
+Two sentences and no more, because two is all the provider can tell apart. "You
+logged out." where it recorded one; "This session ended without a logout."
+otherwise. It deliberately does not say _expired_: an idle timeout and a revoked
+session look identical from outside, and the reader already knows which it was,
+because they know whether they logged out.
+
+**What is still not caught**, and cannot be: closing the tab. Nothing happens
+anywhere when a browser is closed with the session still live, so there is no
+event to mirror and no request to send. That session ends later, quietly, when it
+times out at the provider, and it is the refused-refresh case above that finally
+records it.
+
 ### The device, and the place that is still missing
 
 `device-name.ts` reads the request's `User-Agent` and answers one word:
@@ -521,7 +578,7 @@ changes in the same commit.
 ### How long it is kept
 
 **Twelve months**, enforced by `dbo.trim_security_events`, a trigger on the
-table. A trigger rather than a call inside the writers, because there are four
+table. A trigger rather than a call inside the writers, because there are five
 of them and a retention rule that each has to remember is one that one of them
 will not.
 
@@ -602,10 +659,21 @@ either one edits the privacy policy in the same commit.
 is recorded nowhere**, which is deliberate rather than missing: see
 [failed logins](#failed-logins-which-nothing-in-this-application-even-sees).
 
-Failed logins also arrive **on a delay of up to a minute**, because they are
-polled rather than pushed. Keycloak can push instead, through an event listener
-provider, and that is a Java artifact built into the image: a real improvement
-and a disproportionate one for a page nobody watches live.
+Failed logins, and any logout this application did not itself report, also arrive
+**on a delay of up to a minute**, because they are polled rather than pushed.
+Keycloak can push instead, through an event listener provider, and that is a Java
+artifact built into the image: a real improvement and a disproportionate one for
+a page nobody watches live.
+
+**A session ended by closing the tab is recorded only when it later times out**,
+which can be up to the provider's idle timeout after the person actually stopped
+using it. Nothing happens anywhere when a browser closes, so there is no earlier
+moment to record. See
+[logouts](#logouts-which-are-three-facts-that-are-really-one).
+
+**A logout is not attributed to a device unless the browser reported it.** The
+provider's event log carries no `User-Agent`, so a mirrored logout leaves the
+line out rather than guessing, which is the same rule the device itself follows.
 
 The list is **not paged**. `dbo.GetSecurityEvents` takes a row cap and main-api
 asks for twenty, which is where "recent" is defined. An account busy enough to

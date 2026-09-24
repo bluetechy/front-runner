@@ -1,5 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { deviceName, loginDescription } from "./device-name.js";
+import {
+  deviceName,
+  loginDescription,
+  logoutDescription,
+} from "./device-name.js";
 
 /*
  * What to call the thing somebody logged in from.
@@ -79,5 +83,23 @@ describe("the sentence that goes in the log", () => {
   /* "New login on null" is the failure this exists to avoid. */
   it("says only that there was a login when there is not", () => {
     expect(loginDescription(null)).toBe("New login.");
+  });
+
+  it("names the device on the way out too", () => {
+    expect(logoutDescription("iPhone")).toBe("You logged out on iPhone.");
+  });
+
+  it("says only that they logged out when it does not know", () => {
+    expect(logoutDescription(null)).toBe("You logged out.");
+  });
+
+  /* The second person here and not above, and it is not a slip. This sentence is
+   * only ever written when the browser reported the logout with a live token, so
+   * it really was them. A login is written from a token that arrived, which says
+   * a login happened and not who caused it, and a session the provider merely
+   * reported as finished claims less still. */
+  it("speaks in the second person, which a login does not", () => {
+    expect(logoutDescription(null)).toMatch(/^You /);
+    expect(loginDescription(null)).not.toMatch(/^You /);
   });
 });

@@ -37,3 +37,11 @@ export function deviceName(userAgent: string | undefined): string | null {
 export function loginDescription(device: string | null): string {
   return device ? `New login on ${device}.` : "New login.";
 }
+
+// And the one for the session ending, where the browser said so itself. The
+// second person because it is the one case we know it was them: they pressed the
+// button. A session the provider merely reported as finished gets a sentence
+// that claims less -- see ProviderEventsService.endedDescription.
+export function logoutDescription(device: string | null): string {
+  return device ? `You logged out on ${device}.` : "You logged out.";
+}

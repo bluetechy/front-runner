@@ -11,7 +11,14 @@ import { TeamsService } from "./teams.service.js";
  */
 
 const page = { limit: 50, offset: 0 };
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 
 function setup() {
   const service = {

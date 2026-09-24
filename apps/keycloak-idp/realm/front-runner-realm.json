@@ -15,7 +15,7 @@
   "ssoSessionMaxLifespan": 36000,
   "eventsEnabled": true,
   "eventsExpiration": 2592000,
-  "enabledEventTypes": ["LOGIN_ERROR"],
+  "enabledEventTypes": ["LOGIN_ERROR", "LOGOUT", "REFRESH_TOKEN_ERROR"],
   "clients": [
     {
       "clientId": "main-gui",

@@ -14,7 +14,14 @@ import { EmailsService } from "./emails.service.js";
  * requiring a session would refuse the case the feature exists for.
  */
 
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 const ADDRESS = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
 
 function setup() {

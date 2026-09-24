@@ -122,7 +122,7 @@ export function validateEnvironment(env: Record<string, unknown>) {
     // attempts are ten rows, and a realm being scanned can fill a page with
     // them. Turning it off stops the polling entirely -- no timer, no call to
     // the provider -- and the provider's own event log keeps them either way.
-    // See apps/main-api/src/security-events/login-failures.service.ts.
+    // See apps/main-api/src/security-events/provider-events.service.ts.
     SECURITY_LOG_FAILED_LOGINS: flag("SECURITY_LOG_FAILED_LOGINS", true),
     CORS_ORIGINS: String(env.CORS_ORIGINS ?? "")
       .split(",")

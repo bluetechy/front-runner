@@ -594,3 +594,113 @@ describe("reading back the logins the realm refused", () => {
     expect(await service.loginFailures(50)).toEqual([]);
   });
 });
+
+describe("reading back the sessions the realm says have finished", () => {
+  const event = (over: Record<string, unknown> = {}) => ({
+    time: 1758404520000,
+    type: "LOGOUT",
+    sessionId: "session-one",
+    userId: "subject-member",
+    ...over,
+  });
+
+  /* Two types, because Keycloak has no single event for a session ending, and
+   * repeated rather than joined, because a comma-separated list matches no event
+   * type at all and would look exactly like a quiet realm. */
+  it("asks for both of the ways a session ends", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await service.endedSessions(50);
+
+    const url = String(fetchMock.mock.calls[1]?.[0]);
+    expect(url).toContain("type=LOGOUT");
+    expect(url).toContain("type=REFRESH_TOKEN_ERROR");
+    expect(url).toContain("max=50");
+  });
+
+  it("reads the session and the moment out of a logout", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event()]));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.endedSessions(50)).toEqual([
+      {
+        sessionId: "session-one",
+        at: new Date(1758404520000),
+        deliberate: true,
+      },
+    ]);
+  });
+
+  /* The distinction that picks the sentence, and the only thing the type is read
+   * for. A refused refresh is a session that ended with nobody deciding to end
+   * it: idle, past its lifespan, or revoked, and the provider cannot say which. */
+  it("marks a refused token refresh as nobody's decision", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event({ type: "REFRESH_TOKEN_ERROR" })]));
+    const service = new KeycloakAdminService(config);
+
+    expect((await service.endedSessions(50))[0]?.deliberate).toBe(false);
+  });
+
+  /* **The line that makes this safe to read.** Keycloak checks a token's
+   * signature before it records anything about it, so a refusal over an invented
+   * token names no session, and nobody can push a row onto somebody's security
+   * page by posting rubbish at the token endpoint. */
+  it("drops an event that names no session", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(
+        ok([
+          event({ type: "REFRESH_TOKEN_ERROR", sessionId: undefined }),
+          event(),
+        ]),
+      );
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.endedSessions(50)).toHaveLength(1);
+  });
+
+  /* No user is read even off a logout, which carries one. Whose session it was
+   * is already on record against the login written for it, and reading it from
+   * there means one rule for both types and no trust in a supplied subject. */
+  it("reads no account out of the event at all", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event()]));
+    const service = new KeycloakAdminService(config);
+
+    const [ended] = await service.endedSessions(50);
+
+    expect(ended).not.toHaveProperty("subjectId");
+    expect(ended).not.toHaveProperty("userId");
+  });
+
+  it("drops an event with no usable moment", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event({ time: null }), event()]));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.endedSessions(50)).toHaveLength(1);
+  });
+
+  it("treats a refusal as the provider being unavailable", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(403));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.endedSessions(50)).rejects.toThrow();
+  });
+
+  it("reads a body that is not a list as nothing to report", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok({ error: "unknown" }));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.endedSessions(50)).toEqual([]);
+  });
+});

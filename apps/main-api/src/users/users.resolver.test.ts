@@ -9,7 +9,14 @@ import { UsersService } from "./users.service.js";
  * no way to name somebody else.
  */
 
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 
 function setup() {
   const me = jest.fn().mockReturnValue("alice's account");

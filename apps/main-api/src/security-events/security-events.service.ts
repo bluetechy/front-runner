@@ -119,6 +119,44 @@ export class SecurityEventsService {
     ]);
   }
 
+  // Record that a session ended, named by the session and by nothing else.
+  //
+  // Three callers, none of which knows about the others: the browser saying
+  // somebody pressed Logout, and two mirrored out of the provider's event log.
+  // They all write the same row and dbo.LogLogoutEvent keeps it one row, so
+  // there is nothing here to coordinate -- the first one in wins and the rest
+  // answer NULL.
+  //
+  // It swallows a failure, unlike recordLoginFailure just above. The rule is the
+  // same one: swallow where there is nothing to retry with, throw where a
+  // high-water mark would otherwise move past an unwritten row. A logout keeps no
+  // mark, because being idempotent on the session is what takes the place of one,
+  // so a lost write costs at worst a logout missing from a page. Letting it
+  // through would fail the mutation, and somebody who pressed Logout is logged
+  // out either way.
+  //
+  // `occurredAt` is when the session ended, which for the two mirrored callers is
+  // up to a sweep ago. The browser's caller leaves it out, because a logout it is
+  // reporting happened as it asked. Getting this wrong would put a logout above
+  // the login it ends on a page sorted by when things happened.
+  async recordLogout(
+    sessionId: string,
+    description: string,
+    device?: string,
+    occurredAt?: Date,
+  ) {
+    try {
+      await this.db.query('SELECT dbo."LogLogoutEvent"($1, $2, $3, $4)', [
+        sessionId,
+        description,
+        device ?? null,
+        occurredAt ?? null,
+      ]);
+    } catch {
+      this.logger.warn("Could not record a logout in the security log");
+    }
+  }
+
   // The newest failed login already on record, or null when there is none.
   //
   // Where the mirror resumes from after a restart, and the reason it can resume

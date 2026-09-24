@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { AuthenticationModule } from "../authentication/index.js";
 import { DatabaseModule } from "../database/index.js";
 import { PasswordResetModule } from "../password-reset/index.js";
-import { LoginFailuresService } from "./login-failures.service.js";
+import { ProviderEventsService } from "./provider-events.service.js";
 import { SecurityEventsResolver } from "./security-events.resolver.js";
 import { SecurityEventsService } from "./security-events.service.js";
 
@@ -13,15 +13,26 @@ import { SecurityEventsService } from "./security-events.service.js";
 // the same shape MailModule has, and for the same reason: it is something other
 // slices do, not a page of its own.
 //
-// The identity provider comes with it for one reason: a refused login is the
-// only thing on the security page this application does not cause, so it is
-// read back out of the provider's own event log. See LoginFailuresService.
+// The identity provider comes with it for one reason: two things on the security
+// page are not caused by this application and cannot be seen from the request
+// path -- a login it refused, and a session that ended without anybody asking us
+// -- so both are read back out of the provider's own event log. See
+// ProviderEventsService.
+//
+// That import is only legal one way round. `authentication` is infrastructure
+// here and may not reach a feature vertical, which is why AuthenticationGuard
+// calls dbo.LogLoginEvent directly instead of coming through this service. This
+// vertical is a feature, so it may reach infrastructure, and nothing reaches
+// back -- check-boundaries enforces both halves.
 @Module({
   imports: [DatabaseModule, PasswordResetModule, AuthenticationModule],
   providers: [
     SecurityEventsResolver,
     SecurityEventsService,
-    LoginFailuresService,
+    // A provider and not an export: it is a timer, not an operation. Nothing
+    // outside this vertical has any reason to hold it, and anything that did
+    // could sweep the provider's log on its own schedule.
+    ProviderEventsService,
   ],
   exports: [SecurityEventsService],
 })

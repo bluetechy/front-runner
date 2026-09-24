@@ -82,7 +82,12 @@ describe("marking an operation public", () => {
 
 describe("handing a resolver the caller", () => {
   it("answers with the principal the guard put on the request", () => {
-    const principal = { userId: "user-id", loginName: "alice" };
+    const principal = {
+      userId: "user-id",
+      loginName: "alice",
+      sessionId: "session-id",
+      device: "Mac OS",
+    };
     const factory = factoryOf(CurrentUser());
 
     expect(

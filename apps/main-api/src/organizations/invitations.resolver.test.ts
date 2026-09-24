@@ -10,7 +10,14 @@ import { InvitationsService } from "./invitations.service.js";
  * different questions with different answers about who may ask them.
  */
 
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 const page = { limit: 50, offset: 0 };
 
 function setup() {

@@ -1,12 +1,12 @@
 // What this API needs from whoever holds the accounts.
 //
-// Six operations and no more. This application's own truth -- profiles,
+// Seven operations and no more. This application's own truth -- profiles,
 // organizations, the email addresses somebody has proved they read -- lives in
 // dbo, so the identity provider is only ever asked about the credential half:
 // which account somebody named, what address it logs in with, what its
-// password is, and which attempts to use that password were refused. That is
-// what keeps this list short, and a short list is what keeps the provider
-// replaceable.
+// password is, which attempts to use that password were refused, and which
+// sessions have ended. That is what keeps this list short, and a short list is
+// what keeps the provider replaceable.
 //
 // An abstract class rather than an interface, because Nest resolves a provider
 // by something that survives to runtime and an interface does not. Nothing
@@ -48,9 +48,32 @@ export interface LoginFailure {
   at: Date;
   // The provider's own word for why, where it says one: Keycloak writes
   // "invalid_user_credentials" and its neighbors. Null when it says nothing,
-  // and never shown to anybody as it stands -- see LoginFailuresService, which
+  // and never shown to anybody as it stands -- see ProviderEventsService, which
   // turns the ones worth a sentence into one.
   reason: string | null;
+}
+
+// A session the provider says is over, read back out of its event log.
+//
+// **It is named by the session and by nothing else**, and unlike a refused
+// login there is no subject here to fall back on: the provider does not know
+// whose session it was by the time it refuses a token refresh for one, because
+// the session it would have looked the answer up in is the thing that is gone.
+// (Verified against Keycloak, whose REFRESH_TOKEN_ERROR carries a session id and
+// no user id at all.) Whoever records one of these resolves the account from the
+// login it already wrote for that session, which is also what stops anything
+// here having to trust a subject a provider handed back.
+export interface EndedSession {
+  sessionId: string;
+  // When it ended, which is up to a sweep before anything here hears about it.
+  at: Date;
+  // Whether somebody ended it on purpose, as against it running out or being
+  // taken away. True where the provider recorded a logout; false where all it
+  // recorded was refusing to refresh a token for a session already gone, which
+  // is what an idle session, a session past its maximum lifespan, and a session
+  // somebody revoked all look like from outside. It picks which sentence the
+  // page shows and nothing else.
+  deliberate: boolean;
 }
 
 export abstract class IdentityAdminService {
@@ -105,4 +128,22 @@ export abstract class IdentityAdminService {
   // be reached or will not answer, including when it has not been configured to
   // keep these events. An empty list means it answered and there were none.
   abstract loginFailures(limit: number): Promise<LoginFailure[]>;
+
+  // The sessions most recently ended on this realm, newest first, at most
+  // `limit` of them.
+  //
+  // Here for the same reason as the read above it and not quite: a logout is
+  // something this application can sometimes see and often cannot. The browser
+  // reports the one somebody pressed a button for, while a session that ran out,
+  // was revoked, or was ended from the provider's own pages ends without a
+  // request ever reaching here. This is the read that covers the rest.
+  //
+  // No resume argument, for the reason loginFailures has none, and it needs one
+  // even less: recording one of these is idempotent on the session, so offering
+  // the same ended session twice costs a refused insert rather than a second row
+  // on somebody's page.
+  //
+  // Implementations throw ServiceUnavailableException on the same terms as
+  // loginFailures. An empty list means it answered and there were none.
+  abstract endedSessions(limit: number): Promise<EndedSession[]>;
 }

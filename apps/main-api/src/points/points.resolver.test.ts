@@ -7,7 +7,14 @@ import { PointsService } from "./points.service.js";
  * with the caller's own login name rather than anything that arrived. */
 
 const page = { limit: 50, offset: 0 };
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 
 describe("the points query", () => {
   it("asks for the points of the account the token names", () => {

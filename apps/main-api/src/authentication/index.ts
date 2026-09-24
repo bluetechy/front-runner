@@ -18,8 +18,14 @@ export {
   Public,
   PUBLIC_OPERATION,
 } from "./authentication.decorators.js";
+// The sentences a login and a logout are recorded with. Here because the
+// security page's own vertical writes the logout one, while the guard in here
+// writes the login one, and two spellings of "You logged out on Mac OS." is how
+// one of them drifts.
+export { logoutDescription } from "./device-name.js";
 export type {
   Account,
+  EndedSession,
   LoginFailure,
   NewAccount,
 } from "./identity-admin.service.js";

@@ -17,6 +17,7 @@ import {
   type Identity,
   type TokenSet,
 } from "./identity-provider";
+import { reportLogout } from "./report-logout";
 
 /*
  * Who is signed in, for the whole app. One provider in main.tsx owns the
@@ -155,7 +156,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const current = tokens.current;
     /* Cleared first, so the UI is logged out even if the provider is slow. */
     clear();
-    if (current) await endSession(current);
+    if (!current) return;
+    /* Before the provider is told, because this is the only moment a live token
+     * and the knowledge that somebody pressed Logout exist together. It is
+     * awaited rather than fired off: the UI is already logged out, so the wait
+     * costs nothing anybody sees, and a request abandoned by a navigation would
+     * leave the row to the once-a-minute mirror instead. Neither call can throw.
+     */
+    await reportLogout(current.accessToken);
+    await endSession(current);
   }, [clear]);
 
   const value = useMemo<Session>(

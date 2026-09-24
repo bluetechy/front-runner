@@ -77,8 +77,12 @@ services:
       # the security page. On unless .env says otherwise, and the one event
       # type on that page with a switch: nothing deduplicates a failed login,
       # so a realm being scanned can fill somebody's page with them. Set it to
-      # false here, or in .env, if this gets noisy. It needs the realm to be
-      # keeping LOGIN_ERROR events -- see apps/keycloak-idp/README.md.
+      # false here, or in .env, if this gets noisy.
+      #
+      # It does not turn off the mirror, only this half of it: logouts are read
+      # on the same poll and are capped at one row per session, so they have no
+      # switch and need none. The realm has to be keeping LOGIN_ERROR, LOGOUT
+      # and REFRESH_TOKEN_ERROR events -- see apps/keycloak-idp/README.md.
       SECURITY_LOG_FAILED_LOGINS: ${SECURITY_LOG_FAILED_LOGINS:-true}
     depends_on:
       main-db:

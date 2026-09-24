@@ -46,6 +46,10 @@ const KINDS: Record<string, ActivityKind> = {
     warning:
       "Nobody got in. A password somebody else is guessing at is still worth changing.",
   },
+  /* Quiet, and deliberately the only login-shaped row that is. Somebody else
+   * ending your session is not how an account is taken: a logout locks a door
+   * rather than opening one, and the dialog still asks the question. */
+  LoggedOut: { heading: "Logged out", warning: "" },
   PasswordChanged: {
     heading: "Password changed",
     warning: "Your account is at risk if this was not you.",

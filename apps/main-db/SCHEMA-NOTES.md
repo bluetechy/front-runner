@@ -668,10 +668,10 @@ Read by `dbo.GetSecurityEvents`, written by `dbo.LogSecurityEvent`, and
 answered by `dbo.ReviewSecurityEvent`. Logins come in through
 `dbo.LogLoginEvent`, which is the odd one: authentication is Keycloak's and
 main-api only meets the token afterwards, again on every request. So a login
-row carries the provider's session id and `UNIQUE ("UserUUID", "SessionId")`
-is what makes one login one row, however many requests that session makes. It
-is the second borrowed identifier in this schema after `dbo.Users."SubjectId"`,
-and nothing reads it back out.
+row carries the provider's session id and
+`UNIQUE ("UserUUID", "EventType", "SessionId")` is what makes one login one row,
+however many requests that session makes. It is the second borrowed identifier in
+this schema after `dbo.Users."SubjectId"`, and nothing reads it back out.
 
 Deduplicating on the provider's `auth_time` instead would have stored nothing
 borrowed, and it was tried. A Keycloak direct grant token carries no `auth_time`
@@ -695,11 +695,33 @@ reading. That is also what makes this the one event type that can flood a
 page, so main-api can be told to stop recording them: see
 `SECURITY_LOG_FAILED_LOGINS`.
 
+**`dbo.LogLogoutEvent` is the one writer that knows neither.** It takes a session
+id and resolves the account from the login row already on this table, because a
+logout arrives from up to three places and only one of them knows who it is: the
+browser reporting that somebody pressed Logout, the provider's own `LOGOUT`
+event, and the provider refusing to refresh a token for a session that was
+already gone. The last of those carries no user at all, verified against a
+running realm, so resolving the account from our own log is the one rule that
+works for all three, and it means nothing here trusts a subject a caller
+supplied. A session this installation never saw a request from has no login row
+and so gets no logout either, which is the same rule `dbo.LogLoginFailure`
+applies to an attempt aimed at nobody.
+
+`EventType` is in that unique constraint for this writer's sake. Without it a
+logout would collide with the login it ends and could never be written at all;
+with it, a session is entitled to one login row and one logout row and no more,
+however many of the three sources report it. **That is why a logout needs no
+switch where a failure does**: the constraint, rather than a setting, is what
+stops it filling a page. The first report to arrive wins, which is why the mirror
+writes oldest first: our own logout produces a `LOGOUT` and then a refused
+refresh moments later, and the page should say "You logged out." rather than
+"This session ended without a logout."
+
 **`dbo.trim_security_events` is the first retention rule in this schema.** It
 is a trigger on the table, dropping an account's own events once they are more
 than twelve months old, and it fires on insert because there is nothing in this
 product to sweep a table on a schedule. A trigger rather than a line in each
-writer, because there are four writers and a rule each has to remember is a
+writer, because there are five writers and a rule each has to remember is a
 rule one of them will not.
 
 It has two consequences worth knowing before writing anything that touches this

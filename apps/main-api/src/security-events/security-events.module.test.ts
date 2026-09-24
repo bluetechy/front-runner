@@ -3,7 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import { AuthenticationModule } from "../authentication/index.js";
 import { DatabaseModule } from "../database/index.js";
 import { PasswordResetModule } from "../password-reset/index.js";
-import { LoginFailuresService } from "./login-failures.service.js";
+import { ProviderEventsService } from "./provider-events.service.js";
 import { SecurityEventsModule } from "./security-events.module.js";
 import { SecurityEventsResolver } from "./security-events.resolver.js";
 import { SecurityEventsService } from "./security-events.service.js";
@@ -14,8 +14,9 @@ const wiring = (key: string): unknown[] =>
 describe("how the security events vertical is wired", () => {
   /* Forgetting a password comes with it, because "No, secure account" is that
    * flow: the same token, the same message, the same page at the end of it.
-   * The identity provider comes with it because a refused login is the one
-   * thing on this page that never reaches the request path. */
+   * The identity provider comes with it because two things on this page never
+   * reach the request path: a login it refused, and a session that ended without
+   * anybody asking us. */
   it("brings the database, the password reset flow and the provider with it", () => {
     expect(wiring("imports")).toEqual([
       DatabaseModule,
@@ -28,14 +29,14 @@ describe("how the security events vertical is wired", () => {
     expect(wiring("providers")).toEqual([
       SecurityEventsResolver,
       SecurityEventsService,
-      LoginFailuresService,
+      ProviderEventsService,
     ]);
   });
 
   /* Nothing injects it and nothing should: it is a timer, not an operation.
    * Exporting it would invite a vertical to reach for a sweep. */
   it("keeps the mirror to itself", () => {
-    expect(wiring("exports")).not.toContain(LoginFailuresService);
+    expect(wiring("exports")).not.toContain(ProviderEventsService);
   });
 
   /* The exception to "a vertical is reached through the schema": a log is

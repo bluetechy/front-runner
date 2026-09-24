@@ -4,7 +4,14 @@ import { TalliesResolver } from "./tallies.resolver.js";
 import { TalliesService } from "./tallies.service.js";
 
 const page = { limit: 50, offset: 0 };
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 
 describe("the tallies query", () => {
   it("asks for the scoreboard as the account the token names", () => {

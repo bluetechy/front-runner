@@ -146,7 +146,41 @@ describe("the account behind the subject", () => {
     expect(request.principal).toEqual({
       userId: "user-id",
       loginName: "alice",
+      sessionId: "session-one",
+      device: null,
     });
+  });
+
+  /* The session and the device ride along for one operation: recordLogout has to
+   * be able to say *which* session ended and what it was on, and both are read
+   * off this request rather than taken as arguments. That is the whole of that
+   * mutation's access control, so it is worth a test of its own. */
+  it("carries the session the token came from", async () => {
+    const { guard, context, request } = setup();
+
+    await guard.canActivate(context);
+
+    expect(request.principal.sessionId).toBe("session-one");
+  });
+
+  it("carries the device the request came from", async () => {
+    const { guard, context, request } = setup();
+    request.headers["user-agent"] =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
+
+    await guard.canActivate(context);
+
+    expect(request.principal.device).toBe("Mac OS");
+  });
+
+  /* A machine's token has no session, so there is nothing for a logout to end.
+   * The mutation answers false rather than writing against a null. */
+  it("carries no session for a token that has none", async () => {
+    const { guard, context, request } = setup({ verify: verifying(machine) });
+
+    await guard.canActivate(context);
+
+    expect(request.principal.sessionId).toBeNull();
   });
 
   // The common sign-in is somebody who has changed nothing, and it should
@@ -357,6 +391,8 @@ describe("writing the login into the security log", () => {
     expect(request.principal).toEqual({
       userId: "user-id",
       loginName: "alice",
+      sessionId: "session-one",
+      device: null,
     });
   });
 

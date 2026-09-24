@@ -40,6 +40,10 @@ describe("what authentication offers the rest of the API", () => {
       "Public",
       "TokenVerifierService",
       "identityKeySetProvider",
+      /* The sentence a logout is recorded with. Exported because the security
+       * page's own vertical writes it while the guard in here writes the login
+       * one, and two spellings of it is how one of them drifts. */
+      "logoutDescription",
     ]);
   });
 

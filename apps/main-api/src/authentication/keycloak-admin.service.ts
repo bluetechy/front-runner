@@ -8,6 +8,7 @@ import { ConfigService } from "@nestjs/config";
 import {
   IdentityAdminService,
   type Account,
+  type EndedSession,
   type LoginFailure,
   type NewAccount,
 } from "./identity-admin.service.js";
@@ -15,7 +16,7 @@ import {
 // IdentityAdminService against Keycloak's admin API. The only file in this
 // API that knows Keycloak has realms, and the only one that would be replaced
 // wholesale by a move to another provider -- see identity-admin.service.ts for
-// the six operations it answers and why there are only six.
+// the seven operations it answers and why there are only seven.
 //
 // Four things, in the language of that port.
 //
@@ -42,7 +43,7 @@ import {
 // that is not about an account somebody named. A refused password mints no
 // token, so a failed login never reaches the request path at all; the provider's
 // own event log is the only place it exists, and the security page mirrors it.
-// See apps/main-api/src/security-events/login-failures.service.ts.
+// See apps/main-api/src/security-events/provider-events.service.ts.
 //
 // It authenticates as the "main-api" client's own service account rather than
 // as the bootstrap administrator: that account holds manage-users, view-users
@@ -215,23 +216,56 @@ export class KeycloakAdminService extends IdentityAdminService {
   }
 
   // Keycloak's user event log, filtered to the logins it refused.
+  async loginFailures(limit: number): Promise<LoginFailure[]> {
+    const events = await this.events(["LOGIN_ERROR"], limit);
+    return events
+      .map(readLoginFailure)
+      .filter((failure): failure is LoginFailure => failure !== null);
+  }
+
+  // The same log, filtered to the two ways it records a session ending.
   //
-  // It answers newest first, which is the order this is specified in, and it
-  // answers at all only because the realm is configured to keep these events:
-  // `eventsEnabled` with LOGIN_ERROR among `enabledEventTypes`, and `view-events`
-  // on this client's service account. Without the role it answers 403 and
-  // without the configuration it answers an empty list forever, so the caller
-  // has to tell a realm with nothing to report from a realm that was never
-  // asked to report -- see apps/keycloak-idp/realm/front-runner-realm.json.
+  // Two types rather than one because Keycloak has no single event for it.
+  // LOGOUT is somebody leaving on purpose, wherever they pressed the button.
+  // REFRESH_TOKEN_ERROR is the only trace of a session that ended without
+  // anybody deciding to end it: the browser comes back with a refresh token for
+  // a session that is no longer there, and that is what an idle timeout, a
+  // session past its maximum lifespan, and a revoked session all look like.
+  //
+  // The second one is also raised for a token that was never valid, and those
+  // carry no session id at all, so `readEndedSession` drops them. That is not a
+  // detail: it is what makes this safe to read. Keycloak validates the
+  // signature before it records a session id, so a session id in this log is one
+  // this deployment really issued, and somebody posting invented tokens at the
+  // token endpoint cannot put a session -- or an account -- into it. Verified
+  // against a running realm rather than assumed.
+  async endedSessions(limit: number): Promise<EndedSession[]> {
+    const events = await this.events(["LOGOUT", "REFRESH_TOKEN_ERROR"], limit);
+    return events
+      .map(readEndedSession)
+      .filter((ended): ended is EndedSession => ended !== null);
+  }
+
+  // One page of the user event log, newest first.
+  //
+  // It answers at all only because the realm is configured to keep these
+  // events: `eventsEnabled` with these types among `enabledEventTypes`, and
+  // `view-events` on this client's service account. Without the role it answers
+  // 403 and without the configuration it answers an empty list forever, so the
+  // caller has to tell a realm with nothing to report from a realm that was
+  // never asked to report -- see apps/keycloak-idp/realm/front-runner-realm.json.
   //
   // No date filter is sent. Keycloak has spelled `dateFrom` two ways across
   // versions and the window is small, so the newest page is fetched and the
   // caller drops what it has already seen. The cap is what bounds the work.
-  async loginFailures(limit: number): Promise<LoginFailure[]> {
-    const query = new URLSearchParams({
-      type: "LOGIN_ERROR",
-      max: String(limit),
-    });
+  private async events(types: string[], limit: number): Promise<unknown[]> {
+    // Repeated rather than joined: Keycloak reads `type` once per value, and a
+    // comma-separated list matches no event type at all. Checked against a
+    // running realm, because a filter silently matching nothing would look
+    // exactly like a realm with nothing to report.
+    const query = new URLSearchParams(types.map((type) => ["type", type]));
+    query.set("max", String(limit));
+
     const response = await this.send(
       `/admin/realms/${encodeURIComponent(this.realm)}/events?${query}`,
       { method: "GET" },
@@ -240,15 +274,12 @@ export class KeycloakAdminService extends IdentityAdminService {
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) this.token = null;
       throw new ServiceUnavailableException(
-        "The identity provider would not answer for its login failures",
+        "The identity provider would not answer for its own event log",
       );
     }
 
     const events: unknown = await response.json().catch(() => null);
-    if (!Array.isArray(events)) return [];
-    return events
-      .map(readLoginFailure)
-      .filter((failure): failure is LoginFailure => failure !== null);
+    return Array.isArray(events) ? events : [];
   }
 
   // One exact search. Keycloak answers a list; anything but exactly one match
@@ -432,6 +463,39 @@ function readLoginFailure(body: unknown): LoginFailure | null {
     subjectId: event.userId,
     at: new Date(event.time),
     reason: typeof event.error === "string" && event.error ? event.error : null,
+  };
+}
+
+// One LOGOUT or REFRESH_TOKEN_ERROR event, read down to the three things
+// recording a finished session needs.
+//
+// **An event with no "sessionId" is dropped**, which is this function's whole
+// job. A logout always carries one. A refused refresh carries one only when the
+// token presented was genuinely ours: Keycloak checks the signature before it
+// records anything about the token, so a refusal over an invented token names no
+// session, and nobody can push a row onto somebody's security page by posting
+// rubbish at the token endpoint.
+//
+// No user is read even from a LOGOUT, which does carry one. Whose session it was
+// is already on record in dbo.SecurityEvents, against the login written for that
+// session, and reading it from there rather than from here means one rule for
+// both types and no trust placed in a subject the provider supplied.
+function readEndedSession(body: unknown): EndedSession | null {
+  const event = body as {
+    type?: unknown;
+    sessionId?: unknown;
+    time?: unknown;
+  } | null;
+  if (!event || typeof event.sessionId !== "string" || !event.sessionId)
+    return null;
+  // Epoch milliseconds, and dropped on nonsense for the reason a refused login
+  // is: a session that ended in 1970 would sit under every login on the page.
+  if (typeof event.time !== "number" || !Number.isFinite(event.time))
+    return null;
+  return {
+    sessionId: event.sessionId,
+    at: new Date(event.time),
+    deliberate: event.type === "LOGOUT",
   };
 }
 

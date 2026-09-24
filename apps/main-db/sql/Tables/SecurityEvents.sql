@@ -36,9 +36,10 @@ CREATE TABLE "dbo"."SecurityEvents" (
     "Description" text NOT NULL, -- the sentence the page shows
     "Device" varchar(255), -- NULL where nothing was known about it
     "Location" varchar(255), -- NULL likewise, and coarse where it is not
-    -- The identity provider's session, on a login row and nothing else.
+    -- The identity provider's session, on the rows about a session and nothing
+    -- else: a login and the logout that ends it.
     --
-    -- It is here to answer one question: has this login already been recorded?
+    -- It is here to answer one question: has this already been recorded?
     -- main-api meets a token on every request for as long as a session lasts,
     -- so without a durable key for "this login", a restart or a second instance
     -- would write a second "New login" onto somebody's page for a session that
@@ -46,13 +47,21 @@ CREATE TABLE "dbo"."SecurityEvents" (
     -- that, race and all; the writer's ON CONFLICT is how it stays quiet about
     -- it.
     --
+    -- A logout leans on the same key for a second reason. One session can be
+    -- told it ended three different ways -- the person pressed Logout, the
+    -- provider recorded a LOGOUT, the provider refused a token refresh for a
+    -- session that was already gone -- and all three are the same fact. The
+    -- constraint is what collapses them into one row rather than three, and it
+    -- is why no switch is needed to keep logouts off this page: a session can
+    -- cost it one login row and one logout row, and never a third.
+    --
     -- The provider's vocabulary in this table is a cost, not a preference, and
     -- it is one this schema already pays: dbo.Users."SubjectId" is the same
     -- kind of borrowed identifier. Nothing reads it back out -- it is never
     -- returned by dbo.GetSecurityEvents and never reaches the browser.
     --
-    -- NULL on everything that is not a login. Postgres counts NULLs as distinct
-    -- in a unique constraint, so those rows are unconstrained by it.
+    -- NULL on everything that is not about a session. Postgres counts NULLs as
+    -- distinct in a unique constraint, so those rows are unconstrained by it.
     "SessionId" varchar(64),
     "OccurredAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "ReviewedAt" TIMESTAMPTZ, -- when it was answered, NULL while it has not been
@@ -62,6 +71,10 @@ CREATE TABLE "dbo"."SecurityEvents" (
     "UpdatedAt" TIMESTAMPTZ,
     "UpdatedBy" varchar(64),
     CONSTRAINT "CK_SecurityEvents_Reviewed" CHECK (("ReviewedAt" IS NULL) = ("Recognized" IS NULL)),
-    -- One login per session per account. See "SessionId" above.
-    CONSTRAINT "UX_SecurityEvents_Session" UNIQUE ("UserUUID", "SessionId")
+    -- One event of a kind per session per account: a session's login is written
+    -- once however many requests carry it, and its logout once however many
+    -- ways the provider says it ended. "EventType" is in here rather than left
+    -- out because a logout would otherwise collide with the login it ends. See
+    -- "SessionId" above.
+    CONSTRAINT "UX_SecurityEvents_Session" UNIQUE ("UserUUID", "EventType", "SessionId")
 );

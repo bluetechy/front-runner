@@ -171,3 +171,53 @@ describe("what a refused login writes", () => {
     expect(await service.newestLoginFailure()).toBeNull();
   });
 });
+
+describe("what a finished session writes", () => {
+  it("records it against the session and nothing else", async () => {
+    const { service, query } = setup([]);
+
+    await service.recordLogout("session-one", "You logged out.", "Mac OS");
+
+    expect(sqlOf(query)).toContain('"LogLogoutEvent"');
+    expect(query.mock.calls[0]?.[1]).toEqual([
+      "session-one",
+      "You logged out.",
+      "Mac OS",
+      null,
+    ]);
+  });
+
+  /* The mirrored callers are up to a sweep late, and a logout stamped now would
+   * sort above the login it ends on a page ordered by when things happened. */
+  it("keeps the moment the session actually ended", async () => {
+    const ended = new Date("2026-09-20T21:42:00.000Z");
+    const { service, query } = setup([]);
+
+    await service.recordLogout(
+      "session-one",
+      "This session ended without a logout.",
+      undefined,
+      ended,
+    );
+
+    expect(query.mock.calls[0]?.[1]).toEqual([
+      "session-one",
+      "This session ended without a logout.",
+      null,
+      ended,
+    ]);
+  });
+
+  /* Back to swallowing, unlike the refused login above. The rule is the same
+   * one: a logout keeps no high-water mark, because being idempotent on the
+   * session takes the place of one, so there is no mark for a swallowed failure
+   * to move past. Somebody who pressed Logout is logged out either way. */
+  it("swallows a failed write, unlike a refused login", async () => {
+    const { service, query } = setup([]);
+    query.mockRejectedValueOnce(new Error("the database fell over"));
+
+    await expect(
+      service.recordLogout("session-one", "You logged out."),
+    ).resolves.toBeUndefined();
+  });
+});

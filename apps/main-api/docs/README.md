@@ -73,16 +73,25 @@ reads those columns back today, so nothing breaks, but see
 and the columns it protects are a placeholder for a payment processor and are
 meant to be deleted together.
 
-`SECURITY_LOG_FAILED_LOGINS` turns off the one timer in this API. A refused
-password mints no token, so a failed login never reaches the request path;
-`LoginFailuresService` asks the identity provider once a minute what it refused
-and copies that onto the security page. It is the one event type on that page
-with a switch, because it is the one nothing deduplicates: ten attempts are ten
-rows, and a realm being scanned can fill somebody's page with them. Off stops
-the polling entirely, and the provider keeps its own event log either way. It
-also needs the realm to be keeping `LOGIN_ERROR` events and this client to hold
-`view-events`: see `apps/keycloak-idp/README.md`. Without either, the service
-says so once in the output and records nothing.
+`SECURITY_LOG_FAILED_LOGINS` narrows the one timer in this API.
+`ProviderEventsService` asks the identity provider once a minute about the two
+things the security page needs and the request path cannot see: the logins it
+refused, and the sessions that have ended. A refused password mints no token, and
+a session that ran out or was revoked ends without a request, so neither is
+visible from here.
+
+The switch covers the first of those only, and the timer keeps running either way.
+Failures are the one event type on that page nothing deduplicates: ten attempts
+are ten rows, because how many there were is the fact worth reading, and a realm
+being scanned can fill somebody's page with them. A logout is deduplicated on the
+session, so it is capped at one row per session and needs no switch. The provider
+keeps its own event log whichever way this is set, so off loses the copy rather
+than the record.
+
+It needs the realm to be keeping `LOGIN_ERROR`, `LOGOUT` and
+`REFRESH_TOKEN_ERROR` events, and this client to hold `view-events`: see
+`apps/keycloak-idp/README.md`. Without either, the service says so once in the
+output and records nothing.
 
 ## Checks
 

@@ -64,7 +64,7 @@ export const sections: readonly Section[] = [
       "Your payment methods: the cards and bank accounts you save in the wallet, so that you do not have to type them again.",
       "What you write to us: your name, an address to reply to, and the message itself when you use the contact form.",
       "What the program records: the points, the badges, the levels and the activity behind them. That is what the product is, so using it is what creates them.",
-      'What happened to your account: each login, each login somebody tried and was refused, and each change to the way you get into it, such as an email address added or removed. A login you completed is recorded with the kind of device it came from, which is as specific as "Mac OS" or "iPhone" and no more. A refused one is recorded against the account it was aimed at, and an attempt on a name nobody holds is recorded against nobody at all. You can read the whole of it yourself on the Security & Access page, which is the reason it is kept.',
+      'What happened to your account: each login, each login somebody tried and was refused, the end of each session, and each change to the way you get into it, such as an email address added or removed. A login you completed is recorded with the kind of device it came from, which is as specific as "Mac OS" or "iPhone" and no more. A refused one is recorded against the account it was aimed at, and an attempt on a name nobody holds is recorded against nobody at all. A session is recorded as ended whether you logged out or it simply ran out, and only where we recorded the login it belongs to. You can read the whole of it yourself on the Security & Access page, which is the reason it is kept.',
       "What your browser keeps for you: four things, listed under Cookies below.",
     ],
   },
@@ -77,7 +77,7 @@ export const sections: readonly Section[] = [
     points: [
       "To give you the product you asked for. An account, a profile, a wallet and a scoreboard cannot exist without the data they are made of. What allows it is the contract between us.",
       "To keep the account yours. Signing you in, signing you out and remembering a session are a legitimate interest in not letting somebody else in.",
-      "To show you what has been done to your account, and what somebody tried. A record of your own logins is the only way you can notice one that was not you, and a record of the refused ones is how you notice somebody guessing before they get anywhere. Keeping both is a legitimate interest in the security of your account, and it is yours to read rather than ours to study.",
+      "To show you what has been done to your account, and what somebody tried. A record of your own logins is the only way you can notice one that was not you, and a record of the refused ones is how you notice somebody guessing before they get anywhere. Recording when a session ended is what makes the rest of it readable: a login with nothing under it is one that may still be open somewhere. Keeping these is a legitimate interest in the security of your account, and they are yours to read rather than ours to study.",
       "To answer you when you write to us. Also a legitimate interest, and the message is kept for as long as answering it takes.",
       "To count visits or to measure advertising, if you allow it. What allows that is your consent and nothing else, so none of it runs until you give it, and it stops when you take it back.",
     ],

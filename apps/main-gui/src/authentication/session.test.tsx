@@ -15,6 +15,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const signInWithPassword = vi.fn();
 const refreshTokens = vi.fn();
 const endSession = vi.fn();
+const reportLogout = vi.fn();
+
+vi.mock("./report-logout", () => ({ reportLogout }));
 
 vi.mock("./identity-provider", () => ({
   signInWithPassword,
@@ -101,6 +104,7 @@ beforeEach(() => {
   signInWithPassword.mockReset();
   refreshTokens.mockReset();
   endSession.mockReset().mockResolvedValue(undefined);
+  reportLogout.mockReset().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -312,12 +316,62 @@ describe("signing out", () => {
     );
   });
 
+  /* The security page would otherwise show a login with nothing under it:
+   * logging out is a call the browser makes straight to the provider, so no
+   * request reaches our own API at the moment it happens. */
+  it("tells our own API the session is over", async () => {
+    signInWithPassword.mockResolvedValue(tokens());
+    renderSession();
+    await act(() => session().login("member@example.test", "a", true));
+
+    await act(() => session().logout());
+
+    expect(reportLogout).toHaveBeenCalledWith("an-access-token");
+  });
+
+  /* Which session ended is the session on the token, so the report has to go
+   * while the token is still in hand. */
+  it("reports it before handing the provider the tokens", async () => {
+    signInWithPassword.mockResolvedValue(tokens());
+    renderSession();
+    await act(() => session().login("member@example.test", "a", true));
+
+    await act(() => session().logout());
+
+    expect(reportLogout.mock.invocationCallOrder[0]).toBeLessThan(
+      endSession.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  /* Bookkeeping must never leave somebody looking logged in, so the session is
+   * cleared before either call is made rather than after both have answered.
+   * Neither can throw -- report-logout.ts and identity-provider.ts each swallow
+   * their own failures, and each has its own tests saying so -- but this is what
+   * makes that a belt rather than the only thing holding it up. */
+  it("clears the session before telling anybody about it", async () => {
+    signInWithPassword.mockResolvedValue(tokens());
+    let tokenStillOnDisk: string | null = "not read yet";
+    reportLogout.mockImplementation(() => {
+      tokenStillOnDisk = read("local", STORAGE_KEY);
+      return Promise.resolve();
+    });
+    renderSession();
+    await act(() => session().login("member@example.test", "a", true));
+
+    await act(() => session().logout());
+
+    expect(reportLogout).toHaveBeenCalled();
+    expect(tokenStillOnDisk).toBeNull();
+    expect(screen.getByText("signed-out")).toBeInTheDocument();
+  });
+
   it("does nothing at all when nobody was signed in", async () => {
     renderSession();
 
     await act(() => session().logout());
 
     expect(endSession).not.toHaveBeenCalled();
+    expect(reportLogout).not.toHaveBeenCalled();
   });
 });
 

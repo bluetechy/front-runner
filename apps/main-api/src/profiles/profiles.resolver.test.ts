@@ -11,7 +11,14 @@ import type { ProfileInput } from "./profiles.schema.js";
  * own beyond being signed in.
  */
 
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 
 const profile = {
   FirstName: "Marcus",

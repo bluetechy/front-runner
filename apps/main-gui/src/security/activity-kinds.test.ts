@@ -43,11 +43,17 @@ describe("what a kind of event is called", () => {
     expect(kindOf("LoginFailed").warning).toMatch(/nobody got in/i);
   });
 
+  it("heads a finished session as a logout", () => {
+    expect(kindOf("LoggedOut").heading).toBe("Logged out");
+  });
+
   /* A sentence about risk on every row is a sentence nobody reads by the
-   * third one. */
+   * third one. A logout is the only login-shaped row that earns none: somebody
+   * else ending your session locks a door rather than opening one. */
   it("says nothing extra about an event that is quiet", () => {
     expect(kindOf("EmailRemoved").warning).toBe("");
     expect(kindOf("ActivityReported").warning).toBe("");
+    expect(kindOf("LoggedOut").warning).toBe("");
   });
 
   it("spaces out a type it has never met rather than drawing nothing", () => {

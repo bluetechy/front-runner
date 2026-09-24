@@ -1,7 +1,14 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import { DatabaseService } from "../database/index.js";
 import { TeamsService } from "./teams.service.js";
-const actor = { userId: "actor-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const actor = {
+  userId: "actor-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 function setup(access: Record<string, boolean>) {
   const query = jest.fn<DatabaseService["query"]>().mockResolvedValue([access]);
   return {

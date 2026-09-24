@@ -87,7 +87,7 @@ BEGIN
         ('RemovePaymentMethod'), ('RemoveUserEmail'), ('RenameOrganization'),
         ('ReorderTasks'),
         ('GetSecurityEvents'), ('LogLoginEvent'), ('LogLoginFailure'),
-        ('LogSecurityEvent'), ('ReviewSecurityEvent'),
+        ('LogLogoutEvent'), ('LogSecurityEvent'), ('ReviewSecurityEvent'),
         ('RequestPointRedemption'), ('RequestPointTransfer'),
         ('ResendUserEmailVerification'), ('ReverseUserPoints'),
         ('RevokeOrganizationInvitation'), ('SetDefaultPaymentMethod'),

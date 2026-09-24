@@ -11,7 +11,14 @@ import { OrganizationsService } from "./organizations.service.js";
  * removing yourself does not.
  */
 
-const actor = { userId: "actor-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const actor = {
+  userId: "actor-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 const page = { limit: 50, offset: 0 };
 
 function setup(...answers: unknown[][]) {

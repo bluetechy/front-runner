@@ -64,25 +64,36 @@ Self-registration is on, which is the point of the model: anyone can make an
 account, and that account belongs to no organization until somebody invites it
 into one.
 
-## The event log, and why only one event is in it
+## The event log, and why only three events are in it
 
-`eventsEnabled` is on, and `enabledEventTypes` holds exactly one type:
-`LOGIN_ERROR`. `view-events` is on the `main-api` service account beside
-`manage-users` and `view-users`.
+`eventsEnabled` is on, and `enabledEventTypes` holds exactly three types:
+`LOGIN_ERROR`, `LOGOUT` and `REFRESH_TOKEN_ERROR`. `view-events` is on the
+`main-api` service account beside `manage-users` and `view-users`.
 
-That is there for one feature. A refused password mints no token, so a failed
-login never reaches main-api on the request path at all; Keycloak's event log is
-the only place it exists, and the security page mirrors it out of here. See
-`apps/main-api/src/security-events/login-failures.service.ts`.
+Those three are there for one feature, and they are the things the security page
+needs that **main-api cannot see from the request path**:
 
-**The list is one type rather than Keycloak's default of all of them**, which is
-deliberate. Left at the default, Keycloak would keep a row for every successful
-login, logout, token refresh, registration and password reset on the realm, in a
-second store nothing reads and no retention rule of ours reaches. The security
-page already records the ones it needs in `dbo.SecurityEvents`, under a
-twelve-month rule it enforces itself. So this log keeps only the one thing that
-is not already kept somewhere better, and `eventsExpiration` drops those after
-thirty days.
+- `LOGIN_ERROR` because a refused password mints no token, so a failed login
+  never reaches main-api at all. Keycloak's event log is the only place it exists.
+- `LOGOUT` because logging out is a call the browser makes straight to here. The
+  browser does report it to main-api as well, and that report is faster and knows
+  the device, but it cannot cover a logout from Keycloak's own account pages, from
+  another application on this realm, or from a browser closed before the report
+  could be sent.
+- `REFRESH_TOKEN_ERROR` because it is the only trace of a session that ended with
+  nobody deciding to end it: an idle timeout, a session past `ssoSessionMaxLifespan`,
+  or one somebody revoked. It carries a session id and no user, which is why the
+  mirror resolves the account from the login it already recorded for that session.
+
+See `apps/main-api/src/security-events/provider-events.service.ts`.
+
+**The list is three types rather than Keycloak's default of all of them**, which
+is deliberate. Left at the default, Keycloak would keep a row for every successful
+login, token refresh, registration and password reset on the realm, in a second
+store nothing reads and no retention rule of ours reaches. The security page
+already records the ones it needs in `dbo.SecurityEvents`, under a twelve-month
+rule it enforces itself. So this log keeps only what is not already kept
+somewhere better, and `eventsExpiration` drops those after thirty days.
 
 `adminEventsEnabled` is left off: it records what administrators changed, and
 the only administrator on this realm is main-api's own service account doing

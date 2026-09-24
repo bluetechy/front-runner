@@ -118,6 +118,19 @@ describe("the section about the security log", () => {
     expect(everything).toMatch(/nobody at all/i);
   });
 
+  /* The other half of a login, added with it: the page records when a session
+   * ended as well as when it began, and the policy has to say so because a
+   * logout is as much a record of somebody's movements as the login was. */
+  it("says the end of a session is recorded as well as its start", () => {
+    expect(everything).toMatch(/end of each session/i);
+  });
+
+  /* Two honest limits on that one. It does not claim to know why a session
+   * ended, and it cannot record the end of a session it never saw begin. */
+  it("does not claim to know whether a session was ended or ran out", () => {
+    expect(everything).toMatch(/whether you logged out or it simply ran out/i);
+  });
+
   // The same twelve months dbo.trim_security_events deletes on. If this fails,
   // one of the two moved and the other has to move with it.
   it("says how long it is kept, and agrees with the database", () => {

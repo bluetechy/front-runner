@@ -13,7 +13,14 @@ import { NotificationsService } from "./notifications.service.js";
  * count every notification there is, not the ones in the page on screen.
  */
 
-const user = { userId: "user-id", loginName: "alice" };
+/* A whole Principal, which also carries the session the token came from
+ * and the device the request did. Nothing in this file reads either. */
+const user = {
+  userId: "user-id",
+  loginName: "alice",
+  sessionId: "session-id",
+  device: "Mac OS",
+};
 const page = { limit: 50, offset: 0 };
 
 function setup() {
