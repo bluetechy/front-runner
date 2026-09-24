@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordSchema } from "./password-rules";
 
 /*
  * What a new account is allowed to be, in the browser.
@@ -44,14 +45,11 @@ const personName = (field: string) =>
     .min(1, `Enter your ${field}`)
     .max(64, `A ${field} cannot be longer than 64 characters`);
 
-/* Eight characters, which is the API's minimum; the realm itself has no
- * password policy set today, so this and its copy over there are the whole of
- * the rule. The upper bound is bcrypt's: past 72 bytes the rest is not
- * hashed, so accepting more would be pretending. */
-const password = z
-  .string()
-  .min(8, "A password needs at least 8 characters")
-  .max(72, "A password cannot be longer than 72 characters");
+/* The realm's password policy, read from `password-rules.ts` so that the
+ * three cards that set a password say one thing between them. Keycloak is
+ * what enforces it and main-api says it on the way in; this is the copy that
+ * lets the box refuse a password beside itself. */
+const password = passwordSchema;
 
 export const registrationSchema = z
   .object({

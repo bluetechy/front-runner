@@ -15,6 +15,7 @@ import {
   checkNewPassword,
   type NewPasswordForm,
 } from "./password-reset-schema";
+import { PasswordChecklist } from "./password-checklist";
 import { PasswordResetError, resetPassword } from "./password-reset";
 
 /*
@@ -161,7 +162,14 @@ export function ResetPassword({ token }: { token: string | undefined }) {
           ) : null}
 
           <Stack spacing={2.25} sx={{ mt: 3, maxWidth: "24rem" }}>
-            {field("Password", "New password", "At least 8 characters")}
+            {/* The rules under the box rather than crammed into its
+             * placeholder. Five of them will not fit in one line of gray
+             * text, and a placeholder that named only the first would be
+             * refusing somebody for four rules it never mentioned. */}
+            <Box>
+              {field("Password", "New password", "Your new password")}
+              <PasswordChecklist password={form.Password} />
+            </Box>
             {field("Confirm", "Confirm password", "Type it once more")}
             <Box>
               <Button

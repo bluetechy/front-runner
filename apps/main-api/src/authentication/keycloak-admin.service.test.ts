@@ -23,6 +23,9 @@ const settings: Record<string, string> = {
   KEYCLOAK_REALM: "front-runner",
   KEYCLOAK_CLIENT_ID: "main-api",
   KEYCLOAK_CLIENT_SECRET: "a-secret-long-enough-to-pass",
+  // The browser's client, borrowed for one call: the password grant that
+  // checks a password somebody typed. "main-api" has every flow disabled.
+  KEYCLOAK_BROWSER_CLIENT_ID: "main-gui",
 };
 
 const config = {
@@ -484,6 +487,217 @@ describe("setting a password", () => {
     await expect(
       service.setPassword("subject-marcus", "a-good-enough-password"),
     ).rejects.toThrow("unavailable");
+  });
+});
+
+/*
+ * Checking a password somebody typed, which Keycloak has no endpoint for: it
+ * is asked to authenticate and the session is thrown away. Everything here is
+ * about that second half, because a check that left a session behind every
+ * time somebody opened the card would be a leak rather than a check.
+ */
+describe("checking that a password is the account's own", () => {
+  const grant = () =>
+    ok({ access_token: "a-token", refresh_token: "a-refresh-token" });
+
+  it("asks the browser's client for a password grant, not the API's", async () => {
+    fetchMock.mockResolvedValueOnce(grant()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "letmein")).resolves.toBe(
+      true,
+    );
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/realms/front-runner/protocol/openid-connect/token",
+    );
+    const body = new URLSearchParams(String(init?.body));
+    expect(body.get("grant_type")).toBe("password");
+    // "main-api" has every flow disabled, direct grants included, so the
+    // client that can answer this is the one the sign-in dialog already uses.
+    expect(body.get("client_id")).toBe("main-gui");
+    expect(body.get("username")).toBe("marcus");
+    expect(body.get("password")).toBe("letmein");
+  });
+
+  // Never an admin call, so it never touches the cached admin token: this is
+  // the account's own credentials being presented, by name.
+  it("makes no admin call at all", async () => {
+    fetchMock.mockResolvedValueOnce(grant()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.verifyPassword("marcus", "letmein");
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes("/admin/")),
+    ).toEqual([]);
+  });
+
+  /* The assertion this block exists for. A grant that was allowed to stand
+   * would open a session on the realm every time somebody opened the card. */
+  it("spends the session it just opened", async () => {
+    fetchMock.mockResolvedValueOnce(grant()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.verifyPassword("marcus", "letmein");
+
+    const [url, init] = fetchMock.mock.calls[1]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/realms/front-runner/protocol/openid-connect/logout",
+    );
+    expect(new URLSearchParams(String(init?.body)).get("refresh_token")).toBe(
+      "a-refresh-token",
+    );
+  });
+
+  it("reads a refusal as a wrong password and nothing worse", async () => {
+    fetchMock.mockResolvedValueOnce(failed(401));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "not-it")).resolves.toBe(
+      false,
+    );
+  });
+
+  /* The difference that matters most here. Telling somebody their own
+   * password is wrong when the truth is a broken realm sends them looking for
+   * a password they already have. */
+  it("reads anything else as an outage rather than a wrong password", async () => {
+    fetchMock.mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "letmein")).rejects.toThrow(
+      "could not check that password",
+    );
+  });
+
+  it("reads a server that cannot be reached as an outage too", async () => {
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "letmein")).rejects.toThrow(
+      "unavailable",
+    );
+  });
+
+  // The password was right, which is what was asked. A logout that would not
+  // go through is the realm's idle timeout's problem, not the caller's.
+  it("still says the password was right when the logout fails", async () => {
+    fetchMock
+      .mockResolvedValueOnce(grant())
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "letmein")).resolves.toBe(
+      true,
+    );
+  });
+});
+
+describe("when the password was last set", () => {
+  const credentials = (createdDate: unknown) => [
+    { type: "otp", createdDate: 1 },
+    { type: "password", createdDate },
+  ];
+
+  it("reads it off the account's password credential", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok(credentials(1758404520000)));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passwordChangedAt("subject-marcus")).resolves.toEqual(
+      new Date(1758404520000),
+    );
+
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/credentials",
+    );
+  });
+
+  /* A line on a card. A card that refused to draw because a date was missing
+   * would be worse than one that leaves the line out, so every way this can
+   * come to nothing comes to null rather than to an exception. */
+  it.each([
+    ["the account has no password credential", ok([{ type: "otp" }])],
+    ["the stamp is not a number", ok(credentials("last tuesday"))],
+    ["the answer is not a list at all", ok({ error: "no" })],
+    ["Keycloak refuses the read", failed(403)],
+  ])("answers with no date when %s", async (_, response) => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(response);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passwordChangedAt("subject-marcus")).resolves.toBe(
+      null,
+    );
+  });
+});
+
+describe("ending every session but one", () => {
+  const sessions = () => ok([{ id: "session-old" }, { id: "session-now" }]);
+
+  /* Keycloak's own logout-the-user endpoint ends all of them, this one
+   * included. Somebody who has just changed their password correctly should
+   * not be thrown out of the browser they did it in. */
+  it("leaves the session the request came in on alone", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(sessions())
+      .mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.endOtherSessions("subject-marcus", "session-now"),
+    ).resolves.toBe(1);
+
+    const deletes = fetchMock.mock.calls.filter(
+      ([, init]) => init?.method === "DELETE",
+    );
+    expect(deletes).toHaveLength(1);
+    expect(String(deletes[0]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/sessions/session-old",
+    );
+  });
+
+  // A request with no session on its token -- a machine's -- keeps nothing
+  // back, because there is nothing of its own to keep.
+  it("ends all of them when there is no session to keep", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(sessions())
+      .mockResolvedValueOnce(ok())
+      .mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.endOtherSessions("subject-marcus", null),
+    ).resolves.toBe(2);
+  });
+
+  /* The list is a moment old by the time this reads it, so a session that has
+   * already gone is the ordinary case rather than a failure. The count is
+   * what was actually ended. */
+  it("counts what it ended and skips what it could not", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(sessions())
+      .mockResolvedValueOnce(failed(404))
+      .mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.endOtherSessions("subject-marcus", null),
+    ).resolves.toBe(1);
+  });
+
+  it("reads a provider that will not list them as an outage", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.endOtherSessions("subject-marcus", "session-now"),
+    ).rejects.toThrow("would not say what sessions are open");
   });
 });
 

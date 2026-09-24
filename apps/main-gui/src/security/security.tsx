@@ -10,6 +10,9 @@ import { ActivityDialog } from "./activity-dialog";
 import { ActivityList } from "./activity-list";
 import { useSecurityActivity, type SecurityEvent } from "./activity-api";
 import { EmailList } from "./email-list";
+import { PasswordCard } from "./password-card";
+import { usePassword } from "./password-api";
+import type { ChangePasswordForm } from "./password-schema";
 import { UserNameCard } from "./user-name-card";
 import { PrivacyCard } from "./privacy-card";
 import { useEmails, type UserEmail } from "./email-api";
@@ -51,6 +54,11 @@ export function Security() {
     review,
   } = useSecurityActivity();
   const { identity } = useSession();
+  const {
+    changedAt,
+    loading: loadingPassword,
+    change: changePassword,
+  } = usePassword();
 
   /* Which row has a save in flight. One at a time is enough: every write
    * rewrites the whole list, so a second one started underneath the first
@@ -58,6 +66,7 @@ export function Security() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   /* Which event the dialog is looking at, and whether its answer is in flight.
@@ -75,6 +84,43 @@ export function Security() {
       message: failure instanceof Error ? failure.message : fallback,
       tone: "error",
     });
+  }
+
+  /* Written out as a function rather than a chain off the card, because the
+   * card is told to empty its boxes on the way through and a callback inside a
+   * `then` is the one shape this page does not use anywhere. Awaiting it puts
+   * the two in the order they are read in. */
+  async function changing(form: ChangePasswordForm, done: () => void) {
+    setChangingPassword(true);
+    try {
+      const changed = await changePassword(form.Current, form.Password);
+      /* The boxes are emptied here rather than in the card, and only on a yes:
+       * a form cleared by a refusal is one somebody has to type again to find
+       * out what was wrong with it. */
+      done();
+      setNotice({
+        /* Two things happened and the sentence says both, the way the
+         * primary-address one does. Somebody who is not told their other
+         * sessions were ended will wonder why a phone in their pocket has
+         * asked them to login again.
+         *
+         * Null is not zero. Zero means there were none, which is worth saying;
+         * null means the password changed and we could not then say what
+         * happened to the sessions, and reporting that as "no other sessions"
+         * would tell somebody to stop looking. */
+        message:
+          changed.OtherSessionsEnded === null
+            ? "Your password was changed. Check Recent Activity below for any session that is still open."
+            : changed.OtherSessionsEnded > 0
+              ? `Your password was changed, and ${sessions(changed.OtherSessionsEnded)} on your other devices ended.`
+              : "Your password was changed. There were no other sessions open.",
+        tone: "success",
+      });
+    } catch (failure: unknown) {
+      report(failure, "Your password was not changed.");
+    } finally {
+      setChangingPassword(false);
+    }
   }
 
   async function act(
@@ -213,6 +259,20 @@ export function Security() {
         />
       </CardSurface>
 
+      {/* Under the addresses and above the log, because the page is ordered by
+       * what each block is: what the account is called, then everything about
+       * getting into it that can be changed, then what has happened. A
+       * password is the credential the addresses above it and the logins below
+       * it both rest on, so it ends the first group rather than starting the
+       * second. */}
+      <PasswordCard
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+        changedAt={changedAt}
+        loading={loadingPassword}
+        busy={changingPassword}
+        onChange={(form, done) => void changing(form, done)}
+      />
+
       {/* Under the addresses, because it is the record of what has been done to
        * them and to everything else about getting in: the page says what the
        * account is, then what can be changed about it, then what has changed.
@@ -313,4 +373,10 @@ export function Security() {
       <Toast notice={notice} onClose={() => setNotice(null)} />
     </>
   );
+}
+
+/* "1 session" or "3 sessions". Written out rather than left as "1 session(s)",
+ * which is a sentence nobody would write by hand. */
+function sessions(count: number): string {
+  return count === 1 ? "1 session" : `${count} sessions`;
 }

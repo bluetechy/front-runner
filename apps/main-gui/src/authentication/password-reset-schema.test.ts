@@ -15,8 +15,8 @@ import {
  */
 
 const filled = {
-  Password: "a-good-enough-password",
-  Confirm: "a-good-enough-password",
+  Password: "Trombone-42-Fig",
+  Confirm: "Trombone-42-Fig",
 };
 
 describe("the name somebody types into the forgot-password card", () => {
@@ -46,10 +46,26 @@ describe("the new password", () => {
     expect(checkNewPassword(filled)).toEqual({});
   });
 
-  it("asks for eight characters", () => {
-    expect(checkNewPassword({ Password: "short", Confirm: "short" })).toEqual({
-      Password: "A password needs at least 8 characters",
-    });
+  /* The realm's own policy, said here so the box can refuse a password
+   * beside itself. One sentence at a time, naming the first rule in the list
+   * that is broken: the checklist beside the box is where all five are shown.
+   * See `password-rules.ts`. */
+  it("asks for twelve characters, and then for each kind of them", () => {
+    expect(
+      checkNewPassword({ Password: "Short-1", Confirm: "Short-1" }),
+    ).toEqual({ Password: "A password needs at least 12 characters" });
+    expect(
+      checkNewPassword({
+        Password: "trombone-42-fig",
+        Confirm: "trombone-42-fig",
+      }),
+    ).toEqual({ Password: "A password needs a capital letter" });
+    expect(
+      checkNewPassword({
+        Password: "Trombone42Figs",
+        Confirm: "Trombone42Figs",
+      }),
+    ).toEqual({ Password: "A password needs a symbol, like ! or ? or #" });
   });
 
   /* Past bcrypt's 72 bytes the rest is not hashed. */
@@ -66,8 +82,8 @@ describe("the new password", () => {
   it("says the two do not match, under the second one", () => {
     expect(
       checkNewPassword({
-        Password: "a-good-enough-password",
-        Confirm: "a-good-enough-passwerd",
+        Password: "Trombone-42-Fig",
+        Confirm: "Trombone-42-Fog",
       }),
     ).toEqual({ Confirm: "The two passwords do not match" });
   });
@@ -75,7 +91,7 @@ describe("the new password", () => {
   // A password is a secret somebody typed on purpose. Trimming it would set
   // one password and let them login with another.
   it("leaves the password exactly as it was typed", () => {
-    const padded = "  spaces  both  ends  ";
+    const padded = "  Spaces 4 both ends!  ";
 
     expect(
       newPasswordSchema.safeParse({ Password: padded, Confirm: padded }).data

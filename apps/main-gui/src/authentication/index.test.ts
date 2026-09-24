@@ -27,19 +27,33 @@ import {
  */
 
 describe("what authentication offers the rest of the app", () => {
-  it("offers the three cards, the reset page, the two providers, their hooks, and the callback's pair", () => {
+  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, and the password rules", () => {
     expect(Object.keys(authentication).toSorted()).toEqual([
       "ForgotPasswordDialog",
       "LoginDialog",
       "LoginPromptProvider",
+      "PASSWORD_RULES",
+      "PasswordChecklist",
       "ResetPassword",
       "SessionProvider",
       "SignUpDialog",
+      "checkPassword",
       "exchangeAuthorizationCode",
+      "passwordProgress",
+      "passwordSchema",
       "takeRedirectVerifier",
       "useLoginPrompt",
       "useSession",
     ]);
+  });
+
+  /* The security page's change-password card holds a password to exactly the
+   * rule the sign-up dialog and the reset page hold one to, and reads it from
+   * here. A fourth copy of that rule would be a fourth card that could
+   * disagree about what a password is. */
+  it("offers the password rules, because three cards set a password", () => {
+    expect(authentication.PASSWORD_RULES.length).toBeGreaterThan(0);
+    expect(authentication.checkPassword("Trombone-42-Fig")).toBeNull();
   });
 
   it("offers the things themselves rather than copies of them", () => {

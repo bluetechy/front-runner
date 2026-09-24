@@ -72,6 +72,7 @@ export function CardField({
   options,
   rows,
   type = "text",
+  autoComplete,
   placeholder,
   error,
   hint,
@@ -88,8 +89,19 @@ export function CardField({
   rows?: number;
   /* No "date": the one date on these forms is written the way this product
    * writes dates, and a native date field is written the way the browser's
-   * locale does. See the profile form. */
-  type?: "text" | "email" | "tel" | "url";
+   * locale does. See the profile form.
+   *
+   * "password" is here for the change-password card, and it is the browser's
+   * own rather than a text box with the letters hidden by hand: a password
+   * field is what a password manager looks for, what a phone keyboard turns
+   * autocorrect off for, and what a screen reader announces as one. */
+  type?: "text" | "email" | "tel" | "url" | "password";
+  /* What the browser may fill this with, and the only reason it is a prop:
+   * a password field with no autocomplete is one a password manager cannot
+   * tell apart from the next password field, so a change-password form gets
+   * "current-password" over the first box and "new-password" over the other
+   * two. The rest of these forms need none of it and pass none. */
+  autoComplete?: string;
   /* Shown in an empty field: the shape of what goes in it, where the shape
    * is not obvious. It is not a label and never says what the field is. */
   placeholder?: string;
@@ -119,7 +131,7 @@ export function CardField({
       onChange={(event) => onChange(event.target.value)}
       error={error !== undefined}
       helperText={error ?? hint}
-      slotProps={{ input: { readOnly } }}
+      slotProps={{ input: { readOnly }, htmlInput: { autoComplete } }}
       sx={{
         "& .MuiOutlinedInput-root": {
           borderRadius: "0.7rem",

@@ -69,6 +69,10 @@ export class KeycloakAdminService extends IdentityAdminService {
   private readonly realm: string;
   private readonly clientId: string;
   private readonly clientSecret: string;
+  // The browser's client, borrowed for one thing: checking a password somebody
+  // typed. It is public and has direct access grants on, which is what the
+  // sign-in dialog already runs on -- see verifyPassword.
+  private readonly browserClientId: string;
   private token: AdminToken | null = null;
 
   constructor(config: ConfigService) {
@@ -77,6 +81,9 @@ export class KeycloakAdminService extends IdentityAdminService {
     this.realm = config.getOrThrow<string>("KEYCLOAK_REALM");
     this.clientId = config.getOrThrow<string>("KEYCLOAK_CLIENT_ID");
     this.clientSecret = config.getOrThrow<string>("KEYCLOAK_CLIENT_SECRET");
+    this.browserClientId = config.getOrThrow<string>(
+      "KEYCLOAK_BROWSER_CLIENT_ID",
+    );
   }
 
   // Keycloak spells the port's "already verified" as "emailVerified", set in
@@ -181,10 +188,11 @@ export class KeycloakAdminService extends IdentityAdminService {
     return readAccount(await response.json().catch(() => null));
   }
 
-  // This does not end the account's other sessions. Keycloak keeps them, and
-  // whoever reset the password is the one holding the mailbox -- the case for
-  // logging everybody out is a session somebody else stole, which is a
-  // different feature and a security page's to offer.
+  // This does not end the account's other sessions, and deliberately still
+  // does not. Whoever reset a password is the one holding the mailbox, and a
+  // reset landing on a page with no session in it has none of its own to keep.
+  // Changing a password from inside the account is the case where the other
+  // sessions matter, and that one asks for endOtherSessions by name.
   async setPassword(subjectId: string, password: string): Promise<void> {
     const response = await this.send(
       `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/reset-password`,
@@ -213,6 +221,162 @@ export class KeycloakAdminService extends IdentityAdminService {
     throw new ServiceUnavailableException(
       "The identity provider could not set the password",
     );
+  }
+
+  // Whether a password is the one the account has now.
+  //
+  // Keycloak has no endpoint that checks a password without issuing something,
+  // so this asks it to authenticate and throws the answer away: a direct access
+  // grant against the "main-gui" client, which is the same exchange the sign-in
+  // dialog makes, and then a logout of the session it just opened. Anything
+  // else would leave a session behind every time somebody opened this card.
+  //
+  // It is the browser's client and not this one, because a direct grant needs a
+  // client that has them enabled and "main-api" deliberately has every flow
+  // turned off. Borrowing it costs nothing: the grant proves the password and
+  // the tokens are spent on the next line.
+  //
+  // **A wrong password here is a LOGIN_ERROR on the realm**, which the sweep in
+  // the security vertical mirrors onto the same page the card sits on, as a
+  // Failed login. That is left alone rather than filtered out. Somebody who
+  // cannot produce the account's current password at its own security page is
+  // exactly the event that page exists to show, and an attempt this application
+  // quietly swallowed would be one the account's owner never sees.
+  //
+  // Only 401 is a wrong password. Keycloak answers it for bad credentials, for
+  // a disabled account and for an account that owes a required action, and none
+  // of those is a password this card should accept; anything else is an outage,
+  // because a card that says "that is not your current password" when the truth
+  // is a broken realm sends somebody looking for a password they already have.
+  async verifyPassword(loginName: string, password: string): Promise<boolean> {
+    const response = await this.fetch(this.tokenUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "password",
+        client_id: this.browserClientId,
+        username: loginName,
+        password,
+        // Nothing here reads the token. The narrowest scope Keycloak will
+        // issue anything at all for is the one to ask for.
+        scope: "openid",
+      }).toString(),
+    });
+
+    if (response.status === 401) return false;
+
+    if (!response.ok)
+      throw new ServiceUnavailableException(
+        "The identity provider could not check that password",
+      );
+
+    const body = (await response.json().catch(() => null)) as {
+      refresh_token?: unknown;
+    } | null;
+
+    // Spend the session immediately. A failure to do so is not a failure to
+    // verify -- the password was right, which is what was asked -- so it is
+    // swallowed rather than thrown: the session runs out on the realm's own
+    // idle timeout instead. It writes no row on anybody's security page either
+    // way, because dbo.LogLogoutEvent resolves the account from the login row
+    // for that session, and a session that never made a request has none.
+    if (typeof body?.refresh_token === "string")
+      await this.endGrant(body.refresh_token);
+
+    return true;
+  }
+
+  // When the password was last set, off the account's own credentials.
+  //
+  // Keycloak stamps "createdDate" on a credential when it is written, and
+  // writing a new password replaces the credential rather than editing it, so
+  // this is the moment the password that is on the account now became the
+  // password on the account. An account nobody has ever changed one for answers
+  // with when it was created, which is the true answer to the same question.
+  //
+  // A provider that will not answer reads as null rather than as an outage.
+  // Nothing depends on this: it is a line on a card, and a card that refused to
+  // draw because a date was missing would be worse than one that leaves the
+  // line out.
+  async passwordChangedAt(subjectId: string): Promise<Date | null> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      return null;
+    }
+
+    const credentials: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(credentials)) return null;
+
+    const password = credentials.find(
+      (credential: unknown) =>
+        (credential as { type?: unknown } | null)?.type === "password",
+    ) as { createdDate?: unknown } | undefined;
+
+    // Epoch milliseconds, dropped on nonsense the way an event's time is: a
+    // password last changed in 1970 is a sentence that would make somebody
+    // reset a password they set last week.
+    const created = password?.createdDate;
+    if (typeof created !== "number" || !Number.isFinite(created)) return null;
+    return new Date(created);
+  }
+
+  // End every session but one.
+  //
+  // Two calls rather than Keycloak's own logout endpoint for the user, which
+  // ends all of them including the one the request came in on. Somebody who has
+  // just changed their password correctly should not be thrown out of the
+  // browser they did it in, so the sessions are listed and ended one at a time
+  // with the current one held back.
+  //
+  // Each ending is a LOGOUT on the realm, which the security vertical's sweep
+  // mirrors onto the page as a session that ended. That is the right outcome
+  // and not a side effect worth suppressing: the rows are the evidence that the
+  // change did what the card said it would.
+  //
+  // A session that will not end is skipped rather than thrown over. It is
+  // already gone as often as not -- the list is a moment old by the time this
+  // reads it -- and the count is what was actually ended.
+  async endOtherSessions(
+    subjectId: string,
+    keepSessionId: string | null,
+  ): Promise<number> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/sessions`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not say what sessions are open",
+      );
+    }
+
+    const sessions: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(sessions)) return 0;
+
+    const doomed = sessions
+      .map((session: unknown) => (session as { id?: unknown } | null)?.id)
+      .filter(
+        (id: unknown): id is string => typeof id === "string" && id !== "",
+      )
+      .filter((id: string) => id !== keepSessionId);
+
+    let ended = 0;
+    for (const id of doomed) {
+      const gone = await this.send(
+        `/admin/realms/${encodeURIComponent(this.realm)}/sessions/${encodeURIComponent(id)}`,
+        { method: "DELETE" },
+      );
+      if (gone.ok) ended++;
+      else if (gone.status === 401 || gone.status === 403) this.token = null;
+    }
+    return ended;
   }
 
   // Keycloak's user event log, filtered to the logins it refused.
@@ -349,24 +513,50 @@ export class KeycloakAdminService extends IdentityAdminService {
     });
   }
 
+  // The realm's token endpoint. Three callers now: the client-credentials
+  // grant this service runs on, the password grant verifyPassword makes, and
+  // the logout that spends it.
+  private tokenUrl(): string {
+    return `${this.baseUrl}/realms/${encodeURIComponent(this.realm)}/protocol/openid-connect/token`;
+  }
+
+  // Give back the session a password check opened. A public client logs out by
+  // posting the refresh token it was given, which is the whole of it: no admin
+  // token, no session id, nothing to look up.
+  private async endGrant(refreshToken: string): Promise<void> {
+    try {
+      await this.fetch(
+        `${this.baseUrl}/realms/${encodeURIComponent(this.realm)}/protocol/openid-connect/logout`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: this.browserClientId,
+            refresh_token: refreshToken,
+          }).toString(),
+        },
+      );
+    } catch {
+      // Swallowed on purpose: see verifyPassword. The password was right, and
+      // that is what the caller asked.
+    }
+  }
+
   private async accessToken(): Promise<string> {
     // Thirty seconds of headroom, so a token that is about to expire is not
     // spent on a call that will outlive it.
     if (this.token && this.token.expiresAt > Date.now() + 30_000)
       return this.token.value;
 
-    const response = await this.fetch(
-      `${this.baseUrl}/realms/${encodeURIComponent(this.realm)}/protocol/openid-connect/token`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "client_credentials",
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
-        }).toString(),
-      },
-    );
+    const response = await this.fetch(this.tokenUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+      }).toString(),
+    });
 
     if (!response.ok)
       throw new ServiceUnavailableException(

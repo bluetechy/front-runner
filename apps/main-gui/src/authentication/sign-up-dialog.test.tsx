@@ -58,8 +58,8 @@ const fillIn = (changes: Record<string, string> = {}) => {
     "Last name": "Wright",
     Username: "marcus",
     Email: "marcus@example.test",
-    Password: "a-good-enough-password",
-    "Confirm password": "a-good-enough-password",
+    Password: "Trombone-42-Fig",
+    "Confirm password": "Trombone-42-Fig",
     ...changes,
   };
   for (const [label, value] of Object.entries(filled)) type(label, value);
@@ -119,7 +119,7 @@ describe("making an account", () => {
           Email: "marcus@example.test",
           FirstName: "Marcus",
           LastName: "Wright",
-          Password: "a-good-enough-password",
+          Password: "Trombone-42-Fig",
         }),
       ),
     );
@@ -136,7 +136,7 @@ describe("making an account", () => {
     await waitFor(() =>
       expect(login).toHaveBeenCalledWith(
         "marcus@example.test",
-        "a-good-enough-password",
+        "Trombone-42-Fig",
         true,
       ),
     );

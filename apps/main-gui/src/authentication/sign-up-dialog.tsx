@@ -23,6 +23,7 @@ import {
   checkRegistration,
   type RegistrationForm,
 } from "./registration-schema";
+import { PasswordChecklist } from "./password-checklist";
 import { RegistrationError, registerAccount } from "./registration";
 import { useSession } from "./session";
 
@@ -245,11 +246,18 @@ export function SignUpDialog({
             autoComplete: "email",
             placeholder: "Enter your email address",
           })}
-          {field("Password", "Password", {
-            type: "password",
-            autoComplete: "new-password",
-            placeholder: "At least 8 characters",
-          })}
+          {/* The rules under the box rather than crammed into its
+           * placeholder: five of them will not fit in one line of gray text,
+           * and a placeholder naming only the first would be refusing
+           * somebody for four rules it never mentioned. */}
+          <Box>
+            {field("Password", "Password", {
+              type: "password",
+              autoComplete: "new-password",
+              placeholder: "Pick a password",
+            })}
+            <PasswordChecklist password={form.Password} />
+          </Box>
           {field("Confirm", "Confirm password", {
             type: "password",
             autoComplete: "new-password",

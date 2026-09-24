@@ -166,3 +166,58 @@ describe("a field that takes more than a line", () => {
     expect(screen.getByRole("textbox").tagName).toBe("TEXTAREA");
   });
 });
+
+/*
+ * A password on card paper, for the change-password card on Security & Access.
+ *
+ * It is the browser's own password field rather than a text box with the
+ * letters hidden by hand, and it carries an autocomplete: that is what a
+ * password manager reads to tell one of three password boxes from the next,
+ * and what a phone keyboard turns autocorrect off for. Neither is decoration.
+ */
+describe("a field holding a password", () => {
+  it("hides what is typed in it", () => {
+    renderIn(
+      <FieldRow label="Current password" htmlFor="current">
+        <CardField
+          id="current"
+          type="password"
+          value="letmein"
+          onChange={() => undefined}
+        />
+      </FieldRow>,
+    );
+
+    expect(screen.getByLabelText("Current password")).toHaveAttribute(
+      "type",
+      "password",
+    );
+  });
+
+  it("says which password it is for, where it is told", () => {
+    renderIn(
+      <FieldRow label="New password" htmlFor="new">
+        <CardField
+          id="new"
+          type="password"
+          autoComplete="new-password"
+          value=""
+          onChange={() => undefined}
+        />
+      </FieldRow>,
+    );
+
+    expect(screen.getByLabelText("New password")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+  });
+
+  /* Every other form on card paper wants the browser's ordinary behavior, so
+   * a field that was not told says nothing and the browser decides. */
+  it("says nothing about it where it is not told", () => {
+    renderIn(<CardField id="first-name" value="" onChange={() => undefined} />);
+
+    expect(screen.getByRole("textbox")).not.toHaveAttribute("autocomplete");
+  });
+});

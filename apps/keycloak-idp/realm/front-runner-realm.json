@@ -10,6 +10,7 @@
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "verifyEmail": false,
+  "passwordPolicy": "length(12) and maxLength(72) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and notEmail(undefined)",
   "accessTokenLifespan": 300,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,

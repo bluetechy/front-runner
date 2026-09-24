@@ -16,7 +16,7 @@ const filled = {
   Email: "marcus@example.test",
   FirstName: "Marcus",
   LastName: "Wright",
-  Password: "a-good-enough-password",
+  Password: "Trombone-42-Fig",
 };
 
 const parse = (changes: Record<string, unknown> = {}) =>
@@ -44,8 +44,8 @@ describe("what is stored is what was checked", () => {
   // A password is a secret somebody typed on purpose. Trimming it would sign
   // the account up with one password and try to sign in with another.
   it("leaves the password exactly as it arrived", () => {
-    expect(parse({ Password: "  spaces  both  ends  " }).data?.Password).toBe(
-      "  spaces  both  ends  ",
+    expect(parse({ Password: "  Spaces 4 both ends!  " }).data?.Password).toBe(
+      "  Spaces 4 both ends!  ",
     );
   });
 });
@@ -59,7 +59,13 @@ describe("what it refuses", () => {
     ["an address with no dot after the @", { Email: "marcus@example" }],
     ["a missing first name", { FirstName: "   " }],
     ["a missing last name", { LastName: "" }],
-    ["a password of seven characters", { Password: "1234567" }],
+    ["a password of eleven characters", { Password: "Trombone-4" }],
+    /* The realm's policy, said here as well so the sign-up form hears all of
+     * it at once: see registration.schema.ts. */
+    ["a password with no capital letter", { Password: "trombone-42-fig" }],
+    ["a password with no lower case letter", { Password: "TROMBONE-42-FIG" }],
+    ["a password with no digit", { Password: "Trombone-Fig-Jar" }],
+    ["a password with no symbol", { Password: "Trombone42Figs" }],
     /* Past bcrypt's 72 bytes the rest is not hashed, so accepting it would
      * be pretending the extra characters count for something. */
     ["a password longer than bcrypt hashes", { Password: "x".repeat(73) }],

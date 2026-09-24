@@ -1,12 +1,19 @@
 // What this API needs from whoever holds the accounts.
 //
-// Seven operations and no more. This application's own truth -- profiles,
+// Ten operations and no more. This application's own truth -- profiles,
 // organizations, the email addresses somebody has proved they read -- lives in
 // dbo, so the identity provider is only ever asked about the credential half:
 // which account somebody named, what address it logs in with, what its
-// password is, which attempts to use that password were refused, and which
-// sessions have ended. That is what keeps this list short, and a short list is
+// password is, when that password was last set, whether somebody typing one
+// has it right, which attempts to use it were refused, and which sessions are
+// open or have ended. That is what keeps this list short, and a short list is
 // what keeps the provider replaceable.
+//
+// Every one of them is an intent rather than an errand. `endOtherSessions`
+// takes the session to keep instead of answering with a list for somebody else
+// to loop over, because "which sessions does this account have open" is a
+// question only the provider's own vocabulary can answer and the port would be
+// handing that vocabulary out.
 //
 // An abstract class rather than an interface, because Nest resolves a provider
 // by something that survives to runtime and an interface does not. Nothing
@@ -108,11 +115,64 @@ export abstract class IdentityAdminService {
   // own table, never from a request.
   abstract account(subjectId: string): Promise<Account | null>;
 
-  // Set an account's password, which is the end of a reset. Permanent rather
-  // than temporary: somebody who has just typed a new password twice has
-  // chosen one, and a provider's own "update your password" page at the next
-  // login is the page this whole flow exists to avoid.
+  // Set an account's password, which is the end of a reset and the end of a
+  // change. Permanent rather than temporary: somebody who has just typed a new
+  // password twice has chosen one, and a provider's own "update your password"
+  // page at the next login is the page this whole flow exists to avoid.
+  //
+  // The provider's own password policy is checked here and nowhere else in
+  // this API, which is the arrangement that matters: implementations throw
+  // BadRequestException carrying the provider's sentence when it refuses one.
+  // Our schemas say the same rules in front of this, so an ordinary mistake is
+  // answered beside the box that caused it, but the realm is what enforces
+  // them -- see apps/keycloak-idp/realm/front-runner-realm.json.
   abstract setPassword(subjectId: string, password: string): Promise<void>;
+
+  // Whether this is the password the account has now.
+  //
+  // Here for one caller: the change-password card, which must not let somebody
+  // who sat down at an unlocked browser replace a password they do not know.
+  // It answers a boolean and nothing else -- not a session, not a token --
+  // because the answer is the whole of what the question was for.
+  //
+  // It takes the login name rather than a subject id, because the only way any
+  // provider can answer this is by being asked to authenticate, and
+  // authenticating is done by name. Implementations throw
+  // ServiceUnavailableException when the provider cannot be reached: a
+  // provider that will not answer is not the same as a password that is wrong,
+  // and telling somebody their own password is wrong when the truth is an
+  // outage is the worse of the two mistakes.
+  abstract verifyPassword(
+    loginName: string,
+    password: string,
+  ): Promise<boolean>;
+
+  // When the account's password was last set, or null where the provider will
+  // not say.
+  //
+  // The security page shows this, and the provider is the only place it can
+  // come from: our own log holds the changes made through this application,
+  // which is not the same set as the times the password was set. An account
+  // that has never changed one still has an answer here, which is when it was
+  // created, and that is the honest thing to show rather than "never".
+  abstract passwordChangedAt(subjectId: string): Promise<Date | null>;
+
+  // End every session this account has open except one.
+  //
+  // A password that has been changed is worth nothing while a session somebody
+  // else is holding outlives it, so changing one ends the rest. The session to
+  // keep is the one the request came in on: logging somebody out of the browser
+  // they are typing in would be punishing them for doing the right thing.
+  //
+  // It answers how many were ended, which is the sentence the page shows and
+  // the only thing a caller does with it. Implementations swallow nothing and
+  // throw ServiceUnavailableException, but callers are expected to record the
+  // password change first: a session that outlived a change is worth reporting,
+  // and losing the record of the change itself over it is not.
+  abstract endOtherSessions(
+    subjectId: string,
+    keepSessionId: string | null,
+  ): Promise<number>;
 
   // The most recently refused logins on this realm, newest first, at most
   // `limit` of them.

@@ -69,12 +69,24 @@ describe("the token from the link", () => {
 });
 
 describe("the new password", () => {
-  it("takes eight characters", () => {
-    expect(newPasswordSchema.safeParse("12345678").success).toBe(true);
+  /* The realm's own policy, said here first so that the card hears all of it
+   * at once rather than one rule at a time in Keycloak's words. See
+   * `passwordPolicy` in apps/keycloak-idp/realm/front-runner-realm.json. */
+  it("takes twelve characters with all four kinds in them", () => {
+    expect(newPasswordSchema.safeParse("Trombone-42-Fig").success).toBe(true);
   });
 
-  it("refuses seven", () => {
-    expect(newPasswordSchema.safeParse("1234567").success).toBe(false);
+  it("refuses eleven", () => {
+    expect(newPasswordSchema.safeParse("Trombone-4").success).toBe(false);
+  });
+
+  it.each([
+    ["no capital letter", "trombone-42-fig"],
+    ["no lower case letter", "TROMBONE-42-FIG"],
+    ["no digit", "Trombone-Fig-Jar"],
+    ["no symbol", "Trombone42Figs"],
+  ])("refuses one with %s", (_, password) => {
+    expect(newPasswordSchema.safeParse(password).success).toBe(false);
   });
 
   /* Past bcrypt's 72 bytes the rest is not hashed, so accepting it would be
@@ -86,8 +98,8 @@ describe("the new password", () => {
   // A password is a secret somebody typed on purpose. Trimming it would set
   // one password and let them login with another.
   it("leaves it exactly as it arrived", () => {
-    expect(newPasswordSchema.safeParse("  spaces  both  ends  ").data).toBe(
-      "  spaces  both  ends  ",
+    expect(newPasswordSchema.safeParse("  Spaces 4 both ends!  ").data).toBe(
+      "  Spaces 4 both ends!  ",
     );
   });
 });

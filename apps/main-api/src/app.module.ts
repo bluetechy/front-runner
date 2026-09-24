@@ -8,6 +8,7 @@ import { ProfilesModule } from "./profiles/index.js";
 import { EmailsModule } from "./emails/index.js";
 import { RegistrationModule } from "./registration/index.js";
 import { PasswordResetModule } from "./password-reset/index.js";
+import { PasswordChangeModule } from "./password-change/index.js";
 import { OrganizationsModule } from "./organizations/index.js";
 import { TeamsModule } from "./teams/index.js";
 import { BadgesModule } from "./badges/index.js";
@@ -28,6 +29,7 @@ import { SecurityEventsModule } from "./security-events/index.js";
     EmailsModule,
     RegistrationModule,
     PasswordResetModule,
+    PasswordChangeModule,
     OrganizationsModule,
     TeamsModule,
     BadgesModule,

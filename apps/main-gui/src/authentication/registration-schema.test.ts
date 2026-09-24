@@ -19,8 +19,8 @@ const filled: RegistrationForm = {
   Email: "marcus@example.test",
   FirstName: "Marcus",
   LastName: "Wright",
-  Password: "a-good-enough-password",
-  Confirm: "a-good-enough-password",
+  Password: "Trombone-42-Fig",
+  Confirm: "Trombone-42-Fig",
 };
 
 const check = (changes: Partial<RegistrationForm> = {}) =>
@@ -52,7 +52,7 @@ describe("what it says about each box", () => {
     ["Email", { Email: "marcus.example.test" }, /like you@example\.com/],
     ["FirstName", { FirstName: "  " }, /Enter your first name/],
     ["LastName", { LastName: "" }, /Enter your last name/],
-    ["Password", { Password: "short", Confirm: "short" }, /at least 8/],
+    ["Password", { Password: "short", Confirm: "short" }, /at least 12/],
   ])("says what is wrong with %s", (field, changes, expected) => {
     expect(check(changes)[field as keyof RegistrationForm]).toMatch(expected);
   });
@@ -60,7 +60,7 @@ describe("what it says about each box", () => {
   // The confirmation box is the one rule the API does not have: it is a
   // typing aid, only meaningful next to the box above it.
   it("says when the two passwords do not match, on the second box", () => {
-    const problems = check({ Confirm: "a-different-password" });
+    const problems = check({ Confirm: "Trombone-42-Fog" });
 
     expect(problems.Confirm).toMatch(/do not match/);
     expect(problems.Password).toBeUndefined();

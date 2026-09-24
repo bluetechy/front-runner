@@ -2,10 +2,12 @@
 
 Lives in `src/security` and renders at `/security-and-access`, which is
 Security & Access in the rail. What it holds today is the account's **user
-name**, its **email addresses** and its **recent activity**: what the account
-is called, which addresses are on file, which one is the login, which of them
-anybody has proved they can read, and what has lately happened to the account.
-Passwords and sessions belong to Keycloak and are not here yet.
+name**, its **email addresses**, its **password** and its **recent activity**:
+what the account is called, which addresses are on file, which one is the
+login, which of them anybody has proved they can read, when the password was
+last changed and how to change it, and what has lately happened to the account.
+The password itself is still Keycloak's: this page is where it is asked for,
+not where it is kept.
 
 The route was `/security` and the rail read Security & Login until both were
 renamed. The vertical kept its own name: `src/security` is the subject, not
@@ -197,6 +199,175 @@ Two consequences worth knowing:
   the primary row's last write. Without that the change would undo itself on
   the very next request, which is exactly what it did before the parameter
   existed.
+
+## Changing the password
+
+`password-card.tsx`, in a card headed **CHANGE PASSWORD**, between the
+addresses and the activity. Three boxes, a stamp saying when the password was
+last changed, and the rules a new one has to keep.
+
+It sits there because the page is ordered by what each block is: what the
+account is called, then everything about getting into it that can be changed,
+then what has happened. A password is the credential the addresses above it and
+the logins below it both rest on, so it ends the first group rather than
+starting the second.
+
+### The current password is the point of the card
+
+A session says which account this is. **It does not say who is at the
+keyboard**, and a browser somebody walked away from is exactly the case a
+change-password form has to refuse. So the first box asks for the password the
+account has now, and the API refuses the change without it.
+
+Nothing in this application can check that password, because nothing here has
+ever seen one. `IdentityAdminService.verifyPassword` asks the identity provider
+to authenticate and throws the session away: a direct access grant against the
+**`main-gui` client**, which is the same exchange the sign-in dialog makes, and
+then a logout of the session it just opened. `main-api` has every flow disabled
+and cannot answer a direct grant at all, which is why the browser's client is
+borrowed for it. Nothing about the grant is kept: no token reaches state, and
+the refresh token is spent on the next line.
+
+**A wrong current password shows up as a Failed login** on this same page. It
+is a `LOGIN_ERROR` on the realm, the sweep mirrors it like any other, and that
+is left alone rather than filtered out. Somebody who cannot produce the
+account's current password at its own security page is the event this page
+exists to show, and an attempt this application quietly swallowed would be one
+the account's owner never sees.
+
+The current password is **not held to the password policy**, which is the one
+asymmetry in `password-schema.ts`. It was chosen under whatever rules were in
+force at the time, which for every account older than the realm's policy is no
+rules at all; telling somebody their current password is invalid when it is the
+one that gets them in is the worst answer this card could give. It is checked
+for being there and for nothing else.
+
+### The stamp
+
+**Last changed on Sep 20, 2026 at 9:42 PM**, over the form. It comes from
+Keycloak, off the account's own password credential: writing a new password
+replaces the credential rather than editing it, so `createdDate` on it is the
+moment the password that is on the account now became the password on the
+account.
+
+It is not read out of `dbo.SecurityEvents`, and could not be. Our log holds the
+changes made through this application, which is not the same set as the times
+the password was set: a reset followed from a mailbox is not on it, and neither
+is the password an account was created with.
+
+It says **nothing at all** rather than "never" where the provider will not
+answer. Every account's password was set at least when the account was made, so
+"never" is a sentence that is never true here; a missing date is an outage, and
+an outage should cost the line rather than the card. The date is written out
+rather than counted back from, through the same `activity-time.ts` the log
+above it uses.
+
+### The rules are shown, not sprung
+
+Five of them, as a checklist that ticks as they are met, drawn **before anybody
+types**. A list of five requirements standing there is a set of instructions;
+the same list appearing after a refusal is a telling-off, and somebody choosing
+a password is better served by being told what is wanted.
+
+**A list rather than a strength meter.** A meter answers "how good is this",
+which is a judgment nobody asked for and which no bar can honestly make. A list
+answers "what is still missing", which is the question somebody typing a
+password actually has, and every line of it is a thing they can do next.
+
+Nothing in it is said in color alone, which is the rule the whole product
+keeps: a met rule gets a tick and fuller ink, and the word "done" is in the line
+for anybody being read it rather than looking at it.
+
+It is `PasswordChecklist` in the authentication vertical rather than a
+component of this page, because **all three cards that set a password show
+it**: the sign-up dialog, the page a reset link lands on, and this one. One
+statement of the rules in `password-rules.ts`, one drawing of them, and a
+`tone` for whichever of the product's two surfaces it is standing on.
+
+### What a password has to be
+
+**Twelve characters, with a capital, a lower case letter, a digit and a
+symbol.** That is PCI DSS 4.0's shape rather than NIST 800-63B's: NIST would
+have length alone and no composition rules at all, and the reason this product
+does not follow it there is that the realm has no breached-password check
+behind it, which is the half of that advice that does the work.
+
+The rule is stated in four places and that is deliberate, because each is doing
+a different job:
+
+| Where                                 | What it is for                                      |
+| ------------------------------------- | --------------------------------------------------- |
+| `passwordPolicy` in the realm         | **The authority.** Keycloak refuses, whoever set it |
+| main-api's `password-reset.schema.ts` | the same rules on the way in, in our own sentences  |
+| main-api's `registration.schema.ts`   | the same, for the account a sign-up form creates    |
+| main-gui's `password-rules.ts`        | the checklist, and a refusal beside the box         |
+
+Keycloak names one broken rule at a time in its own words, which is a fine last
+line and a poor first one. Everything in front of it exists so that somebody
+choosing a password is told all five at once, and told before they type.
+
+Raising it from eight characters changed nothing about the passwords already on
+the realm: a policy is applied when a password is set, not to the ones already
+stored. The **development accounts still have the username as the password**,
+which breaks every part of the new policy, and they still login. What they
+cannot do is change a password to another one like it.
+
+### Changing it ends the other sessions
+
+A changed password is worth nothing while a session somebody else is holding
+outlives it, so `endOtherSessions` ends every session on the account except the
+one the request came in on. Keycloak's own logout-the-user endpoint ends all of
+them, this one included, so the sessions are listed and deleted one at a time
+with the current one held back: somebody who has just changed their password
+correctly should not be thrown out of the browser they did it in.
+
+Those endings arrive back on this page as logout rows, through the same sweep
+that mirrors every other session ending, and that is the right outcome rather
+than a side effect worth suppressing: the rows are the evidence that the change
+did what the card said it would.
+
+The count has **three states and the card says all three**: some were ended,
+there were none, and we could not tell. The last one is null rather than zero,
+and the difference matters enough to be in the model: somebody told "no other
+sessions were open" when the truth is that nothing could be asked would stop
+looking.
+
+### The order the four steps run in
+
+Prove, set, record, end, and each of those is only safe once the one before it
+has answered. Two edges are worth keeping.
+
+**The change is recorded before the sessions are touched.** A provider that
+will not list sessions must not cost the account the record of its own password
+changing; a session that outlived the change is worth reporting, and the log
+above the card is where it will show.
+
+**Nothing after `setPassword` may throw.** From that line on the password has
+already changed, and a mutation that failed afterwards would report a change
+that happened as one that did not, leaving somebody with two passwords to try.
+Both the stamp and the session count are read inside a `catch` that answers
+null.
+
+### Where it lives
+
+`src/password-change` in main-api, a vertical of its own rather than two more
+operations on `password-reset`, and the reason is the direction the imports
+run. A change has to be recorded, the security log is written through
+`SecurityEventsService`, and that vertical already imports `PasswordResetModule`
+for "No, secure account". A change living in the reset vertical would have had
+to import the security vertical back, which is a cycle. This way every arrow
+runs one direction.
+
+The subject is different too, which is the better half of the argument.
+Forgetting a password is something that happens to somebody who cannot get in,
+and both of the reset vertical's operations are `@Public` for that reason.
+Changing one is something an account does to itself from a page behind the
+login, and neither of these is public.
+
+It exports nothing. The reset vertical exports its service because the security
+page has to be able to send somebody a link; nothing anywhere has a reason to
+change a password on an account's behalf, and an exported service that could
+would be a way to do it without the current password.
 
 ## The privacy switch
 

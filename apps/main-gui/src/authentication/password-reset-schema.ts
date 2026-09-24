@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordSchema } from "./password-rules";
 
 /*
  * What the two halves of a password reset are allowed to be, in the browser.
@@ -25,12 +26,10 @@ export const identifierSchema = z
   .min(1, "Enter your username or email address")
   .max(255, "That is longer than any username or email address");
 
-/* The same rule the sign-up card states, because it is the same rule: eight
- * characters is the API's minimum, and the upper bound is bcrypt's. */
-const password = z
-  .string()
-  .min(8, "A password needs at least 8 characters")
-  .max(72, "A password cannot be longer than 72 characters");
+/* The same rule the sign-up card states and the change-password card states,
+ * because it is the same rule, and read from `password-rules.ts` rather than
+ * restated so that it stays the same one. */
+const password = passwordSchema;
 
 export const newPasswordSchema = z
   .object({

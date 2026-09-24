@@ -57,15 +57,27 @@ const personName = (field: string) =>
     .min(1, `Enter your ${field}`)
     .max(64, `A ${field} cannot be longer than 64 characters`);
 
-/* Eight characters, which is more than the realm asks for today: it has no
- * password policy set, so without this the API would accept a one-character
- * password. A minimum stated here is a sentence somebody reads rather than a
- * refusal from Keycloak in its own words. The upper bound is bcrypt's: past
- * 72 bytes the rest is not hashed, so accepting more would be pretending. */
+/* The realm's own password policy, said here as well so that the sign-up form
+ * hears all of it at once and in sentences somebody can act on. Keycloak
+ * enforces it -- see `passwordPolicy` in
+ * apps/keycloak-idp/realm/front-runner-realm.json -- and names one broken rule
+ * at a time in its own words, which is the wrong first answer to give somebody
+ * choosing a password for the first time.
+ *
+ * Word for word the same rule as `newPasswordSchema` in the password-reset
+ * vertical, which is the copy the reset and change flows share. It is not
+ * imported here, because the same sentence is what the two are meant to have
+ * in common and a sign-up form is not a password reset; drift between them is
+ * what this comment exists to prevent. The upper bound is bcrypt's: past 72
+ * bytes the rest is not hashed, so accepting more would be pretending. */
 const password = z
   .string()
-  .min(8, "A password needs at least 8 characters")
-  .max(72, "A password cannot be longer than 72 characters");
+  .min(12, "A password needs at least 12 characters")
+  .max(72, "A password cannot be longer than 72 characters")
+  .regex(/[A-Z]/, "A password needs a capital letter")
+  .regex(/[a-z]/, "A password needs a lower case letter")
+  .regex(/[0-9]/, "A password needs a digit")
+  .regex(/[^A-Za-z0-9]/, "A password needs a symbol, like ! or ? or #");
 
 export const registrationSchema = z.object({
   Username: username,

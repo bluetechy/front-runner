@@ -32,9 +32,20 @@ const review = vi.fn();
 vi.mock("./email-api", () => ({ useEmails: () => emails() }));
 vi.mock("./activity-api", () => ({ useSecurityActivity: () => activity() }));
 
+const password = vi.fn();
+const changePassword = vi.fn();
+
+vi.mock("./password-api", () => ({ usePassword: () => password() }));
+
 /* The user name is read off the token rather than fetched, so the page asks
- * the session for it directly. */
-vi.mock("../authentication", () => ({
+ * the session for it directly.
+ *
+ * The session is the only thing stubbed here. The password rules come out of
+ * the same module and are left real: they are the rules the change-password
+ * card draws its checklist from, and a stub of them would make this file agree
+ * with itself about what a password is rather than with the product. */
+vi.mock("../authentication", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../authentication")>()),
   useSession: () => ({
     identity: { name: "Marcus Member", loginName: "member", email: "m@e.test" },
   }),
@@ -115,6 +126,14 @@ const answering = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   });
 
+const holding = (overrides: Record<string, unknown> = {}) =>
+  password.mockReturnValue({
+    changedAt: "2026-09-20T21:42:00.000Z",
+    loading: false,
+    change: changePassword,
+    ...overrides,
+  });
+
 const renderPage = () =>
   render(
     <ThemeProvider theme={theme}>
@@ -125,10 +144,15 @@ const renderPage = () =>
 beforeEach(() => {
   emails.mockReset();
   activity.mockReset();
+  password.mockReset();
   for (const call of [add, remove, setPrimary, resend, setPrivacy, review])
     call.mockReset().mockResolvedValue(undefined);
+  changePassword
+    .mockReset()
+    .mockResolvedValue({ ChangedAt: null, OtherSessionsEnded: 0 });
   answering();
   logging();
+  holding();
 });
 
 describe("the page itself", () => {
@@ -140,10 +164,11 @@ describe("the page itself", () => {
     ).toBeInTheDocument();
   });
 
-  // Four cards, headed the same way, and the order is the argument: what the
-  // account is called and cannot change, then the addresses that can, then what
-  // has lately been done to either, then what the other members are shown.
-  it("holds the user name, the addresses, the activity and the switch, in that order", () => {
+  // Five cards, headed the same way, and the order is the argument: what the
+  // account is called and cannot change, then the addresses that can, then the
+  // password both of those rest on, then what has lately been done to any of
+  // them, then what the other members are shown.
+  it("holds the user name, the addresses, the password, the activity and the switch, in that order", () => {
     renderPage();
 
     /* The tables' own column headings are drawn with the same label, so the
@@ -151,6 +176,7 @@ describe("the page itself", () => {
     const cards = [
       "User Name",
       "Email Addresses",
+      "Change Password",
       "Recent Activity",
       "Email Privacy",
     ];
@@ -431,5 +457,196 @@ describe("the privacy switch", () => {
     expect(
       await screen.findByText("Action cannot be performed."),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The change-password card, from the page's side: what it sends, and what the
+ * page says back.
+ *
+ * The three sentences here are the whole of why this is tested at the page
+ * rather than only at the card. Changing a password ends the sessions on
+ * somebody's other devices, and there are three different true things to say
+ * about that -- some were ended, there were none, and we could not tell. A
+ * page that said the second when it meant the third would be telling somebody
+ * to stop looking.
+ */
+describe("the change-password card", () => {
+  const fill = (current = "letmein", next = "Trombone-42-Fig") => {
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: current },
+    });
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: next },
+    });
+    fireEvent.change(screen.getByLabelText("New password again"), {
+      target: { value: next },
+    });
+  };
+
+  it("says when the password was last changed", () => {
+    renderPage();
+
+    expect(
+      screen.getByText(/Last changed on Sep 20, 2026/),
+    ).toBeInTheDocument();
+  });
+
+  /* Every account's password was set at least when the account was made, so
+   * there is no such thing as "never": a provider that would not say gets no
+   * line rather than a wrong one. */
+  it("says nothing about when, rather than never, where nothing is known", () => {
+    holding({ changedAt: null });
+    renderPage();
+
+    expect(screen.queryByText(/Last changed/)).toBeNull();
+  });
+
+  it("sends both passwords", async () => {
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    await waitFor(() =>
+      expect(changePassword).toHaveBeenCalledWith("letmein", "Trombone-42-Fig"),
+    );
+  });
+
+  // Both halves in one sentence: somebody who is not told their other sessions
+  // were ended will wonder why a phone in their pocket wants a login.
+  it("says the password changed and what happened to the other sessions", async () => {
+    changePassword.mockResolvedValue({
+      ChangedAt: "2026-09-24T10:00:00.000Z",
+      OtherSessionsEnded: 2,
+    });
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText(
+        "Your password was changed, and 2 sessions on your other devices ended.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("counts one session in the singular", async () => {
+    changePassword.mockResolvedValue({
+      ChangedAt: null,
+      OtherSessionsEnded: 1,
+    });
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText(
+        "Your password was changed, and 1 session on your other devices ended.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says there were none when there were none", async () => {
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText(
+        "Your password was changed. There were no other sessions open.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  /* Null is not zero. The password changed and nothing here knows what became
+   * of the sessions, which is the one answer that must not be drawn as "there
+   * were none". */
+  it("does not report sessions it could not account for as none", async () => {
+    changePassword.mockResolvedValue({
+      ChangedAt: null,
+      OtherSessionsEnded: null,
+    });
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText(/Check Recent Activity below/),
+    ).toBeInTheDocument();
+  });
+
+  // The API's own sentence, which is the one worth showing: "That is not the
+  // password you use now" is written to be read.
+  it("passes the API's own refusal on rather than a sentence of its own", async () => {
+    changePassword.mockRejectedValue(
+      new Error("That is not the password you use now."),
+    );
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText("That is not the password you use now."),
+    ).toBeInTheDocument();
+  });
+
+  it("empties the boxes once the password has changed", async () => {
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Current password")).toHaveValue(""),
+    );
+    expect(screen.getByLabelText("New password")).toHaveValue("");
+  });
+
+  /* A form cleared by a refusal is one somebody has to type again to find out
+   * what was wrong with it. */
+  it("leaves what was typed alone when the API refuses", async () => {
+    changePassword.mockRejectedValue(new Error("That is not the password."));
+    renderPage();
+
+    fill();
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    await screen.findByText("That is not the password.");
+    expect(screen.getByLabelText("New password")).toHaveValue(
+      "Trombone-42-Fig",
+    );
+  });
+
+  it("sends nothing at all when the two new passwords differ", async () => {
+    renderPage();
+
+    fill();
+    fireEvent.change(screen.getByLabelText("New password again"), {
+      target: { value: "Trombone-42-Fog" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText("The two passwords do not match"),
+    ).toBeInTheDocument();
+    expect(changePassword).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the new password breaks the rules", async () => {
+    renderPage();
+
+    fill("letmein", "short");
+    fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
+
+    expect(
+      await screen.findByText("A password needs at least 12 characters"),
+    ).toBeInTheDocument();
+    expect(changePassword).not.toHaveBeenCalled();
   });
 });

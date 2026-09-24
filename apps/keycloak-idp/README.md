@@ -64,6 +64,41 @@ Self-registration is on, which is the point of the model: anyone can make an
 account, and that account belongs to no organization until somebody invites it
 into one.
 
+## The password policy
+
+`passwordPolicy` on the realm, and it is the **authority** for what a password
+may be anywhere in this product:
+
+```
+length(12) and maxLength(72) and upperCase(1) and lowerCase(1)
+and digits(1) and specialChars(1) and notUsername and notEmail
+```
+
+Twelve characters with all four character classes, which is PCI DSS 4.0's
+shape. NIST 800-63B would have length alone and no composition rules at all,
+and the reason this realm does not follow it there is that nothing here checks
+a password against a breach list, which is the half of that advice that does
+the work. The upper bound is bcrypt's: past 72 bytes the rest is not hashed.
+
+Keycloak enforces it wherever a password is set, which is all three of the
+routes this product has: the sign-up form, the page a reset link lands on, and
+the change-password card on Security & Access. main-api and main-gui each state
+the same rules in front of it, so that somebody is told all five at once and in
+our own sentences rather than one at a time in Keycloak's. Those copies are
+convenience; this line is the rule. See
+[the security page](../main-gui/docs/security-page.md#what-a-password-has-to-be).
+
+**It does not apply to passwords that already exist.** A policy is checked when
+a password is set, not against what is stored, so the development accounts
+below still have the username as the password and still login. What they cannot
+do is change a password to another one like it.
+
+This was added after the realm had already been imported here, so it is in the
+same position as the SMTP server and the identity providers: a clone starting
+from an empty volume gets it, and an existing installation needs `make
+dc3-clean` or the same line in the admin console under Authentication →
+Policies.
+
 ## The event log, and why only three events are in it
 
 `eventsEnabled` is on, and `enabledEventTypes` holds exactly three types:
@@ -112,6 +147,15 @@ nothing, which is the same thing it says when the provider is down.
 password grant. Without it the GUI's sign-in dialog cannot work at all: a
 public client has no other way to turn an email and a password into a token
 inside the page, and Keycloak answers `unauthorized_client`.
+
+It has a second reader now. main-api borrows this client for one call:
+checking that the password somebody typed into the change-password card is the
+one the account has. Keycloak has no endpoint that checks a password without
+issuing something, so it is asked to authenticate and the session is thrown
+away on the next line. `main-api`'s own client has every flow disabled and
+cannot answer a direct grant at all, which is why the browser's client is the
+one that does. A wrong password there is an ordinary `LOGIN_ERROR` on this
+realm, and the security page shows it as a Failed login, deliberately.
 
 The trade is deliberate and is written up in
 [the GUI's authentication notes](../main-gui/docs/authentication.md). The part

@@ -45,7 +45,7 @@ const renderPage = () => renderWith(TOKEN);
 const type = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
-const fillIn = (password = "a-good-enough-password", confirm = password) => {
+const fillIn = (password = "Trombone-42-Fig", confirm = password) => {
   type("New password", password);
   type("Confirm password", confirm);
 };
@@ -92,10 +92,7 @@ describe("choosing a password", () => {
     setPassword();
 
     await waitFor(() =>
-      expect(resetPassword).toHaveBeenCalledWith(
-        TOKEN,
-        "a-good-enough-password",
-      ),
+      expect(resetPassword).toHaveBeenCalledWith(TOKEN, "Trombone-42-Fig"),
     );
   });
 
@@ -139,11 +136,11 @@ describe("what it refuses to send", () => {
     [
       "a password too short to be one",
       ["short", "short"],
-      "A password needs at least 8 characters",
+      "A password needs at least 12 characters",
     ],
     [
       "two passwords that do not match",
-      ["a-good-enough-password", "a-good-enough-passwerd"],
+      ["Trombone-42-Fig", "Trombone-42-Fog"],
       "The two passwords do not match",
     ],
   ])("refuses %s", (_name, [password, confirm], sentence) => {
@@ -161,10 +158,10 @@ describe("what it refuses to send", () => {
     fillIn("short");
     setPassword();
 
-    type("New password", "a-good-enough-password");
+    type("New password", "Trombone-42-Fig");
 
     expect(
-      screen.queryByText("A password needs at least 8 characters"),
+      screen.queryByText("A password needs at least 12 characters"),
     ).toBeNull();
   });
 });
