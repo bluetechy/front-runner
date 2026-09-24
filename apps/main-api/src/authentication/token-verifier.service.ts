@@ -49,6 +49,26 @@ export interface VerifiedIdentity {
   // costs somebody one link, where guessing true would put a green tick on an
   // address nobody has proved they read.
   emailVerified: boolean;
+  // The provider's session, from the "sid" claim. Null when the token carries
+  // none, which is what a machine's token looks like.
+  //
+  // One login is one session, so this is what the security log deduplicates on:
+  // main-api meets the same token on every request for as long as the session
+  // lasts, and this is the only thing in it that says "these requests are all
+  // the same login" and survives a restart. See dbo.LogLoginEvent.
+  sessionId: string | null;
+  // When the person actually proved who they were, from the "auth_time" claim,
+  // as a Date. Null when the token does not carry one, which is often.
+  //
+  // It says _when_ a login happened and never _whether_ one did. That division
+  // is not tidiness: Keycloak leaves "auth_time" out of a direct grant token
+  // altogether, so a log that decided what counted as a login by this claim
+  // would have recorded nothing for whole classes of login. The session id
+  // above decides; this refines the timestamp when it is there.
+  //
+  // It is also not "iat", which moves every time a token is refreshed inside
+  // one session.
+  authenticatedAt: Date | null;
   // When the provider minted this token, from the "iat" claim, as a Date.
   //
   // It is what stops a change made on the security page from undoing itself.
@@ -70,6 +90,11 @@ const SUBJECT_LIMIT = 255;
 const LOGIN_NAME_LIMIT = 64;
 const NAME_LIMIT = 64;
 const EMAIL_LIMIT = 255;
+// dbo.SecurityEvents."SessionId". Wider than any session id Keycloak mints, and
+// a claim that would not fit is dropped rather than truncated: half a session
+// id is not a session, and the log would rather record no login than one it
+// cannot tell apart from the next.
+const SESSION_LIMIT = 64;
 
 @Injectable()
 export class TokenVerifierService {
@@ -143,12 +168,19 @@ export class TokenVerifierService {
       name,
       email,
       emailVerified: payload.email_verified === true,
-      // "iat" is seconds since the epoch, and Date wants milliseconds.
-      issuedAt:
-        typeof payload.iat === "number" && Number.isFinite(payload.iat)
-          ? new Date(payload.iat * 1000)
-          : null,
+      sessionId: this.text(payload.sid, SESSION_LIMIT),
+      authenticatedAt: this.moment(payload.auth_time),
+      issuedAt: this.moment(payload.iat),
     };
+  }
+
+  // A claim that is seconds since the epoch, as a Date. Both of the times this
+  // reads are stamped that way, and both are null when the claim is missing or
+  // is not a finite number.
+  private moment(claim: unknown): Date | null {
+    return typeof claim === "number" && Number.isFinite(claim)
+      ? new Date(claim * 1000)
+      : null;
   }
 
   private text(value: unknown, limit: number, truncate = false): string | null {

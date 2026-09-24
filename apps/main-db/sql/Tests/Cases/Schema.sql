@@ -22,7 +22,7 @@ BEGIN
         ('EventLog'), ('Labels'), ('Notifications'), ('OrganizationInvitations'),
         ('Organizations'), ('PasswordResets'), ('PointLevels'),
         ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'), ('Points'),
-        ('Roadmaps'), ('Roles'), ('SharedBadges'), ('SurveyAnswers'),
+        ('Roadmaps'), ('Roles'), ('SecurityEvents'), ('SharedBadges'), ('SurveyAnswers'),
         ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
         ('Surveys'), ('TaskComments'), ('TaskDependencies'), ('TaskHistory'),
         ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
@@ -45,7 +45,7 @@ BEGIN
             'Badges', 'BankAccounts', 'Checklists', 'CreditCards', 'EventLog', 'Labels',
             'Notifications', 'OrganizationInvitations', 'Organizations', 'PasswordResets',
             'PointLevels', 'PointMultipliers', 'PointRedemptions', 'PointTransfers',
-            'Points', 'Roadmaps', 'Roles', 'SharedBadges', 'SurveyAnswers',
+            'Points', 'Roadmaps', 'Roles', 'SecurityEvents', 'SharedBadges', 'SurveyAnswers',
             'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
             'TaskComments', 'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks',
             'Teams', 'UserBadges', 'UserEmails', 'UserOrganizations', 'UserPointLevels',
@@ -86,6 +86,8 @@ BEGIN
         ('MarkAllNotificationsRead'), ('MarkNotificationRead'), ('ProvisionUser'),
         ('RemovePaymentMethod'), ('RemoveUserEmail'), ('RenameOrganization'),
         ('ReorderTasks'),
+        ('GetSecurityEvents'), ('LogLoginEvent'), ('LogLoginFailure'),
+        ('LogSecurityEvent'), ('ReviewSecurityEvent'),
         ('RequestPointRedemption'), ('RequestPointTransfer'),
         ('ResendUserEmailVerification'), ('ReverseUserPoints'),
         ('RevokeOrganizationInvitation'), ('SetDefaultPaymentMethod'),
@@ -95,7 +97,7 @@ BEGIN
         ('SettlePointTransfer'), ('SpendPasswordReset'), ('StartPasswordReset'),
         ('VerifyUserEmail'),
         ('calculate_tallies'), ('insert_modified_info'),
-        ('update_modified_info')
+        ('trim_security_events'), ('update_modified_info')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
         SELECT 1 FROM pg_proc
@@ -226,6 +228,7 @@ BEGIN
         ('FK_EventLog_Organizations'), ('FK_EventLog_Users'), ('FK_Labels_Organizations'),
         ('FK_Notifications_Organizations'), ('FK_Notifications_Tasks'),
         ('FK_Notifications_Users'), ('FK_Notifications_Users_ActorUUID'),
+        ('FK_SecurityEvents_Users'),
         ('FK_OrganizationInvitations_Organizations'),
         ('FK_OrganizationInvitations_Users_AcceptedByUserUUID'),
         ('FK_OrganizationInvitations_Users_InvitedByUserUUID'),

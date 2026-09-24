@@ -70,6 +70,7 @@ BEGIN
     INSERT INTO "dbo"."Roles" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Role', 'Smoke test role.', _By) RETURNING "RoleUUID" INTO _RoleUUID;
     INSERT INTO "dbo"."UserRoles" ("UserUUID", "RoleUUID", "CreatedBy") VALUES (_UserUUID, _RoleUUID, _By);
     INSERT INTO "dbo"."EventLog" ("OrganizationUUID", "UserUUID", "EventType", "Description", "CreatedBy") VALUES (_OrganizationUUID, _UserUUID, 'Smoke', 'Smoke test event.', _By);
+    INSERT INTO "dbo"."SecurityEvents" ("UserUUID", "EventType", "Description", "CreatedBy") VALUES (_UserUUID, 'Smoke', 'Smoke test security event.', _By);
     INSERT INTO "dbo"."ApprovalWorkflows" ("OrganizationUUID", "Name", "Description", "CreatedBy") VALUES (_OrganizationUUID, 'Smoke Workflow', 'Smoke test workflow.', _By) RETURNING "ApprovalWorkflowUUID" INTO _ApprovalWorkflowUUID;
     INSERT INTO "dbo"."ApprovalWorkflowStages" ("ApprovalWorkflowUUID", "Name", "CreatedBy") VALUES (_ApprovalWorkflowUUID, 'Smoke Stage', _By) RETURNING "ApprovalWorkflowStageUUID" INTO _ApprovalWorkflowStageUUID;
     INSERT INTO "dbo"."ApprovalWorkflowPermissions" ("ApprovalWorkflowStageUUID", "UserUUID", "CreatedBy") VALUES (_ApprovalWorkflowStageUUID, _UserUUID, _By);

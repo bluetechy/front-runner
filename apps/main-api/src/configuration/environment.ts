@@ -15,6 +15,18 @@ export function validateEnvironment(env: Record<string, unknown>) {
       throw new Error(`${name} must be at least ${minimum} characters`);
     return value;
   };
+  // A switch, spelled the way a human writes one in a .env file. "false", "0",
+  // "no" and "off" all turn a thing off, because somebody reaching for an
+  // off switch should not have to guess which word this codebase chose, and a
+  // value nobody recognizes is refused rather than quietly read as true.
+  const flag = (name: string, fallback: boolean): boolean => {
+    const value = env[name];
+    if (value === undefined || value === null || value === "") return fallback;
+    const word = String(value).trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(word)) return true;
+    if (["false", "0", "no", "off"].includes(word)) return false;
+    throw new Error(`${name} must be true or false`);
+  };
   const integer = (name: string, fallback: number, max: number) => {
     const value = Number(env[name] ?? fallback);
     if (!Number.isInteger(value) || value < 1 || value > max)
@@ -79,8 +91,8 @@ export function validateEnvironment(env: Record<string, unknown>) {
     // with: changing the address somebody logs in with is two writes, one here
     // and one at the provider, and this is the half that reaches the provider.
     // The secret belongs to the "main-api" client's service account, which
-    // holds manage-users and view-users and nothing else. A move to another
-    // provider replaces this block along with that file.
+    // holds manage-users, view-users and view-events and nothing else. A move
+    // to another provider replaces this block along with that file.
     KEYCLOAK_REALM: required("KEYCLOAK_REALM"),
     KEYCLOAK_CLIENT_ID: String(env.KEYCLOAK_CLIENT_ID ?? "main-api"),
     KEYCLOAK_CLIENT_SECRET: secret("KEYCLOAK_CLIENT_SECRET", 16),
@@ -101,6 +113,17 @@ export function validateEnvironment(env: Record<string, unknown>) {
     // because it goes into a message somebody opens on their own machine, and
     // a Compose hostname there would be a link that cannot be followed.
     APP_BASE_URL: new URL(required("APP_BASE_URL")).href.replace(/\/$/, ""),
+    // Whether main-api mirrors refused logins out of the identity provider's
+    // event log onto the security page. On by default, because somebody else
+    // guessing at an account is the thing its owner most wants to know.
+    //
+    // It has an off switch and the other event types do not, because it is the
+    // only one this application does not cause: nothing is deduplicated, ten
+    // attempts are ten rows, and a realm being scanned can fill a page with
+    // them. Turning it off stops the polling entirely -- no timer, no call to
+    // the provider -- and the provider's own event log keeps them either way.
+    // See apps/main-api/src/security-events/login-failures.service.ts.
+    SECURITY_LOG_FAILED_LOGINS: flag("SECURITY_LOG_FAILED_LOGINS", true),
     CORS_ORIGINS: String(env.CORS_ORIGINS ?? "")
       .split(",")
       .map((value) => value.trim())

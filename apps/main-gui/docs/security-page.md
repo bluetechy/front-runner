@@ -2,10 +2,10 @@
 
 Lives in `src/security` and renders at `/security-and-access`, which is
 Security & Access in the rail. What it holds today is the account's **user
-name** and its **email addresses**: what the account is called, which
-addresses are on file, which one is the login, and which of them anybody has
-proved they can read. Passwords and sessions belong to Keycloak and are not
-here yet.
+name**, its **email addresses** and its **recent activity**: what the account
+is called, which addresses are on file, which one is the login, which of them
+anybody has proved they can read, and what has lately happened to the account.
+Passwords and sessions belong to Keycloak and are not here yet.
 
 The route was `/security` and the rail read Security & Login until both were
 renamed. The vertical kept its own name: `src/security` is the subject, not
@@ -269,6 +269,303 @@ through `dbo.SetUserProfile`: that one writes the profile form's seventeen
 fields, and a switch that submitted a whole profile to move one boolean would
 overwrite whatever the profile page had open.
 
+## Recent activity
+
+`activity-list.tsx` and `activity-dialog.tsx`, in a card headed **RECENT
+ACTIVITY** under the addresses. Built from two supplied mock-ups, which are
+Google's "Recent security activity" and the card behind one of its rows.
+
+It sits under the addresses because it is the record of what has been done to
+them and to everything else about getting in: the page says what the account
+is, then what can be changed about it, then what has changed. The privacy
+switch stays last, because it is a preference rather than a way in.
+
+### The table
+
+The **same table the addresses are drawn in**: a grid rather than a `<table>`,
+the card's own rule between rows, pills from `brand.statusPills` in Status, and
+a right-aligned action column. Two lists on one page drawn two ways would read
+as two different kinds of thing. Four columns:
+
+| Column       | What is in it                                                          |
+| ------------ | ---------------------------------------------------------------------- |
+| **When**     | the day, and the hour under it in the card's quieter ink               |
+| **Activity** | the sentence the event was recorded with, and the device and the place |
+| **Status**   | **New**, **Recognized** or **Reported**                                |
+| **Action**   | a chevron that opens the dialog                                        |
+
+Two departures from the mock-up. It groups rows under a **heading per day**,
+which is what the When column does here instead: a date heading buys a day's
+rows one shared line, which is worth it in a list with one thing on each row
+and not worth it in a table whose first column is already the date. And it
+gives the device and the place a **column of their own**, which most rows here
+would leave empty: a login knows both and an address being added knows neither,
+so they go on a muted line under the sentence, and a row with neither draws no
+line.
+
+The Action heading is **singular**, where the addresses' is Action(s). A row
+here offers exactly one thing, and a heading promising more would be counting
+wrong on all of it.
+
+The column shows the **sentence**, not the type. "New login" over a row loses
+which address was added and which device logged in, and the sentence is written
+where the event is recorded, which is the only place that knows. `activity-kinds.ts`
+turns the type into the heading the dialog uses, the way `notification-kinds.ts`
+turns a notification type into an icon, and it has the same answer for a type it
+has not met: the name spaced out, rather than an empty heading.
+
+Time is **written out rather than counted back from**. The bell says "2 days
+ago" because what matters there is freshness; somebody deciding whether a login
+was theirs is placing it against their own day, and "3 days ago" makes them do
+the arithmetic that decides whether to report it. `activity-time.ts` is that,
+through `Intl.DateTimeFormat`.
+
+**Every row opens**, answered or not. An answer can be changed, and somebody who
+pressed the wrong button is exactly who needs the way back in; the Status column
+is what says which rows are still asking.
+
+### The dialog
+
+`activity-dialog.tsx`: when it happened and whether it is new, what it was, what
+it would mean if it was not you, the device and the place, and then the
+question. It is the violet panel the wallet's dialogs and the login sit on, for
+the reason written on `wallet/method-dialog.tsx`: what is taken from a Google
+mock-up is the layout, and what is not is the color.
+
+**Neither answer is painted.** They are the same outlined button twice, which
+is [the rule the cookie notice made](cookie-consent.md) and the only other
+place in this product where what a button is painted is settled by something
+other than taste: a contained button on one of two answers is a nudge, and the
+nudge here would land on somebody deciding whether their account has been broken
+into. The glyphs tell them apart and the words say the rest.
+
+The warning line is only on the kinds where being wrong about the answer is
+expensive: a login, a password, the address the login moved to. A sentence
+about risk on every row is a sentence nobody reads by the third one.
+
+And the dialog **says what "No" will do before it is pressed**, because what it
+does is send a message: a link to choose a new password, and nothing else
+touched. Somebody who is not told to expect it will not know to go and open it.
+
+### Saying no does something
+
+"No, secure account" is two writes and a message. `dbo.ReviewSecurityEvent`
+records the answer and logs a second event saying the alarm was raised (a
+security log that does not hold the moment somebody reported something is
+missing the row an investigation starts from), and main-api then asks the
+**existing forgot-password flow** for a link, because that flow already mints
+the token, sends our own message and lands on our own page. A second way to
+reset a password would be a second thing to keep right.
+
+That is also why `PasswordResetModule` exports its service and
+`SecurityEventsModule` imports it, which is the one place in main-api a vertical
+is reached other than through the schema.
+
+The answer is recorded before the message is attempted, and a failed send does
+not undo it: the row saying somebody does not recognize a login is the more
+important of the two, and the forgot-password card offers the link again.
+
+### What writes these rows
+
+`dbo.SecurityEvents`, through `dbo.LogSecurityEvent`, which is the only writer
+of an ordinary event. The callers are the three writes on this page that change
+how somebody gets in: an address added, an address removed, and the login moved
+to another address. `EmailsService` records each one after the write it
+describes has already succeeded. The primary change waits until Keycloak has
+agreed, because a log saying the login changed when the credential did not is
+worse than no log.
+
+Recording **never fails the thing it was recording**. `SecurityEventsService.record`
+swallows its own failure and logs a warning, and `dbo.LogSecurityEvent` answers
+NULL for a login it does not know rather than raising. The reason is that an
+address that is on file must not be reported as one that was refused because a
+log write failed.
+
+### Logins, which nothing in this application causes
+
+Every other row here is written by the code that did the thing. A login is not:
+Keycloak authenticates, and main-api only ever meets the token afterwards, and
+meets it again on every request for as long as that session lasts.
+
+So the login is recorded **from the request path**, in `AuthenticationGuard`,
+which is the only place that sees a session begin and the only place that knows
+which browser it came from.
+
+Three things make that safe to do on every request.
+
+**One login is one session, so the session is the key.** The token's `sid`
+claim is the only thing in it that says "these requests are all the same login"
+and survives a restart, so `dbo.SecurityEvents` holds it on a login row and a
+unique constraint on `("UserUUID", "SessionId")` is what actually prevents a
+second one. `dbo.LogLoginEvent` inserts with `ON CONFLICT DO NOTHING`, so the
+tenth request of a session writes nothing, a genuine second login is a second
+row, and two requests racing at the start of a brand new session cannot both
+win. A token carrying no `sid` is a machine's, and is not a login.
+
+This was deduplicated on `auth_time` first, and that is worth recording because
+it looks better than it is: it stores nothing borrowed from the provider. It
+does not survive contact with Keycloak. **A direct grant token carries no
+`auth_time` at all**, so whole classes of login would have gone unrecorded, and
+the claim was only found to be missing by asking a running Keycloak for a token
+and reading it. `auth_time` is still used, for _when_ a login happened rather
+than _whether_ one did: `dbo.LogLoginEvent` takes it as the timestamp and falls
+back to now.
+
+Borrowing the provider's vocabulary is a cost rather than a preference, and one
+this schema already pays with `dbo.Users."SubjectId"`. Nothing reads `SessionId`
+back out: `dbo.GetSecurityEvents` does not return it and it never reaches the
+browser.
+
+**The guard remembers the sessions it has already written**, so the question is
+asked of the database once per session per process rather than once per request.
+That set is a cache and not the rule: a restart, a second instance behind a load
+balancer, or an eviction costs one refused insert, never a duplicate row on
+somebody's page.
+
+**A failure to record cannot fail the request.** Somebody whose login worked is
+logged in; answering 500 because a log row could not be written would lock them
+out over bookkeeping. Same rule as `SecurityEventsService.record`, and the guard
+logs a warning instead.
+
+It calls `dbo.LogLoginEvent` **directly** rather than through the security
+events vertical, the way the provisioning beside it calls `dbo.ProvisionUser`
+rather than going through the users vertical. `authentication` is infrastructure
+in main-api and may not import a feature slice, which `check-boundaries.mjs`
+enforces, and importing this one would also be a cycle: the security vertical
+reaches the forgot-password flow, which reaches back into authentication. The
+database function is the contract instead.
+
+### Failed logins, which nothing in this application even sees
+
+A login this application never caused is one thing. A login that never happened
+is another. **Keycloak refuses the password and mints nothing**, so there is no
+token, no request, and no moment anywhere in main-api at which a failed login
+could be written down. The request path cannot help here at all.
+
+So this one is **pulled rather than pushed**. Keycloak keeps its own event log,
+`LoginFailuresService` asks it once a minute what it refused, and writes what is
+new onto the page. It is the only timer in this API, and the only thing on this
+page read out of the provider rather than out of what we did.
+
+**Where it resumes from is the interesting part.** A mirror needs a high-water
+mark, and the obvious one, the moment this process booted, is wrong twice over:
+in development the API restarts on every file change, so the mark would reset
+every few seconds, and after a real outage everything refused during it would be
+lost. The mark is instead read back out of the database, as the newest
+`LoginFailed` already recorded, floored at a day so that a first run does not
+drag in the whole of the provider's history. That stamp is Keycloak's own clock,
+because Keycloak's clock is what was written, so the two never have to agree.
+
+Within a sweep the mark moves **one row at a time, oldest first, and only after
+the row is written**. The provider answers newest first, which is the wrong
+order to write in: a sweep that died halfway would leave the mark beyond rows it
+never wrote, and those attempts would be gone for good. That is also the one
+reason `SecurityEventsService.recordLoginFailure` is allowed to throw where
+every other record here swallows: swallowing would move the mark over a row
+nobody wrote.
+
+**An attempt aimed at nobody is recorded nowhere.** Keycloak leaves `userId` out
+of the event when the name somebody typed matched no account, and
+`dbo.LogLoginFailure` answers NULL for a subject this installation has never
+provisioned. There is no account it happened to, and a log that grew a row for a
+name nobody holds would answer "does this account exist" to whoever was
+guessing. It is also why the function takes a **subject id** rather than a login
+name: the provider names the account by its subject, and what somebody typed at
+the prompt is frequently an email address rather than a login name at all.
+
+**Nothing about a failure is deduplicated**, unlike a login. Ten attempts are
+ten rows, because how many there were is the fact worth reading. That is what
+makes this the one event type that can fill a page on its own, which is why it
+is the one with an off switch: `SECURITY_LOG_FAILED_LOGINS=false` stops the
+timer before it starts, and Keycloak keeps its own event log either way, so
+turning it off loses the mirror rather than the record.
+
+Two things outside this repository's code have to be true, and on an existing
+installation they will not be: the realm has to be keeping `LOGIN_ERROR` events,
+and main-api's service account has to hold `view-events`. Both are in
+`front-runner-realm.json`, which Keycloak imports **only onto an empty
+database**, so an installation that predates this needs `make dc3-clean` or the
+same two changes in the admin console. Until then the service says so once in
+the output and records nothing, which is the same thing it says when Keycloak is
+down. See [keycloak-idp](../../keycloak-idp/README.md).
+
+The realm keeps `LOGIN_ERROR` and nothing else, rather than Keycloak's default
+of every event type. Left at the default it would hold a second copy of every
+successful login, logout and token refresh, in a store nothing reads and the
+twelve-month rule below does not reach.
+
+### The device, and the place that is still missing
+
+`device-name.ts` reads the request's `User-Agent` and answers one word:
+**Mac OS, Windows, iPhone, iPad, Android, ChromeOS, Linux**, or nothing. Not a
+library and no version numbers, because the only question the name has to answer
+is whether the person reading it recognizes themselves, and a build number does
+not help them. The order matters: a phone's agent also names the system it is
+built on, so the phones are tested first, and "Linux" over a login from a Pixel
+is a name nobody recognizes.
+
+An agent it cannot read gets **no device at all**, and the row reads "New
+login." Guessing is worse than saying nothing here: a name somebody does not
+recognize is what makes them report a login that was theirs.
+
+**`Location` is still never written.** Working one out means an IP address
+lookup, which is either a third party told where every user logs in from or a
+geo-IP database shipped in the image, and neither is a decision to make by
+accident inside a feature. The column is nullable, the dialog leaves the line
+out, and the dev seeds are the only rows carrying one. It is written down as
+item 10 of
+[privacy and cookies: what is left](../../../docs/privacy-follow-ups.md), which
+is where the decision belongs: whichever way it is made, the privacy policy
+changes in the same commit.
+
+### How long it is kept
+
+**Twelve months**, enforced by `dbo.trim_security_events`, a trigger on the
+table. A trigger rather than a call inside the writers, because there are four
+of them and a retention rule that each has to remember is one that one of them
+will not.
+
+There is no scheduler in this product to sweep the table from outside, so the
+writes do it: every event an account records takes its own old ones with it, and
+only its own. The consequence, which the privacy policy is worded around: an
+account nobody touches is not swept, because nothing arrives to sweep it. It
+keeps its last twelve months rather than emptying on a date.
+
+Two things follow from the trigger firing on insert, and both have already
+caught this codebase out. A row written with a date already beyond the window is
+swept by **its own insert**. And the test fixtures for this one table cannot
+carry fixed dates the way every other table's do: written as 2024, they erase
+each other as they load. `Fixtures.sql` uses relative offsets here, and says why.
+
+The number is in two places on purpose. It is in that trigger, and it is in the
+policy's "How long we keep it" section, which promises it to the reader.
+`sections.test.ts` asserts the sentence, so moving one without the other breaks
+the suite.
+
+### It is not dbo.EventLog
+
+The obvious place for this was the log that already existed, and it is the wrong
+one. `dbo.EventLog` is what happens **inside an organization**: `TaskCompleted`,
+`PointsEarned`, `TalliesRebuilt`. It carries `OrganizationUUID` and
+`IsUserVisible` because it serves an activity feed and the audit trail behind
+it. A login is not any organization's business, and three of the columns a
+security event needs mean nothing to any row up there.
+
+That is not a contradiction of ["one log, not
+two"](../../main-db/SCHEMA-NOTES.md), which was about two tables with the same
+shape and no rule for which one anything wrote to. These two have different
+shapes and an obvious rule.
+
+`dbo.SecurityEvents` has no organization column at all: an account is one
+account however many organizations it belongs to. `Device` and `Location` are
+nullable, and `Location` is **as coarse as the screen shows it** ("Utah,
+USA"), because somebody has to recognize themselves in it rather than be
+tracked by it,
+and a precise location stored against a login is worth more to whoever steals
+the table than to its owner. `ReviewedAt` and `Recognized` are NULL together
+until the question is answered, and a CHECK constraint is what stops them
+disagreeing.
+
 ## Invitations match any verified address
 
 Not part of this page, but this feature changed it. An account can hold several
@@ -284,6 +581,34 @@ typing the address it was sent to.
 
 ## What is not here yet
 
-Changing a password, seeing active sessions, and signing other devices out.
-All three are Keycloak's, all three would go on this page, and none of them is
-built.
+Changing a password from this page, seeing active sessions, and signing other
+devices out. All three are Keycloak's, all three would go on this page, and
+none of them is built. The first is the one RECENT ACTIVITY leans on hardest:
+"No, secure account" sends a reset link because there is no in-place password
+change to send somebody to.
+
+**`Location` is never written**, only read: see
+[the device, and the place that is still missing](#the-device-and-the-place-that-is-still-missing).
+Whatever comes to write it should stop at a country and a region. A page whose
+whole subject is somebody recognizing themselves does not need a street, and a
+precise location kept against a login is worth more to whoever steals the table
+than to its owner. It is item 10 of
+[privacy and cookies: what is left](../../../docs/privacy-follow-ups.md), and it
+is a decision rather than a task: it cannot be filled in without either telling a
+third party where every user logs in from or shipping a geo-IP database, and
+either one edits the privacy policy in the same commit.
+
+**A failed login refused for an account this installation has never provisioned
+is recorded nowhere**, which is deliberate rather than missing: see
+[failed logins](#failed-logins-which-nothing-in-this-application-even-sees).
+
+Failed logins also arrive **on a delay of up to a minute**, because they are
+polled rather than pushed. Keycloak can push instead, through an event listener
+provider, and that is a Java artifact built into the image: a real improvement
+and a disproportionate one for a page nobody watches live.
+
+The list is **not paged**. `dbo.GetSecurityEvents` takes a row cap and main-api
+asks for twenty, which is where "recent" is defined. An account busy enough to
+push an unanswered event off the end of that is the argument for paging it,
+which is the argument the bell already lost. See
+[notifications](notifications.md).

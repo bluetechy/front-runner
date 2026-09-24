@@ -8,15 +8,16 @@ import { ConfigService } from "@nestjs/config";
 import {
   IdentityAdminService,
   type Account,
+  type LoginFailure,
   type NewAccount,
 } from "./identity-admin.service.js";
 
 // IdentityAdminService against Keycloak's admin API. The only file in this
 // API that knows Keycloak has realms, and the only one that would be replaced
 // wholesale by a move to another provider -- see identity-admin.service.ts for
-// the five operations it answers and why there are only five.
+// the six operations it answers and why there are only six.
 //
-// Three things, in the language of that port.
+// Four things, in the language of that port.
 //
 // Changing the address an account logs in with: Keycloak holds one address per
 // user and it is the credential, so making an address primary on the security
@@ -37,14 +38,21 @@ import {
 // pointing at its own page -- so the link is ours and the password is set here
 // once somebody has followed it. See apps/main-api/src/password-reset.
 //
+// And reading back which logins the realm refused, which is the one thing here
+// that is not about an account somebody named. A refused password mints no
+// token, so a failed login never reaches the request path at all; the provider's
+// own event log is the only place it exists, and the security page mirrors it.
+// See apps/main-api/src/security-events/login-failures.service.ts.
+//
 // It authenticates as the "main-api" client's own service account rather than
-// as the bootstrap administrator: that account holds manage-users and
-// view-users on this realm and nothing else, so a bug here cannot reconfigure
-// the realm. See apps/keycloak-idp/realm/front-runner-realm.json.
+// as the bootstrap administrator: that account holds manage-users, view-users
+// and view-events on this realm and nothing else, so a bug here cannot
+// reconfigure the realm. See apps/keycloak-idp/realm/front-runner-realm.json.
 //
 // Separate from TokenVerifierService, which verifies tokens. That one is on
 // the path of every request and must never make a call of its own; this one is
-// reached only by a security-page mutation and by the sign-up form.
+// reached only by a security-page mutation, by the sign-up form, and by the
+// timer that mirrors login failures.
 
 // The admin token, and when it stops being good for anything. Kept in memory
 // and reused, because a client-credentials grant is a round trip and this
@@ -206,6 +214,43 @@ export class KeycloakAdminService extends IdentityAdminService {
     );
   }
 
+  // Keycloak's user event log, filtered to the logins it refused.
+  //
+  // It answers newest first, which is the order this is specified in, and it
+  // answers at all only because the realm is configured to keep these events:
+  // `eventsEnabled` with LOGIN_ERROR among `enabledEventTypes`, and `view-events`
+  // on this client's service account. Without the role it answers 403 and
+  // without the configuration it answers an empty list forever, so the caller
+  // has to tell a realm with nothing to report from a realm that was never
+  // asked to report -- see apps/keycloak-idp/realm/front-runner-realm.json.
+  //
+  // No date filter is sent. Keycloak has spelled `dateFrom` two ways across
+  // versions and the window is small, so the newest page is fetched and the
+  // caller drops what it has already seen. The cap is what bounds the work.
+  async loginFailures(limit: number): Promise<LoginFailure[]> {
+    const query = new URLSearchParams({
+      type: "LOGIN_ERROR",
+      max: String(limit),
+    });
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/events?${query}`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not answer for its login failures",
+      );
+    }
+
+    const events: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(events)) return [];
+    return events
+      .map(readLoginFailure)
+      .filter((failure): failure is LoginFailure => failure !== null);
+  }
+
   // One exact search. Keycloak answers a list; anything but exactly one match
   // is nobody, because "which of these two did you mean" is not a question
   // this flow can ask.
@@ -361,6 +406,32 @@ function readAccount(body: unknown): Account | null {
     username: account.username,
     email: account.email,
     firstName: typeof account.firstName === "string" ? account.firstName : "",
+  };
+}
+
+// One LOGIN_ERROR event, read down to the three things a security log needs.
+//
+// An event with no "userId" is dropped, and that is the important line here:
+// Keycloak leaves it out when the name somebody typed matched no account, so
+// there is no account the attempt happened to. Recording those against anything
+// would be recording a guess, and a log that grew a row for a name nobody holds
+// would answer "does this account exist" to whoever was guessing.
+function readLoginFailure(body: unknown): LoginFailure | null {
+  const event = body as {
+    userId?: unknown;
+    time?: unknown;
+    error?: unknown;
+  } | null;
+  if (!event || typeof event.userId !== "string" || !event.userId) return null;
+  // Epoch milliseconds. A missing or nonsense time reads as no event rather
+  // than as one that happened in 1970, which would sit at the bottom of the
+  // page forever and never clear a high-water mark.
+  if (typeof event.time !== "number" || !Number.isFinite(event.time))
+    return null;
+  return {
+    subjectId: event.userId,
+    at: new Date(event.time),
+    reason: typeof event.error === "string" && event.error ? event.error : null,
   };
 }
 

@@ -3,6 +3,7 @@ import type { ConfigService } from "@nestjs/config";
 import type { IdentityAdminService } from "../authentication/index.js";
 import { DatabaseService } from "../database/index.js";
 import type { MailService } from "../mail/index.js";
+import type { SecurityEventsService } from "../security-events/index.js";
 import { EmailsService } from "./emails.service.js";
 
 /*
@@ -37,6 +38,9 @@ function setup(rows: unknown[] = []) {
   const setEmail = jest
     .fn<IdentityAdminService["setEmail"]>()
     .mockResolvedValue(undefined);
+  const record = jest
+    .fn<SecurityEventsService["record"]>()
+    .mockResolvedValue(undefined);
   const config = {
     getOrThrow: () => "http://localhost",
   } as unknown as ConfigService;
@@ -45,10 +49,12 @@ function setup(rows: unknown[] = []) {
     query,
     send,
     setEmail,
+    record,
     service: new EmailsService(
       { query } as unknown as DatabaseService,
       { send } as unknown as MailService,
       { setEmail } as unknown as IdentityAdminService,
+      { record } as unknown as SecurityEventsService,
       config,
     ),
   };
@@ -266,6 +272,76 @@ describe("the rest of the writes", () => {
       expect.stringContaining('"SetUserEmailPrivacy"'),
       ["marcus", true],
     );
+  });
+});
+
+/*
+ * Everything here that changes how somebody gets into their account is written
+ * into their security log as well, because that log is what the RECENT ACTIVITY
+ * section of the same page shows. Nothing records a login yet -- those are
+ * Keycloak's -- so these three are the rows a real account accumulates.
+ */
+describe("what reaches the security log", () => {
+  it("records an email address being added, by the address rather than its id", async () => {
+    const { service, record } = setup([]);
+    await service.add("marcus", "work@example.test");
+
+    expect(record).toHaveBeenCalledWith(
+      "marcus",
+      "EmailAdded",
+      "work@example.test was added to your account.",
+    );
+  });
+
+  // The argument is an id and the log wants the address, so it is read out of
+  // the list as it stood before the write: "a2f1... was removed" tells nobody
+  // anything.
+  it("records an email address being removed, having looked up what it was", async () => {
+    const { service, record } = setup([
+      { UserEmailUUID: ADDRESS, Email: "old@example.test" },
+    ]);
+    await service.remove("marcus", ADDRESS);
+
+    expect(record).toHaveBeenCalledWith(
+      "marcus",
+      "EmailRemoved",
+      "old@example.test was removed from your account.",
+    );
+  });
+
+  it("records nothing when there was no such email address to remove", async () => {
+    const { service, record } = setup([]);
+    await service.remove("marcus", ADDRESS);
+
+    expect(record).not.toHaveBeenCalled();
+  });
+
+  // Recorded after the identity provider has agreed, never before. A log
+  // saying the login changed when the credential did not is worse than no log:
+  // this is the page somebody checks to find out what really happened.
+  it("records a login being moved only once the provider has taken it", async () => {
+    const { service, record, setEmail } = setup([
+      { UserEmailUUID: ADDRESS, Email: "new@example.test", SubjectId: "s" },
+    ]);
+    await service.setPrimary("marcus", ADDRESS);
+
+    expect(record).toHaveBeenCalledWith(
+      "marcus",
+      "PrimaryEmailChanged",
+      "You login with new@example.test from now on.",
+    );
+    expect(setEmail.mock.invocationCallOrder[0]).toBeLessThan(
+      record.mock.invocationCallOrder[0] as number,
+    );
+  });
+
+  // The switch is a preference, not a way in. Nothing about it belongs on a
+  // page headed with logins and password changes.
+  it("records nothing for the privacy switch", async () => {
+    const { service, record } = setup([]);
+    await service.setPrivacy("marcus", true);
+
+    expect(record).not.toHaveBeenCalled();
   });
 });
 

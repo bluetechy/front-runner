@@ -82,10 +82,68 @@ describe("access tokens", () => {
       name: "Alice Example",
       email: "alice@example.test",
       emailVerified: true,
+      // Null because the token this test signs carries neither claim. Both
+      // have cases of their own below.
+      sessionId: null,
+      authenticatedAt: null,
       // setIssuedAt() stamps the token as it is signed, so this is whatever
       // "now" was, to the second.
       issuedAt: expect.any(Date),
     });
+  });
+
+  /*
+   * The session, which is what the security log deduplicates a login on: one
+   * login is one session, and this is the only thing in a token that says
+   * "these requests are all the same login" and survives a restart. See
+   * dbo.LogLoginEvent.
+   */
+  it("reports the session the token belongs to", async () => {
+    const identity = await service().verify(
+      await token({ sid: "session-one" }),
+    );
+
+    expect(identity.sessionId).toBe("session-one");
+  });
+
+  // A machine's token. Half a session id is not a session, so a claim too wide
+  // for the column is dropped rather than cut down to something that could
+  // collide with the next one.
+  it.each([
+    ["the claim is missing", {}],
+    ["the claim is not a string", { sid: 7 }],
+    ["the claim would not fit the column", { sid: "s".repeat(65) }],
+  ])("reports no session when %s", async (_case, claims) => {
+    const identity = await service().verify(await token(claims));
+
+    expect(identity.sessionId).toBeNull();
+  });
+
+  /*
+   * "auth_time" is when somebody actually proved who they were, and it is not
+   * "iat". A token is refreshed over and over inside one session and "iat"
+   * moves every time; this does not move until they login again. It says when
+   * a login happened and never whether one did, because Keycloak leaves it out
+   * of a direct grant altogether. See dbo.LogLoginEvent.
+   */
+  it("reports when the person authenticated, separately from when the token was minted", async () => {
+    const identity = await service().verify(
+      await token({ auth_time: 1_767_225_600 }),
+    );
+
+    expect(identity.authenticatedAt).toEqual(new Date("2026-01-01T00:00:00Z"));
+    expect(identity.authenticatedAt).not.toEqual(identity.issuedAt);
+  });
+
+  // A machine's token. Recording one as a login would put a row on somebody's
+  // security page every time a service account called the API.
+  it.each([
+    ["the claim is missing", {}],
+    ["the claim is not a number", { auth_time: "yesterday" }],
+  ])("reports no authentication time when %s", async (_case, claims) => {
+    const identity = await service().verify(await token(claims));
+
+    expect(identity.authenticatedAt).toBeNull();
   });
 
   // The claim that stops a new sign-in address from undoing itself. A token

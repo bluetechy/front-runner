@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "../authentication";
+import { useApiCall } from "./api-call";
 import { emailSchema } from "./email-schema";
 
 /*
@@ -65,7 +66,7 @@ interface EmailSettings {
 }
 
 export function useEmails() {
-  const { status, getAccessToken } = useSession();
+  const { status } = useSession();
   const [addresses, setAddresses] = useState<UserEmail[]>([]);
   /* Private until the API says otherwise, which is also what it says for an
    * account nobody has asked. The switch should not read Public for the
@@ -77,36 +78,9 @@ export function useEmails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const call = useCallback(
-    async <T,>(
-      query: string,
-      variables: Record<string, unknown>,
-    ): Promise<T> => {
-      const token = await getAccessToken();
-      if (!token) throw new Error("Your session has expired. Login again.");
-
-      const response = await fetch(import.meta.env.VITE_GRAPHQL_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query, variables }),
-      });
-      const body = (await response.json()) as {
-        data?: Record<string, T | null>;
-        errors?: { message: string }[];
-      };
-      /* The API answers 200 with an errors array, so the status says nothing;
-       * the first message is the one worth showing. */
-      if (body.errors?.length) throw new Error(body.errors[0]!.message);
-      const [result] = Object.values(body.data ?? {});
-      if (result === undefined || result === null)
-        throw new Error("The API returned no email addresses.");
-      return result;
-    },
-    [getAccessToken],
-  );
+  /* The same call the activity list under this table makes, which is why it
+   * lives beside both of them now rather than inside this file. */
+  const call = useApiCall("The API returned no email addresses.");
 
   useEffect(() => {
     if (status !== "signed-in") return;

@@ -125,6 +125,41 @@ describe("environment validation", () => {
       IDP_ISSUER_URL: "https://identity.example.test/realms/front-runner",
     });
   });
+  // The one switch in here, and the only event type on the security page that
+  // has one: nothing deduplicates a refused login, so a realm being scanned can
+  // fill somebody's page with them.
+  it("records failed logins unless it is told not to", () => {
+    expect(validateEnvironment(base)).toMatchObject({
+      SECURITY_LOG_FAILED_LOGINS: true,
+    });
+  });
+
+  // Whichever word somebody reached for in a .env file. Nobody should have to
+  // guess which one this codebase chose.
+  it.each(["false", "0", "no", "off", "OFF", " false "])(
+    "reads %s as off",
+    (word) => {
+      expect(
+        validateEnvironment({ ...base, SECURITY_LOG_FAILED_LOGINS: word }),
+      ).toMatchObject({ SECURITY_LOG_FAILED_LOGINS: false });
+    },
+  );
+
+  it.each(["true", "1", "yes", "on"])("reads %s as on", (word) => {
+    expect(
+      validateEnvironment({ ...base, SECURITY_LOG_FAILED_LOGINS: word }),
+    ).toMatchObject({ SECURITY_LOG_FAILED_LOGINS: true });
+  });
+
+  // Refused rather than read as on. Somebody who wrote "disabled" meant to turn
+  // it off, and a switch that silently ignores them is worse than one that says
+  // it does not understand.
+  it("refuses a word it does not know rather than guessing", () => {
+    expect(() =>
+      validateEnvironment({ ...base, SECURITY_LOG_FAILED_LOGINS: "disabled" }),
+    ).toThrow("SECURITY_LOG_FAILED_LOGINS");
+  });
+
   it("derives the key set address from the issuer, and lets it be overridden", () => {
     expect(validateEnvironment(base)).toMatchObject({
       IDP_JWKS_URL:

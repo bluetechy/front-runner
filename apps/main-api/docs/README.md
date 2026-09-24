@@ -73,6 +73,17 @@ reads those columns back today, so nothing breaks, but see
 and the columns it protects are a placeholder for a payment processor and are
 meant to be deleted together.
 
+`SECURITY_LOG_FAILED_LOGINS` turns off the one timer in this API. A refused
+password mints no token, so a failed login never reaches the request path;
+`LoginFailuresService` asks the identity provider once a minute what it refused
+and copies that onto the security page. It is the one event type on that page
+with a switch, because it is the one nothing deduplicates: ten attempts are ten
+rows, and a realm being scanned can fill somebody's page with them. Off stops
+the polling entirely, and the provider keeps its own event log either way. It
+also needs the realm to be keeping `LOGIN_ERROR` events and this client to hold
+`view-events`: see `apps/keycloak-idp/README.md`. Without either, the service
+says so once in the output and records nothing.
+
 ## Checks
 
 ```sh

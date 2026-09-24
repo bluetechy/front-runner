@@ -168,11 +168,47 @@ transfer out of the EEA attached to it.
 **To do.** Edit the policy in the same commit as the processor. Add the
 processor's name, what it is given, and where it is.
 
+### 10. There is no location on a login, and putting one there is a decision
+
+`dbo.SecurityEvents` has a `Location` column, `GetSecurityEvents` returns it,
+the dialog on the Security & Access page draws a line for it, and **nothing
+ever writes it**. Only the dev seeds carry one. A login on that page says
+"Mac OS" and not where from, which is half of what makes somebody recognize
+themselves: the device is often the same on both, and the country is not.
+
+It is unfilled because there is no way to fill it that is not a privacy choice
+somebody has to make on purpose. Working a place out of a login means an IP
+address, and then one of two things:
+
+- **a lookup service**, which is a new recipient in "Who else sees it", told the
+  IP address of every login on this product, and probably a transfer out of the
+  EEA attached to it; or
+- **a geo-IP database shipped in the image**, which tells nobody anything and
+  costs a few hundred megabytes, a licence and a refresh somebody has to
+  remember.
+
+The second is the better answer for a privacy policy and the worse one for
+whoever maintains the image. Neither should be slipped in inside a feature,
+which is why the column is still empty.
+
+**To do.** Decide which, and in the same commit: write the value no more
+precisely than a country and a region (the page already draws "Utah, USA"), add
+the new sentence to "What we collect", and add the service to "Who else sees
+it" if it went that way. A precise location kept against a login is worth more
+to whoever steals `dbo.SecurityEvents` than to the person it belongs to, so the
+coarseness is part of the decision rather than a detail of it.
+
+**Done when** a login on the security page says where it came from, and the
+policy says that it does.
+
+How the page is arranged is in
+[the security page](../apps/main-gui/docs/security-page.md#the-device-and-the-place-that-is-still-missing).
+
 ---
 
 ## Places the words are already slightly behind the product
 
-### 10. Keycloak's own sign-in pages set their own cookies
+### 11. Keycloak's own sign-in pages set their own cookies
 
 The cookie section lists the four things this site keeps in the browser, which
 is accurate for this origin. It leaves out that signing up, resetting a
@@ -184,7 +220,7 @@ a compliance one, and the cheapest kind to fix.
 **To do.** One sentence in the cookies section saying so, and one in the
 relevant category's `kept` if it belongs there.
 
-### 11. Signing in with Google, Facebook or Apple is a third-party cookie
+### 12. Signing in with Google, Facebook or Apple is a third-party cookie
 
 Named in "Who else sees it" as a party that is told you signed in, which is
 the important half. The sentence does not say that choosing one of those
@@ -195,7 +231,7 @@ clause, in the same edit as the item above.
 
 ## Smaller things, in no particular hurry
 
-### 12. The box is translated and the policy is not
+### 13. The box is translated and the policy is not
 
 The notice and the dialog go through `t()` in both `en-US` and `es-MX`. The
 policy is English, like every other marketing page. A banner in Spanish
@@ -209,19 +245,19 @@ move the policy into the locale files, or hold both translations in
 `sections.ts` keyed by tag. Whichever way the marketing pages go, the policy
 should be in the first batch rather than the last.
 
-### 13. A second tab does not hear about a choice
+### 14. A second tab does not hear about a choice
 
 A choice made in one tab reaches another when that one is reloaded. The same
 bargain `language` makes, and the same fix if it is ever worth making: listen
 for the `storage` event and take the new record.
 
-### 14. The bar covers the foot of the page while it is up
+### 15. The bar covers the foot of the page while it is up
 
 Everything is still reachable by scrolling and the bar goes as soon as it is
 answered. Pushing the page up by the bar's height while it is showing is the
 tidier behavior and costs a padding on the shells.
 
-### 15. Opt-out signals are ignored
+### 16. Opt-out signals are ignored
 
 Global Privacy Control is a header and a DOM property that says "treat this as
 a refusal", and several US state laws now require honoring it. Reading it and
@@ -231,7 +267,7 @@ anybody who has set it.
 **To do.** If `navigator.globalPrivacyControl` is true, record
 `nothingOptional` and do not show the bar, or show it already answered.
 
-### 16. The notice has not been read with a screen reader
+### 17. The notice has not been read with a screen reader
 
 It is a named `section` with a heading, which is deliberate: it is a landmark
 somebody can jump to, and not a modal that traps them. That is the right

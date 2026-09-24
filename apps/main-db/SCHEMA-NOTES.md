@@ -641,6 +641,79 @@ is the argument that sank `PointUsageLogs`. They are `dbo.EventLog`.
 somebody's activity feed, the rest is the audit trail. That column is the one
 thing neither draft had.
 
+**`dbo.SecurityEvents` is a second log, and that is not a contradiction of the
+paragraph above.** It was added for the security page's RECENT ACTIVITY
+section, and the obvious thing was more rows in `dbo.EventLog`. That log is
+what happens **inside an organization**: `TaskCompleted`, `PointsEarned`,
+`TalliesRebuilt`. It carries `OrganizationUUID` and `IsUserVisible` because it
+serves an activity feed and the audit trail behind it. A login, an
+address added, a password changed are things that happen **to a person**, they
+are read on a page of their own, and three of the columns they need mean
+nothing to any row up there.
+
+What sank `ActivityFeed` was two tables with the **same shape** and no rule for
+which one anything wrote to. These two have different shapes and an obvious
+rule, so they are two tables. The new one has no organization column at all: an
+account is one account however many organizations it belongs to, and a login is
+not any of their business. `Device` and `Location` are nullable, because most
+events know neither, and `Location` is stored as coarsely as the page shows
+it ("Utah, USA"), since a precise location kept against a login is worth more
+to whoever steals this table than to its owner. `ReviewedAt` and `Recognized`
+carry one fact between them and a CHECK is what stops them disagreeing, which
+is the only reason two columns are allowed to hold one answer here; compare
+`Notifications."ReadAt"`, which needs no companion because "when" is the whole
+of what it says.
+
+Read by `dbo.GetSecurityEvents`, written by `dbo.LogSecurityEvent`, and
+answered by `dbo.ReviewSecurityEvent`. Logins come in through
+`dbo.LogLoginEvent`, which is the odd one: authentication is Keycloak's and
+main-api only meets the token afterwards, again on every request. So a login
+row carries the provider's session id and `UNIQUE ("UserUUID", "SessionId")`
+is what makes one login one row, however many requests that session makes. It
+is the second borrowed identifier in this schema after `dbo.Users."SubjectId"`,
+and nothing reads it back out.
+
+Deduplicating on the provider's `auth_time` instead would have stored nothing
+borrowed, and it was tried. A Keycloak direct grant token carries no `auth_time`
+at all, so that version recorded nothing for whole classes of login. The claim
+is still used for _when_ a login happened, never for _whether_ one did.
+
+**`dbo.LogLoginFailure` is the one writer that does not know a login name.** A
+refused password mints no token, so a failed login never reaches this
+application on the request path at all: it is read back out of the provider's
+own event log afterwards, and what the provider hands back names the account by
+its subject. The string somebody typed at the prompt is no use here, because
+Keycloak accepts an email address as well as a username and so it is frequently
+not a login name. The function takes `SubjectId`, resolves it, and then goes
+through `dbo.LogSecurityEvent` like everything else; an unknown subject writes
+nothing, which is both somebody guessing at a name nobody holds and the reason
+the log cannot be made to answer whether a name exists.
+
+Unlike a login, nothing about a failure is deduplicated, and nothing should be.
+Ten attempts are ten rows, because how many there were is the fact worth
+reading. That is also what makes this the one event type that can flood a
+page, so main-api can be told to stop recording them: see
+`SECURITY_LOG_FAILED_LOGINS`.
+
+**`dbo.trim_security_events` is the first retention rule in this schema.** It
+is a trigger on the table, dropping an account's own events once they are more
+than twelve months old, and it fires on insert because there is nothing in this
+product to sweep a table on a schedule. A trigger rather than a line in each
+writer, because there are four writers and a rule each has to remember is a
+rule one of them will not.
+
+It has two consequences worth knowing before writing anything that touches this
+table. A row inserted with a date already beyond the window is swept by its own
+insert. And this is the one table whose fixtures cannot carry the fixed dates
+every other table's do: written as 2024 they erase each other as `Fixtures.sql`
+loads, so the offsets there are relative, which is the only place in that file
+they are.
+
+Twelve months is also a promise the privacy policy makes, so the number lives in
+that trigger and in `main-gui`'s `src/privacy/sections.ts`, and a test on each
+side holds them together. See
+[the security page](../main-gui/docs/security-page.md#recent-activity).
+
 **Three columns were added that no draft carried**, each because the table
 cannot answer its own question without them: `Notifications."ReadAt"` (nothing
 else distinguishes seen from unseen), `EventLog."IsUserVisible"` (above), and

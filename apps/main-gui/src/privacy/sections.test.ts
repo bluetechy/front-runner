@@ -82,3 +82,51 @@ describe("the section about cookies", () => {
     expect(everything).toMatch(/six months/i);
   });
 });
+
+/*
+ * The security log is personal data the product started keeping when RECENT
+ * ACTIVITY was built, and a policy that does not mention it is a policy
+ * somebody would be surprised by on their own Security & Access page.
+ *
+ * The number is the part worth pinning. Twelve months is enforced by
+ * `dbo.trim_security_events`, and this page is where the product promises it:
+ * the two have to agree, so changing one has to break the other.
+ */
+describe("the section about the security log", () => {
+  it("says the logins are recorded and where they can be read", () => {
+    expect(everything).toMatch(/each login/i);
+    expect(everything).toMatch(/Security & Access/);
+  });
+
+  it("says a device is recorded, and how coarsely", () => {
+    expect(everything).toMatch(/kind of device/i);
+    expect(everything).toMatch(/"Mac OS"/);
+  });
+
+  /* Added after the log was: a refused login is personal data about somebody
+   * whose only involvement was being guessed at, and it is the one entry on the
+   * page this product does not cause. A policy that named only the successes
+   * would be describing half the page. */
+  it("says the refused logins are recorded too", () => {
+    expect(everything).toMatch(/refused/i);
+  });
+
+  /* The honest limit of it, and the reason the log cannot be used to find out
+   * whether an account exists: an attempt on a name nobody holds is written
+   * nowhere. */
+  it("says an attempt aimed at no account is recorded against nobody", () => {
+    expect(everything).toMatch(/nobody at all/i);
+  });
+
+  // The same twelve months dbo.trim_security_events deletes on. If this fails,
+  // one of the two moved and the other has to move with it.
+  it("says how long it is kept, and agrees with the database", () => {
+    expect(everything).toMatch(/twelve months/i);
+  });
+
+  // The honest half of the promise: the sweep happens when something is
+  // written, so an account nobody touches is not swept on a schedule.
+  it("does not promise a deletion date it cannot keep", () => {
+    expect(everything).toMatch(/dropped as new ones are recorded/i);
+  });
+});

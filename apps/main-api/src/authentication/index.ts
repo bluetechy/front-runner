@@ -18,6 +18,10 @@ export {
   Public,
   PUBLIC_OPERATION,
 } from "./authentication.decorators.js";
-export type { Account, NewAccount } from "./identity-admin.service.js";
+export type {
+  Account,
+  LoginFailure,
+  NewAccount,
+} from "./identity-admin.service.js";
 export type { VerifiedIdentity } from "./token-verifier.service.js";
 export type { Principal, GraphqlContext } from "./authentication.decorators.js";

@@ -89,7 +89,11 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('UserEmail.OutsiderPrimary','15151515-0000-4000-8000-000000000006'),
     ('PasswordReset.Fresh',      '16161616-0000-4000-8000-000000000001'),
     ('PasswordReset.Stale',      '16161616-0000-4000-8000-000000000002'),
-    ('PasswordReset.Spent',      '16161616-0000-4000-8000-000000000003');
+    ('PasswordReset.Spent',      '16161616-0000-4000-8000-000000000003'),
+    ('SecurityEvent.Login',      '17171717-0000-4000-8000-000000000001'),
+    ('SecurityEvent.EmailAdded', '17171717-0000-4000-8000-000000000002'),
+    ('SecurityEvent.Recognized', '17171717-0000-4000-8000-000000000003'),
+    ('SecurityEvent.OwnerLogin', '17171717-0000-4000-8000-000000000004');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -361,6 +365,30 @@ INSERT INTO "dbo"."EventLog" ("OrganizationUUID", "UserUUID", "EventType", "Desc
     ("test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), 'TaskAssigned',  'Marcus picked up Build.', true,  '2024-01-15 00:00:00+00', 'fixtures'),
     ("test"."Fixture"('Organization.Acme'), "test"."Fixture"('User.Member'), 'BadgeEarned',   'Marcus earned Rookie.',   true,  '2024-01-01 00:00:00+00', 'fixtures'),
     (NULL,                                  NULL,                            'SchemaApplied', 'Nightly rebuild.',        false, '2024-01-20 00:00:00+00', 'fixtures');
+
+-- The security log, which is a different table for a different subject: things
+-- that happened to an account rather than inside an organization.
+--
+-- One of everything dbo.GetSecurityEvents and dbo.ReviewSecurityEvent branch
+-- on: an event nobody has answered that knows a device and a place, one nobody
+-- has answered that knows neither, one already answered "yes, it was me", and
+-- one belonging to somebody else entirely, so a test can prove that one
+-- account's log is not another's. The owner's sits between two of the member's
+-- in time, so a reader that forgot its WHERE is caught by the order as well as
+-- by the count.
+--
+-- **These are the one set of fixtures that cannot carry fixed dates**, where
+-- every other table here does. This table sweeps its own past: dbo.trim_security_events
+-- drops an account's events once they are more than twelve months old, and it
+-- fires on insert -- so a row written with a date in 2024 would be swept by the
+-- next row this very file inserts, and the fixtures would erase themselves as
+-- they loaded. The offsets below are relative for that reason, and they keep
+-- the order between them fixed, which is all any test here asks of them.
+INSERT INTO "dbo"."SecurityEvents" ("SecurityEventUUID", "UserUUID", "EventType", "Description", "Device", "Location", "OccurredAt", "ReviewedAt", "Recognized", "CreatedBy") VALUES
+    ("test"."Fixture"('SecurityEvent.Login'),      "test"."Fixture"('User.Member'), 'LoginSucceeded',      'New login on Mac OS.',                    'Mac OS',  'Utah, USA', CURRENT_TIMESTAMP - interval '10 days', NULL,                                   NULL, 'fixtures'),
+    ("test"."Fixture"('SecurityEvent.EmailAdded'), "test"."Fixture"('User.Member'), 'EmailAdded',          'work@example.test was added.',            NULL,      NULL,        CURRENT_TIMESTAMP - interval '15 days', NULL,                                   NULL, 'fixtures'),
+    ("test"."Fixture"('SecurityEvent.Recognized'), "test"."Fixture"('User.Member'), 'PrimaryEmailChanged', 'You login with member@example.test now.', NULL,      NULL,        CURRENT_TIMESTAMP - interval '20 days', CURRENT_TIMESTAMP - interval '19 days', true, 'fixtures'),
+    ("test"."Fixture"('SecurityEvent.OwnerLogin'), "test"."Fixture"('User.Owner'),  'LoginSucceeded',      'New login on Windows.',                   'Windows', NULL,        CURRENT_TIMESTAMP - interval '12 days', NULL,                                   NULL, 'fixtures');
 
 -- The address list. One of everything dbo.GetUserEmails and its writers branch
 -- on: a primary, a verified address that is not the primary, an unverified one

@@ -6,6 +6,9 @@ import { useState } from "react";
 import { useSession } from "../authentication";
 import { CardSurface } from "../card-surface";
 import { Toast, type Notice } from "../toast";
+import { ActivityDialog } from "./activity-dialog";
+import { ActivityList } from "./activity-list";
+import { useSecurityActivity, type SecurityEvent } from "./activity-api";
 import { EmailList } from "./email-list";
 import { UserNameCard } from "./user-name-card";
 import { PrivacyCard } from "./privacy-card";
@@ -15,10 +18,11 @@ import { useEmails, type UserEmail } from "./email-api";
  * The security page, at /security-and-access, which is Security & Access in
  * the rail.
  *
- * What it holds today is the account's user name and its email addresses:
- * what the account is called, which addresses are on file, which one is the
- * login, and which of them anybody has proved they can read. Passwords and
- * sessions are Keycloak's and are not here yet.
+ * What it holds today is the account's user name, its email addresses and its
+ * recent activity: what the account is called, which addresses are on file,
+ * which one is the login, which of them anybody has proved they can read, and
+ * what has lately happened to the account. Passwords and sessions are
+ * Keycloak's and are not here yet.
  *
  * The user name comes off the token rather than out of the API. It is on this
  * page to be read, so there is nothing to fetch for it: `useSession` already
@@ -40,6 +44,12 @@ export function Security() {
     resend,
     setPrivacy,
   } = useEmails();
+  const {
+    events,
+    loading: loadingActivity,
+    error: activityError,
+    review,
+  } = useSecurityActivity();
   const { identity } = useSession();
 
   /* Which row has a save in flight. One at a time is enough: every write
@@ -49,6 +59,16 @@ export function Security() {
   const [adding, setAdding] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+
+  /* Which event the dialog is looking at, and whether its answer is in flight.
+   * The event is held rather than an id, so the dialog keeps drawing the row it
+   * was opened on through its own closing transition; it is cleared by the
+   * dialog closing rather than by the list being replaced underneath it. */
+  const [viewing, setViewing] = useState<SecurityEvent | null>(null);
+  /* Which answer is in flight, rather than whether one is: the dialog spins
+   * the button that was pressed, and two spinning at once would say it had not
+   * heard which. Null is nothing in flight. */
+  const [answering, setAnswering] = useState<boolean | null>(null);
 
   function report(failure: unknown, fallback: string) {
     setNotice({
@@ -192,6 +212,74 @@ export function Security() {
           }}
         />
       </CardSurface>
+
+      {/* Under the addresses, because it is the record of what has been done to
+       * them and to everything else about getting in: the page says what the
+       * account is, then what can be changed about it, then what has changed.
+       * The privacy switch stays last -- it is a preference rather than a way
+       * in, and it is the one card that draws its own surface. */}
+      <CardSurface
+        title="Recent Activity"
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+      >
+        {/* The log could not be read at all, which is a different thing from an
+         * empty one and has to say so rather than look like one. */}
+        {activityError ? (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            {activityError}
+          </Alert>
+        ) : null}
+
+        <Typography
+          sx={{
+            mb: 1,
+            fontSize: "0.82rem",
+            lineHeight: 1.7,
+            color: (theme) => theme.palette.brand.cardInkMuted,
+          }}
+        >
+          Logins, and the changes that alter how you get into your account. Open
+          anything you do not recognize and tell us: we will send you a link to
+          choose a new password.
+        </Typography>
+
+        <ActivityList
+          events={events}
+          loading={loadingActivity}
+          failed={activityError !== null}
+          busyId={
+            answering === null ? null : (viewing?.SecurityEventUUID ?? null)
+          }
+          onOpen={(event) => setViewing(event)}
+        />
+      </CardSurface>
+
+      <ActivityDialog
+        event={viewing}
+        pending={answering}
+        onClose={() => setViewing(null)}
+        onAnswer={(event, recognized) => {
+          setAnswering(recognized);
+          review(event.SecurityEventUUID, recognized)
+            .then(() => {
+              setViewing(null);
+              setNotice({
+                /* Two different things happened, so they are two different
+                 * sentences. "Yes" is a note taken; "no" has already sent a
+                 * message, and somebody who is not told to expect it will not
+                 * know to go and open it. */
+                message: recognized
+                  ? "Thanks. We have marked that activity as recognized."
+                  : "A link to choose a new password is on its way to your login email address.",
+                tone: "success",
+              });
+            })
+            .catch((failure: unknown) =>
+              report(failure, "That activity was not answered."),
+            )
+            .finally(() => setAnswering(null));
+        }}
+      />
 
       {/* The only card the page does not draw itself: the switch sits on the
        * card's title line, opposite EMAIL PRIVACY, so the card and the

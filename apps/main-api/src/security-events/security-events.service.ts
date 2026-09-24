@@ -1,0 +1,140 @@
+import { Injectable, Logger } from "@nestjs/common";
+import { DatabaseService } from "../database/index.js";
+import { PasswordResetService } from "../password-reset/index.js";
+import { SecurityEvent } from "./security-events.model.js";
+
+// How much of the log "recent" means. The list is not paged -- the page shows
+// all of it, the way the address list above it does -- so this is the one place
+// the word is defined, and it is here rather than in the browser because the
+// database is where the cap is applied.
+//
+// Twenty is about a screen and a half of a list somebody scans rather than
+// reads. An account busy enough to push an unanswered event off the end of it
+// is the argument for paging this, which is the same argument the bell already
+// lost; when that happens this becomes a PageArgs the way notifications did.
+const RECENT = 20;
+
+@Injectable()
+export class SecurityEventsService {
+  private readonly logger = new Logger(SecurityEventsService.name);
+
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly passwordReset: PasswordResetService,
+  ) {}
+
+  // The account's own security log, newest first.
+  list(loginName: string) {
+    return this.db.query<SecurityEvent>(
+      'SELECT * FROM dbo."GetSecurityEvents"($1, $2)',
+      [loginName, RECENT],
+    );
+  }
+
+  // Answer "do you recognize this activity?", and act on a no.
+  //
+  // Two things happen when the answer is no, and only one of them is a record.
+  // The database logs that the alarm was raised; this sends the person a link
+  // to choose a new password, because "No, secure account" that only wrote a
+  // row would be a button that agrees with you and does nothing. A password is
+  // the credential every other way in rests on, and replacing it is the one act
+  // that ends a session somebody else is holding.
+  //
+  // It reuses the forgot-password flow rather than inventing a second one:
+  // main-api already mints the token, sends our own message and lands the link
+  // on our own page. The person is logged in, so their login name is the
+  // identifier that flow takes.
+  //
+  // The mail is sent after the answer is recorded, and a failure to send does
+  // not undo it: the row saying somebody does not recognize a login is the more
+  // important of the two, and the page offers the link again through the
+  // ordinary forgot-password card.
+  async review(
+    loginName: string,
+    securityEventId: string,
+    recognized: boolean,
+  ) {
+    const events = await this.db.query<SecurityEvent>(
+      'SELECT * FROM dbo."ReviewSecurityEvent"($1, $2, $3, $4)',
+      [loginName, securityEventId, recognized, RECENT],
+    );
+
+    if (!recognized) await this.passwordReset.request(loginName);
+
+    return events;
+  }
+
+  // Record something that happened. Called by whatever did it.
+  //
+  // A failure here is swallowed, which is deliberate and is the one place in
+  // this API that swallows one. This is called after the thing it describes has
+  // already happened: an address that was added, a login that succeeded. Letting
+  // a log write turn that into "the email address was not added" would report
+  // the wrong outcome to somebody whose address is on file, and the database
+  // answers an unknown login with NULL rather than raising for the same reason.
+  // It is logged at warning, because a security log quietly missing rows is
+  // worth noticing in the container's output.
+  async record(
+    loginName: string,
+    eventType: string,
+    description: string,
+    device?: string,
+    location?: string,
+  ) {
+    try {
+      await this.db.query('SELECT dbo."LogSecurityEvent"($1, $2, $3, $4, $5)', [
+        loginName,
+        eventType,
+        description,
+        device ?? null,
+        location ?? null,
+      ]);
+    } catch {
+      this.logger.warn(`Could not record a ${eventType} security event`);
+    }
+  }
+
+  // Record a login the identity provider refused, named by subject.
+  //
+  // **This one does not swallow a failure, which is the exception to the rule
+  // above.** Everything else here is called just after the thing it describes
+  // and has nothing to retry with. This is called by a poll that keeps a
+  // high-water mark, so swallowing would move that mark past a row that was
+  // never written and the attempt would be lost for good. Letting it throw is
+  // what makes the next sweep pick it up again.
+  //
+  // The subject rather than a login name because that is what the provider
+  // hands back, and because what somebody typed at the prompt may well be an
+  // email address. dbo.LogLoginFailure resolves it and answers NULL for a
+  // subject this installation has never seen.
+  async recordLoginFailure(
+    subjectId: string,
+    description: string,
+    occurredAt: Date,
+  ) {
+    await this.db.query('SELECT dbo."LogLoginFailure"($1, $2, $3)', [
+      subjectId,
+      description,
+      occurredAt,
+    ]);
+  }
+
+  // The newest failed login already on record, or null when there is none.
+  //
+  // Where the mirror resumes from after a restart, and the reason it can resume
+  // at all rather than starting from the moment this process booted: in
+  // development that would be every few seconds. The stamp compared against is
+  // the provider's own, because that is what was written, so the two clocks
+  // never have to agree.
+  //
+  // A read straight off the table rather than through a dbo function, the way
+  // AuthenticationGuard reads dbo."Users" on every request. A function would be
+  // a second name for one aggregate that nothing else will ever want.
+  async newestLoginFailure(): Promise<Date | null> {
+    const [row] = await this.db.query<{ OccurredAt: Date | null }>(
+      'SELECT max("OccurredAt") AS "OccurredAt" FROM dbo."SecurityEvents" WHERE "EventType" = $1',
+      ["LoginFailed"],
+    );
+    return row?.OccurredAt ?? null;
+  }
+}

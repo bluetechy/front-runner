@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { IdentityAdminService } from "../authentication/index.js";
 import { DatabaseService } from "../database/index.js";
 import { MailService } from "../mail/index.js";
+import { SecurityEventsService } from "../security-events/index.js";
 import { EmailSettings, UserEmail, VerifiedEmail } from "./emails.model.js";
 
 // A row of dbo.VerifyUserEmail, which answers with the account rather than
@@ -23,6 +24,13 @@ export class EmailsService {
     private readonly db: DatabaseService,
     private readonly mail: MailService,
     private readonly identity: IdentityAdminService,
+    // Everything in here that changes how somebody gets into their account is
+    // written into their security log as well as into the address table. That
+    // is the whole of what feeds RECENT ACTIVITY on the same page today: logins
+    // are Keycloak's and nothing records them yet, so these three are the rows
+    // a real account actually accumulates. Recording never fails a write it is
+    // describing -- see SecurityEventsService.record.
+    private readonly securityEvents: SecurityEventsService,
     config: ConfigService,
   ) {
     this.appBaseUrl = config.getOrThrow<string>("APP_BASE_URL");
@@ -72,6 +80,11 @@ export class EmailsService {
       [loginName, email, token],
     );
     const sent = await this.sendVerification(email, token);
+    await this.securityEvents.record(
+      loginName,
+      "EmailAdded",
+      `${email} was added to your account.`,
+    );
     return { addresses, sent };
   }
 
@@ -92,11 +105,29 @@ export class EmailsService {
     return { addresses, sent };
   }
 
-  remove(loginName: string, userEmailId: string) {
-    return this.db.query<UserEmail>(
+  // The removed address is read out of the list the database answered with
+  // rather than out of the one it was given, because the argument is an id and
+  // the log wants the address: "a2f1... was removed" tells nobody anything.
+  // It is the row that is no longer there.
+  async remove(loginName: string, userEmailId: string) {
+    const before = await this.db.query<UserEmail>(
+      'SELECT * FROM dbo."GetUserEmails"($1)',
+      [loginName],
+    );
+    const addresses = await this.db.query<UserEmail>(
       'SELECT * FROM dbo."RemoveUserEmail"($1, $2)',
       [loginName, userEmailId],
     );
+    const removed = before.find(
+      (candidate) => candidate.UserEmailUUID === userEmailId,
+    );
+    if (removed)
+      await this.securityEvents.record(
+        loginName,
+        "EmailRemoved",
+        `${removed.Email} was removed from your account.`,
+      );
+    return addresses;
   }
 
   // Change the address somebody logs in with. Two writes that have to agree:
@@ -133,6 +164,17 @@ export class EmailsService {
     // Seeded and imported rows are the case.
     if (chosen && account?.SubjectId)
       await this.identity.setEmail(account.SubjectId, chosen.Email);
+
+    // Recorded after the provider has agreed, not before. A log saying the
+    // login changed when the credential did not is worse than no log: this is
+    // the page somebody checks to find out what really happened to their
+    // account.
+    if (chosen)
+      await this.securityEvents.record(
+        loginName,
+        "PrimaryEmailChanged",
+        `You login with ${chosen.Email} from now on.`,
+      );
 
     return addresses;
   }

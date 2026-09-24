@@ -73,6 +73,13 @@ services:
       # The browser's address for main-gui, because it goes into a link
       # somebody opens on their own machine.
       APP_BASE_URL: ${APP_BASE_URL}
+      # Whether refused logins are mirrored out of Keycloak's event log onto
+      # the security page. On unless .env says otherwise, and the one event
+      # type on that page with a switch: nothing deduplicates a failed login,
+      # so a realm being scanned can fill somebody's page with them. Set it to
+      # false here, or in .env, if this gets noisy. It needs the realm to be
+      # keeping LOGIN_ERROR events -- see apps/keycloak-idp/README.md.
+      SECURITY_LOG_FAILED_LOGINS: ${SECURITY_LOG_FAILED_LOGINS:-true}
     depends_on:
       main-db:
         condition: service_healthy

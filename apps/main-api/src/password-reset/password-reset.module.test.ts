@@ -28,7 +28,12 @@ describe("how the password reset vertical is wired", () => {
     ]);
   });
 
-  it("exports nothing: a vertical is reached through the schema", () => {
-    expect(wiring("exports")).toEqual([]);
+  /* The exception to "a vertical is reached through the schema". "No, secure
+   * account" on the security page sends the person a link to choose a new
+   * password, and that is this flow exactly -- the same token, the same
+   * message, the same page at the end of it. A copy of it over there would be
+   * a second way to reset a password. */
+  it("exports the service, because securing an account is this flow", () => {
+    expect(wiring("exports")).toEqual([PasswordResetService]);
   });
 });

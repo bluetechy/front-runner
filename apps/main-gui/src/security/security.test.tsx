@@ -2,11 +2,12 @@ import { ThemeProvider } from "@mui/material/styles";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { theme } from "../design-system";
+import type { SecurityEvent } from "./activity-api";
 import type { UserEmail } from "./email-api";
 
 /*
- * The security page: the addresses, the switch under them, and what the page
- * says back afterwards.
+ * The security page: the addresses, the recent activity under them, the switch
+ * under that, and what the page says back afterwards.
  *
  * The API hook is stubbed -- it has a test of its own -- so what is under test
  * here is the page's own work: which row is held while a save is in flight,
@@ -25,7 +26,11 @@ const setPrimary = vi.fn();
 const resend = vi.fn();
 const setPrivacy = vi.fn();
 
+const activity = vi.fn();
+const review = vi.fn();
+
 vi.mock("./email-api", () => ({ useEmails: () => emails() }));
+vi.mock("./activity-api", () => ({ useSecurityActivity: () => activity() }));
 
 /* The user name is read off the token rather than fetched, so the page asks
  * the session for it directly. */
@@ -76,6 +81,26 @@ const unverified = address({
   VerifiedAt: null,
 });
 
+const login: SecurityEvent = {
+  SecurityEventUUID: "2d000000-0000-4000-8000-000000000001",
+  EventType: "LoginSucceeded",
+  Description: "New login on Mac OS.",
+  Device: "Mac OS",
+  Location: "Utah, USA",
+  OccurredAt: "2026-09-20T21:42:00.000Z",
+  ReviewedAt: null,
+  Recognized: null,
+};
+
+const logging = (overrides: Record<string, unknown> = {}) =>
+  activity.mockReturnValue({
+    events: [login],
+    loading: false,
+    error: null,
+    review,
+    ...overrides,
+  });
+
 const answering = (overrides: Record<string, unknown> = {}) =>
   emails.mockReturnValue({
     addresses: [address(), work, unverified],
@@ -99,9 +124,11 @@ const renderPage = () =>
 
 beforeEach(() => {
   emails.mockReset();
-  for (const call of [add, remove, setPrimary, resend, setPrivacy])
+  activity.mockReset();
+  for (const call of [add, remove, setPrimary, resend, setPrivacy, review])
     call.mockReset().mockResolvedValue(undefined);
   answering();
+  logging();
 });
 
 describe("the page itself", () => {
@@ -113,15 +140,20 @@ describe("the page itself", () => {
     ).toBeInTheDocument();
   });
 
-  // Three cards, headed the same way, and the order is the argument: what
-  // the account is called and cannot change, then the addresses that can, then
-  // what the other members are shown of them.
-  it("holds the user name, the addresses and the privacy switch, in that order", () => {
+  // Four cards, headed the same way, and the order is the argument: what the
+  // account is called and cannot change, then the addresses that can, then what
+  // has lately been done to either, then what the other members are shown.
+  it("holds the user name, the addresses, the activity and the switch, in that order", () => {
     renderPage();
 
-    /* The table's own column headings are drawn with the same label, so the
-     * three card names are picked out of the page rather than counted. */
-    const cards = ["User Name", "Email Addresses", "Email Privacy"];
+    /* The tables' own column headings are drawn with the same label, so the
+     * card names are picked out of the page rather than counted. */
+    const cards = [
+      "User Name",
+      "Email Addresses",
+      "Recent Activity",
+      "Email Privacy",
+    ];
 
     expect(
       screen
@@ -159,6 +191,84 @@ describe("the page itself", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Your session has expired.",
     );
+  });
+});
+
+describe("the recent activity", () => {
+  it("lists what has happened to the account", () => {
+    renderPage();
+
+    expect(screen.getByText("New login on Mac OS.")).toBeInTheDocument();
+  });
+
+  /* A log that could not be read is a different thing from an empty one, and
+   * it is drawn above its own table rather than above the addresses. */
+  it("says so when the log could not be read at all", () => {
+    logging({ events: [], error: "Action cannot be performed." });
+    renderPage();
+
+    expect(screen.getByText("Action cannot be performed.")).toBeInTheDocument();
+  });
+
+  it("opens the dialog on the event whose row was pressed", () => {
+    renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View New login on Mac OS." }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "New login" }),
+    ).toBeInTheDocument();
+  });
+
+  it("records that the activity was recognized", async () => {
+    renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View New login on Mac OS." }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Yes, it was me/ }));
+
+    await waitFor(() =>
+      expect(review).toHaveBeenCalledWith(login.SecurityEventUUID, true),
+    );
+    expect(
+      await screen.findByText(/marked that activity as recognized/i),
+    ).toBeInTheDocument();
+  });
+
+  /* Saying no sends a message, and somebody who is not told to expect it will
+   * not know to go and open it. That is why the two answers are two sentences
+   * rather than one "saved". */
+  it("says a link is on its way when the activity was disowned", async () => {
+    renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View New login on Mac OS." }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /No, secure account/ }));
+
+    await waitFor(() =>
+      expect(review).toHaveBeenCalledWith(login.SecurityEventUUID, false),
+    );
+    expect(
+      await screen.findByText(/link to choose a new password is on its way/i),
+    ).toBeInTheDocument();
+  });
+
+  it("passes the API's own refusal on rather than a sentence of its own", async () => {
+    review.mockRejectedValue(new Error("Action cannot be performed."));
+    renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View New login on Mac OS." }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Yes, it was me/ }));
+
+    expect(
+      await screen.findByText("Action cannot be performed."),
+    ).toBeInTheDocument();
   });
 });
 

@@ -486,3 +486,111 @@ describe("setting a password", () => {
     ).rejects.toThrow("unavailable");
   });
 });
+
+/*
+ * The one read here that is not about an account somebody named: what the realm
+ * refused. Keycloak's own event log is the only place a failed login exists,
+ * because a refused password mints no token and the request path never sees it.
+ */
+describe("reading back the logins the realm refused", () => {
+  const event = (over: Record<string, unknown> = {}) => ({
+    time: 1758404520000,
+    type: "LOGIN_ERROR",
+    userId: "subject-member",
+    error: "invalid_user_credentials",
+    ...over,
+  });
+
+  it("asks only for login errors, and only for as many as it was asked for", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await service.loginFailures(50);
+
+    const url = String(fetchMock.mock.calls[1]?.[0]);
+    expect(url).toContain("/admin/realms/front-runner/events");
+    expect(url).toContain("type=LOGIN_ERROR");
+    expect(url).toContain("max=50");
+  });
+
+  it("reads the subject, the moment and the reason out of an event", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event()]));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.loginFailures(50)).toEqual([
+      {
+        subjectId: "subject-member",
+        at: new Date(1758404520000),
+        reason: "invalid_user_credentials",
+      },
+    ]);
+  });
+
+  /* Keycloak leaves "userId" out when the name somebody typed matched no
+   * account. There is nobody it happened to, and a log that grew a row for a
+   * name nobody holds would answer "does this account exist" to whoever was
+   * guessing. */
+  it("drops an attempt that was aimed at no account", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event({ userId: undefined }), event()]));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.loginFailures(50)).toHaveLength(1);
+  });
+
+  /* A time that is missing or nonsense would sit at the bottom of the page
+   * forever and never clear a high-water mark. */
+  it("drops an event with no usable moment", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event({ time: "yesterday" }), event()]));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.loginFailures(50)).toHaveLength(1);
+  });
+
+  it("carries no reason when the provider gave none", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([event({ error: undefined })]));
+    const service = new KeycloakAdminService(config);
+
+    expect((await service.loginFailures(50))[0]?.reason).toBeNull();
+  });
+
+  /* 403 is what a realm answers when this client was never given view-events,
+   * and it has to read as an outage rather than as a realm with nothing to
+   * report: the difference is whether the caller knows to complain. */
+  it("treats a refusal as the provider being unavailable", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(403));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginFailures(50)).rejects.toThrow();
+  });
+
+  it("drops the cached token when it was the token that was refused", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(failed(401))
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginFailures(50)).rejects.toThrow();
+    await service.loginFailures(50);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("reads a body that is not a list as nothing to report", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok({ error: "unknown" }));
+    const service = new KeycloakAdminService(config);
+
+    expect(await service.loginFailures(50)).toEqual([]);
+  });
+});

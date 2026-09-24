@@ -64,6 +64,37 @@ Self-registration is on, which is the point of the model: anyone can make an
 account, and that account belongs to no organization until somebody invites it
 into one.
 
+## The event log, and why only one event is in it
+
+`eventsEnabled` is on, and `enabledEventTypes` holds exactly one type:
+`LOGIN_ERROR`. `view-events` is on the `main-api` service account beside
+`manage-users` and `view-users`.
+
+That is there for one feature. A refused password mints no token, so a failed
+login never reaches main-api on the request path at all; Keycloak's event log is
+the only place it exists, and the security page mirrors it out of here. See
+`apps/main-api/src/security-events/login-failures.service.ts`.
+
+**The list is one type rather than Keycloak's default of all of them**, which is
+deliberate. Left at the default, Keycloak would keep a row for every successful
+login, logout, token refresh, registration and password reset on the realm, in a
+second store nothing reads and no retention rule of ours reaches. The security
+page already records the ones it needs in `dbo.SecurityEvents`, under a
+twelve-month rule it enforces itself. So this log keeps only the one thing that
+is not already kept somewhere better, and `eventsExpiration` drops those after
+thirty days.
+
+`adminEventsEnabled` is left off: it records what administrators changed, and
+the only administrator on this realm is main-api's own service account doing
+things this application already logs.
+
+**This is one of the settings a running installation will not have**, for the
+reason at the top of this section: the file is imported once. On an existing
+Keycloak database, either `make dc3-clean` or set it by hand in the admin
+console (Realm settings, Sessions, Events, then the service account's role
+mapping). Until then main-api will say so once in its output and record
+nothing, which is the same thing it says when the provider is down.
+
 ## Direct access grants
 
 `main-gui` has `directAccessGrantsEnabled: true`, which turns on OAuth's
