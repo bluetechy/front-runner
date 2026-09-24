@@ -14,5 +14,6 @@ export {
   Public,
   PUBLIC_OPERATION,
 } from "./authentication.decorators.js";
+export type { NewAccount } from "./keycloak-admin.service.js";
 export type { VerifiedIdentity } from "./keycloak.service.js";
 export type { Principal, GraphqlContext } from "./authentication.decorators.js";

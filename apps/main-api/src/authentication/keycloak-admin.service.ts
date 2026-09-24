@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   ServiceUnavailableException,
@@ -7,13 +8,18 @@ import { ConfigService } from "@nestjs/config";
 
 // Writing to Keycloak, which this API otherwise only reads from.
 //
-// There is exactly one thing here today: changing the address an account signs
-// in with. Keycloak holds one address per user and it is the credential, so
-// making an address primary on the security page is two writes that have to
-// agree -- dbo.SetPrimaryUserEmail for this application's copy, and this for
-// the identity provider. Without the second, dbo.ProvisionUser refreshes the
-// column from the token on the next sign-in and the change quietly undoes
-// itself. See apps/main-db/sql/Functions/SetPrimaryUserEmail.sql.
+// Two things. Changing the address an account signs in with: Keycloak holds
+// one address per user and it is the credential, so making an address primary
+// on the security page is two writes that have to agree -- dbo.SetPrimaryUserEmail
+// for this application's copy, and this for the identity provider. Without the
+// second, dbo.ProvisionUser refreshes the column from the token on the next
+// sign-in and the change quietly undoes itself. See
+// apps/main-db/sql/Functions/SetPrimaryUserEmail.sql.
+//
+// And creating one, for the site's own sign-up form. Keycloak has no endpoint
+// a browser may call to register somebody -- its own registration page is the
+// only self-service way in -- so an account made on our page is made here, by
+// the one account in this system that is allowed to.
 //
 // It authenticates as the "main-api" client's own service account rather than
 // as the bootstrap administrator: that account holds manage-users and
@@ -22,7 +28,7 @@ import { ConfigService } from "@nestjs/config";
 //
 // Separate from KeycloakService, which verifies tokens. That one is on the
 // path of every request and must never make a call of its own; this one is
-// reached only by a security-page mutation.
+// reached only by a security-page mutation and by the sign-up form.
 
 // The admin token, and when it stops being good for anything. Kept in memory
 // and reused, because a client-credentials grant is a round trip and this
@@ -30,6 +36,17 @@ import { ConfigService } from "@nestjs/config";
 interface AdminToken {
   value: string;
   expiresAt: number;
+}
+
+// What the sign-up form asks for, which is what Keycloak's own registration
+// page asks for. The password is here for the length of one request and is
+// never stored, logged or answered back.
+export interface NewAccount {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
 }
 
 @Injectable()
@@ -67,15 +84,70 @@ export class KeycloakAdminService {
     );
   }
 
-  private async call(path: string, init: RequestInit): Promise<void> {
-    const token = await this.accessToken();
-    const response = await this.fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+  // Make an account and give it its password in the same call.
+  //
+  // "enabled" so it can be signed in with immediately -- the form asks for a
+  // password and the dialog signs in with it the moment this returns -- and
+  // "emailVerified" false because nothing has been proved about the address
+  // yet. A temporary credential would put Keycloak's "update your password"
+  // page in front of somebody who has just chosen one.
+  //
+  // The realm has registration open on its own hosted page, so this endpoint
+  // offers no way in that was not already there. What it does is let the way
+  // in look like the rest of the site.
+  async createUser(account: NewAccount): Promise<void> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          username: account.username,
+          email: account.email,
+          firstName: account.firstName,
+          lastName: account.lastName,
+          enabled: true,
+          emailVerified: false,
+          credentials: [
+            { type: "password", value: account.password, temporary: false },
+          ],
+        }),
       },
-    });
+    );
+
+    if (response.ok) return;
+
+    // Keycloak answers 409 for a username and for an address already on the
+    // realm, and does not say which. Saying which would answer "does this
+    // person have an account here" to anybody who asked.
+    //
+    // A bad request rather than a conflict, which is what this is: the
+    // transport passes BAD_REQUEST and FORBIDDEN through and collapses
+    // everything else into "Internal server error", and this sentence is the
+    // one thing somebody looking at the form can act on. The same trade
+    // DatabaseService makes for a rule the database refused.
+    if (response.status === 409)
+      throw new BadRequestException(
+        "That username or email address is already taken",
+      );
+
+    // A realm password policy, or a field Keycloak will not accept. Its own
+    // sentence is the useful one -- "invalid password: minimum length 8" --
+    // so it is passed through when there is one.
+    if (response.status === 400)
+      throw new BadRequestException(
+        (await errorMessage(response)) ??
+          "The identity provider refused those details",
+      );
+
+    if (response.status === 401 || response.status === 403) this.token = null;
+
+    throw new ServiceUnavailableException(
+      "The identity provider could not create the account",
+    );
+  }
+
+  private async call(path: string, init: RequestInit): Promise<void> {
+    const response = await this.send(path, init);
 
     if (response.ok) return;
 
@@ -96,6 +168,20 @@ export class KeycloakAdminService {
     throw new ServiceUnavailableException(
       "The identity provider did not accept the change",
     );
+  }
+
+  // One authenticated call. Every write above goes through it, so the token
+  // is fetched, cached and presented in one place; what a failing status
+  // means is each caller's own business.
+  private async send(path: string, init: RequestInit): Promise<Response> {
+    const token = await this.accessToken();
+    return this.fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
   private async accessToken(): Promise<string> {
@@ -159,5 +245,19 @@ export class KeycloakAdminService {
         "The identity provider is unavailable",
       );
     }
+  }
+}
+
+// Keycloak's own sentence from a refusal, if the body carries one. A body
+// that is not JSON, or carries nothing useful, reads as no sentence rather
+// than as a second failure.
+async function errorMessage(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { errorMessage?: unknown };
+    return typeof body.errorMessage === "string" && body.errorMessage.trim()
+      ? body.errorMessage
+      : null;
+  } catch {
+    return null;
   }
 }

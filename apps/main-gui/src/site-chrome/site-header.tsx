@@ -1,12 +1,10 @@
 import AppBar from "@mui/material/AppBar";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Link } from "@tanstack/react-router";
-import SearchIcon from "@/shared/icons/SearchIcon";
 import { useSession, useLoginPrompt } from "../authentication";
 import { Logo } from "../logo";
 
@@ -17,6 +15,16 @@ const navItems = [
   { to: "/pricing", label: "Pricing" },
   { to: "/contact-us", label: "Contact" },
 ] as const;
+
+/*
+ * The two buttons on the right are the page's own pair -- the outline and the
+ * gradient the hero uses -- cut down to the height of a bar. A full-size pill
+ * up here would stand taller than the row it sits in.
+ */
+const barButton = {
+  padding: "0.4rem 1.25rem",
+  fontSize: "0.85rem",
+} as const;
 
 export function SiteHeader() {
   const { status, identity, logout } = useSession();
@@ -35,7 +43,7 @@ export function SiteHeader() {
           }}
         >
           {/* The word alone up here: the mark would be one more thing in a
-           * row that is already navigation, a name and a search. */}
+           * row that is already navigation and a pair of buttons. */}
           <Logo to="/" mark={false} size="1.35rem" />
 
           <Stack
@@ -115,28 +123,27 @@ export function SiteHeader() {
                 </Button>
               </>
             ) : (
-              <Button
-                variant="text"
-                disableRipple
-                disabled={status === "loading"}
-                onClick={loginPrompt.open}
-              >
-                Login
-              </Button>
+              <>
+                <Button
+                  variant="outlined"
+                  disabled={status === "loading"}
+                  onClick={loginPrompt.open}
+                  sx={barButton}
+                >
+                  Login
+                </Button>
+                {/* The sign-up card, which is the login card's twin: the
+                 * prompt owns both and swaps between them. */}
+                <Button
+                  variant="contained"
+                  disabled={status === "loading"}
+                  onClick={loginPrompt.signUp}
+                  sx={barButton}
+                >
+                  Sign Up
+                </Button>
+              </>
             )}
-            <IconButton
-              aria-label="Search"
-              sx={{
-                width: 40,
-                height: 40,
-                color: "text.primary",
-                backgroundImage: (theme) => theme.palette.brand.buttonGradient,
-                boxShadow: "0 8px 20px rgba(224, 52, 159, 0.35)",
-                "&:hover": { transform: "scale(1.06)" },
-              }}
-            >
-              <SearchIcon color="currentColor" size={19} />
-            </IconButton>
           </Stack>
         </Toolbar>
       </Container>

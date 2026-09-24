@@ -34,9 +34,10 @@ import { useSession } from "./session";
  * its colors are this app's, because a slate card with a blue button would
  * be the only thing on the site not drawn from the violet field.
  *
- * Only the email-and-password form completes here. Everything else on the
- * card -- the three social providers, Sign Up, Forgot Password -- is a flow
- * Keycloak hosts, so those leave the page and come back to /auth/callback.
+ * Only the email-and-password form completes here. The three social
+ * providers and Forgot Password are flows Keycloak hosts, so those leave the
+ * page and come back to /auth/callback. "Sign Up" is neither: it is the other
+ * card, which the prompt owning both of them swaps in.
  */
 
 const providers = [
@@ -48,9 +49,13 @@ const providers = [
 export function LoginDialog({
   open,
   onClose,
+  onSignUp,
 }: {
   open: boolean;
   onClose: () => void;
+  /* "Don't have an Account?" -- the sign-up card, rather than Keycloak's own
+   * registration page at another address in another application's colors. */
+  onSignUp: () => void;
 }) {
   const { login } = useSession();
   const navigate = useNavigate();
@@ -270,7 +275,7 @@ export function LoginDialog({
             component="button"
             type="button"
             underline="hover"
-            onClick={() => leaveFor({ kind: "register" })}
+            onClick={onSignUp}
             sx={{ color: "primary.light", fontSize: "inherit" }}
           >
             Sign Up

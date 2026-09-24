@@ -6,11 +6,12 @@ import { theme } from "../design-system";
 /*
  * The sign-in dialog.
  *
- * Only the email-and-password form completes here. Everything else on the
- * card -- the three providers, Sign Up, Forgot Password -- is a flow Keycloak
- * hosts, so those leave the page and come back to /auth/callback; the test
- * for each of them is that the browser was handed over with the right intent
- * and that nothing was signed in locally.
+ * Only the email-and-password form completes here. The three providers and
+ * Forgot Password are flows Keycloak hosts, so those leave the page and come
+ * back to /auth/callback; the test for each of them is that the browser was
+ * handed over with the right intent and that nothing was signed in locally.
+ * "Sign Up" is neither: it asks for the other card, and the provider owning
+ * both of them swaps it in.
  *
  * Keycloak, the session and the router are all stubbed. What is under test is
  * the dialog's own behavior: what it does while a sign-in is in flight, what
@@ -48,12 +49,13 @@ const { LoginDialog } = await import("./login-dialog");
 
 const renderDialog = () => {
   const onClose = vi.fn();
+  const onSignUp = vi.fn();
   render(
     <ThemeProvider theme={theme}>
-      <LoginDialog open onClose={onClose} />
+      <LoginDialog open onClose={onClose} onSignUp={onSignUp} />
     </ThemeProvider>,
   );
-  return { onClose };
+  return { onClose, onSignUp };
 };
 
 /*
@@ -279,14 +281,13 @@ describe("the flows Keycloak hosts", () => {
     expect(login).not.toHaveBeenCalled();
   });
 
-  // Registration comes back to the same callback, so signing up ends signed
-  // in rather than at a second form.
-  it("hands it over for signing up too", () => {
-    renderDialog();
+  it("asks for the sign-up card rather than leaving the site", () => {
+    const { onSignUp } = renderDialog();
 
     fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
 
-    expect(startRedirect).toHaveBeenCalledWith({ kind: "register" });
+    expect(onSignUp).toHaveBeenCalledTimes(1);
+    expect(startRedirect).not.toHaveBeenCalled();
   });
 
   it("says so when the identity provider cannot be reached", async () => {

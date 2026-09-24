@@ -6,6 +6,7 @@ import { HealthModule } from "./health/index.js";
 import { UsersModule } from "./users/index.js";
 import { ProfilesModule } from "./profiles/index.js";
 import { EmailsModule } from "./emails/index.js";
+import { RegistrationModule } from "./registration/index.js";
 import { OrganizationsModule } from "./organizations/index.js";
 import { TeamsModule } from "./teams/index.js";
 import { BadgesModule } from "./badges/index.js";
@@ -23,6 +24,7 @@ import { NotificationsModule } from "./notifications/index.js";
     UsersModule,
     ProfilesModule,
     EmailsModule,
+    RegistrationModule,
     OrganizationsModule,
     TeamsModule,
     BadgesModule,

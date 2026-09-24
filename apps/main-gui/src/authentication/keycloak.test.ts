@@ -332,15 +332,17 @@ describe("handing the browser to Keycloak", () => {
     ).toBe("google");
   });
 
-  // Registration is the authorize endpoint under another name: same
-  // parameters, same redirect back, so signing up ends signed in.
-  it("sends it to the registration page when that is what was asked for", async () => {
+  // Making an account is not one of the ways this hands the browser over.
+  // The site asks for one on its own card and main-api makes it; Keycloak's
+  // hosted registration page is not a destination this app sends anybody to.
+  it("only ever leaves for the authorize endpoint", async () => {
     const assigned = assign();
 
-    await startRedirect({ kind: "register" });
+    await startRedirect({ kind: "login" });
 
     const url = new URL(assigned.mock.calls[0]?.[0] as string);
-    expect(url.pathname).toContain("openid-connect/registrations");
+    expect(url.pathname).toContain("openid-connect/auth");
+    expect(url.pathname).not.toContain("registrations");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
   });
 

@@ -787,14 +787,21 @@ describe("GraphQL application", () => {
       if (isEnumType(declared)) return declared.getValues()[0]!.name;
       return name === "Boolean" ? "false" : name === "Int" ? "1" : `"${orgId}"`;
     };
-    // The one operation in this schema that a token is not the authorization
-    // for. A verification link is followed by whoever opens the mailbox it
-    // was sent to, which is exactly the thing being proved, and the token in
-    // the link is what authorizes it. Requiring a session would refuse the
-    // case the feature exists for: adding an address at work and reading it
-    // at home. Its own resolver test asserts that it is @Public and that it
-    // is the only one here that is.
-    const publicOperations = new Set(["verifyEmail"]);
+    // The two operations in this schema that a token is not the authorization
+    // for, and neither could be anything else.
+    //
+    // A verification link is followed by whoever opens the mailbox it was
+    // sent to, which is exactly the thing being proved, and the token in the
+    // link is what authorizes it. Requiring a session would refuse the case
+    // the feature exists for: adding an address at work and reading it at
+    // home.
+    //
+    // And nobody making an account has a session yet. The realm already
+    // allows self-registration on Keycloak's own hosted page, so register
+    // opens no way in that was not there; it lets the way in look like the
+    // rest of the site. Each one's own resolver test asserts that it is
+    // @Public and that it is the only one in its vertical that is.
+    const publicOperations = new Set(["verifyEmail", "register"]);
     const operations = roots.flatMap((root) =>
       Object.values(root.getFields())
         .filter((field) => !publicOperations.has(field.name))

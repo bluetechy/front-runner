@@ -18,10 +18,11 @@ import { theme } from "../design-system";
 const open = vi.fn();
 const logout = vi.fn();
 const session = vi.fn();
+const signUp = vi.fn();
 
 vi.mock("../authentication", () => ({
   useSession: () => session(),
-  useLoginPrompt: () => ({ open }),
+  useLoginPrompt: () => ({ open, signUp }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -61,6 +62,7 @@ const renderHeader = (state: unknown) => {
 beforeEach(() => {
   open.mockClear();
   logout.mockClear();
+  signUp.mockClear();
 });
 
 describe("what the bar holds", () => {
@@ -89,12 +91,6 @@ describe("what the bar holds", () => {
         href,
       );
   });
-
-  it("offers a search", () => {
-    renderHeader(signedOut);
-
-    expect(screen.getByRole("button", { name: "Search" })).toBeVisible();
-  });
 });
 
 describe("whoever is looking at it", () => {
@@ -106,12 +102,21 @@ describe("whoever is looking at it", () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
+  it("offers a visitor without an account the way to make one", () => {
+    renderHeader(signedOut);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
+
+    expect(signUp).toHaveBeenCalledTimes(1);
+  });
+
   // A remembered session is being restored. "Login" here would flicker at
   // somebody who is already signed in.
   it("holds the way in open but unusable while a session is being restored", () => {
     renderHeader(loading);
 
     expect(screen.getByRole("button", { name: "Login" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sign Up" })).toBeDisabled();
   });
 
   it("names whoever is signed in, and links them to the dashboard", () => {
@@ -127,6 +132,7 @@ describe("whoever is looking at it", () => {
     renderHeader(signedIn);
 
     expect(screen.queryByRole("button", { name: "Login" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sign Up" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Logout" }));
 
     expect(logout).toHaveBeenCalledTimes(1);

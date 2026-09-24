@@ -19,8 +19,9 @@ import {
  * worth stating in one place: two decorators for writing resolvers and the
  * metadata key behind one of them, the module, the two Keycloak services, and
  * the pieces the tests need to stand a realm up without a network.
- * `Principal`, `GraphqlContext` and `VerifiedIdentity` are types and leave
- * nothing behind at runtime, which is why they are not in this list.
+ * `Principal`, `GraphqlContext`, `VerifiedIdentity` and `NewAccount` are
+ * types and leave nothing behind at runtime, which is why they are not in
+ * this list.
  */
 
 describe("what authentication offers the rest of the API", () => {

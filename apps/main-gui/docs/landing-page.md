@@ -19,10 +19,10 @@ Button with layout in `sx`.
 | `landing/hero-placeholder.png` | Placeholder — to be replaced with the real illustration              |
 | "More details" / "View demo"   | Buttons are styled; the hrefs are `#` anchors                        |
 | "Login"                        | Real — opens the sign-in dialog; see [signing in](authentication.md) |
-| Search button                  | Styled and labeled; does nothing                                     |
+| "Sign Up"                      | Real: opens the sign-up card; see [signing in](authentication.md)    |
 | About / Features / Contact     | Real routes, rendering `coming-soon`                                 |
 | Pricing                        | Real — see [the pricing page](pricing-page.md)                       |
-| The sign-in dialog             | Real — opens on "Login", and on nothing else                         |
+| The sign-in dialog             | Real: opens on "Login", and from the sign-up card                    |
 
 ## Type
 

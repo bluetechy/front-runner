@@ -13,9 +13,6 @@ const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID;
 const endpoint = {
   token: `${realmUrl}/protocol/openid-connect/token`,
   authorize: `${realmUrl}/protocol/openid-connect/auth`,
-  /* Keycloak's registration page is the authorize endpoint under another
-   * name: same parameters, same redirect back, so signing up ends signed in. */
-  register: `${realmUrl}/protocol/openid-connect/registrations`,
   logout: `${realmUrl}/protocol/openid-connect/logout`,
   resetPassword: `${realmUrl}/login-actions/reset-credentials`,
 } as const;
@@ -238,13 +235,18 @@ async function challenge(verifier: string): Promise<string> {
   return base64Url(digest);
 }
 
-export type RedirectIntent =
-  { kind: "login"; idpHint?: string } | { kind: "register" };
+/* One shape rather than a bare string, because a hint is optional and what
+ * this is for is naming the way in. Making an account is not one of them: the
+ * site asks for that on its own card, and main-api makes it. */
+export interface RedirectIntent {
+  kind: "login";
+  idpHint?: string;
+}
 
 /*
- * Hand the browser to Keycloak: for a social provider, for the registration
- * form, or for the hosted login page. All three are the same authorization
- * code flow and all three come back to /auth/callback.
+ * Hand the browser to Keycloak: for a social provider, or for the hosted
+ * login page. Both are the same authorization code flow and both come back to
+ * /auth/callback.
  */
 export async function startRedirect(intent: RedirectIntent): Promise<void> {
   const verifier = randomString();
@@ -265,13 +267,9 @@ export async function startRedirect(intent: RedirectIntent): Promise<void> {
    * instead of showing Keycloak's own login page first. An alias that is not
    * enabled in the realm is ignored, so the hosted login page is what an
    * unconfigured provider falls back to rather than an error. */
-  if (intent.kind === "login" && intent.idpHint) {
-    parameters.set("kc_idp_hint", intent.idpHint);
-  }
+  if (intent.idpHint) parameters.set("kc_idp_hint", intent.idpHint);
 
-  const base =
-    intent.kind === "register" ? endpoint.register : endpoint.authorize;
-  window.location.assign(`${base}?${parameters}`);
+  window.location.assign(`${endpoint.authorize}?${parameters}`);
 }
 
 /* The verifier for the code now on the URL, consumed so a reload cannot

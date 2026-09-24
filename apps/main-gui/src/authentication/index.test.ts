@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import * as authentication from "./index";
 import { LoginDialog } from "./login-dialog";
+import { SignUpDialog } from "./sign-up-dialog";
 import { LoginPromptProvider, useLoginPrompt } from "./login-prompt";
 import { SessionProvider, useSession } from "./session";
 import { exchangeAuthorizationCode, takeRedirectVerifier } from "./keycloak";
 
 /*
  * What the rest of the app may reach for.
+ *
+ * Both cards are here, and the provider that owns them: it is the provider
+ * that anything on a page reaches for, and the cards themselves are exported
+ * beside it so that neither is reachable only through the other.
  *
  * Most of `keycloak.ts` is deliberately absent: `signInWithPassword`,
  * `refreshTokens`, `endSession` and `startRedirect` are the session's and the
@@ -16,11 +21,12 @@ import { exchangeAuthorizationCode, takeRedirectVerifier } from "./keycloak";
  */
 
 describe("what authentication offers the rest of the app", () => {
-  it("offers the dialog, the two providers, their hooks, and the callback's pair", () => {
+  it("offers the two cards, the two providers, their hooks, and the callback's pair", () => {
     expect(Object.keys(authentication).toSorted()).toEqual([
       "LoginDialog",
       "LoginPromptProvider",
       "SessionProvider",
+      "SignUpDialog",
       "exchangeAuthorizationCode",
       "takeRedirectVerifier",
       "useLoginPrompt",
@@ -30,6 +36,7 @@ describe("what authentication offers the rest of the app", () => {
 
   it("offers the things themselves rather than copies of them", () => {
     expect(authentication.LoginDialog).toBe(LoginDialog);
+    expect(authentication.SignUpDialog).toBe(SignUpDialog);
     expect(authentication.LoginPromptProvider).toBe(LoginPromptProvider);
     expect(authentication.useLoginPrompt).toBe(useLoginPrompt);
     expect(authentication.SessionProvider).toBe(SessionProvider);

@@ -1,8 +1,8 @@
 # Signing in
 
-The sign-in dialog from the supplied mock-up, wired to Keycloak. It lives in
-`src/authentication` and is the only part of the app that knows Keycloak
-exists.
+Two cards: the sign-in dialog from the supplied mock-up, wired to Keycloak,
+and its twin for making an account. Both live in `src/authentication`, which
+is the only part of the app that knows Keycloak exists.
 
 Keycloak owns accounts, passwords and sessions. `main-api` issues no tokens and
 has no login operation — it verifies the access token the browser presents and
@@ -16,11 +16,52 @@ wiring up Keycloak, and the API only ever sees the result.
 | Email + password, **Login**, the ➜ | Keycloak's token endpoint, in the page. No redirect |
 | **Remember me**                    | Whether the refresh token outlives the tab          |
 | **Forgot Password**                | Keycloak's reset-credentials page; it emails a link |
-| **Sign Up**                        | Keycloak's registration page, returning signed in   |
+| **Sign Up**                        | The other card. It does not leave the site           |
 | **Google / Facebook / Apple ID**   | Keycloak's authorize endpoint with `kc_idp_hint`    |
 
 Only the first of those completes in the dialog. The rest are pages Keycloak
 hosts, so they leave the site and come back to `/auth/callback`.
+
+## The sign-up card
+
+The header's **Sign Up** and the login card's "Don't have an Account?" open the
+same card, and its "Already have an Account?" goes back. `LoginPromptProvider`
+owns both and shows one at a time ("both at once" is not a state it can
+reach), so a link on either card is that provider swapping which one is
+showing rather than a dialog opening a dialog.
+
+It asks for the six things Keycloak's own registration page asks for: first
+name, last name, username, email address, password and a confirmation. The
+realm does not use the address as the username (`registrationEmailAsUsername`
+is false), which is why both are there. The confirmation box never leaves the
+browser: it is a typing aid, and the API has no use for a second copy of a
+password it is about to hash.
+
+**Keycloak has no endpoint a browser may call to register somebody.** Its own
+hosted page is its only self-service way in, and that page is at another
+address, in another application's colors. So the account is made by `main-api`,
+which holds the one service account on the realm allowed to make one:
+
+```text
+the card  →  register(account:) on main-api   →  Keycloak admin API
+          →  login(email, password) as usual  →  /dashboard
+```
+
+That mutation is `@Public`, because nobody registering has a session yet. It
+opens no way in the realm did not already offer (`registrationAllowed` is true
+on its hosted page), and it creates an enabled account with an unverified
+address, a permanent password and no roles. See
+`apps/main-api/src/registration` and `KeycloakAdminService.createUser`.
+
+Making the account and signing in with it are **two acts, in that order**, and
+the card says which one failed. An account that was created and then could not
+be signed into says so and points at the login card. Telling somebody their
+account could not be created would send them to make a second one, which the
+realm would refuse.
+
+This application's own row is not written by either act. `dbo.ProvisionUser`
+writes it from the verified token on the first request the new session makes,
+the same as for somebody who arrived through Google.
 
 ## The password grant, and what it costs
 
@@ -66,9 +107,11 @@ onto one refresh.
 
 ## The redirect flow
 
-Social sign-in, registration and password reset all leave the page, so they all
-use the authorization code flow with **PKCE** — the realm allows nothing else,
-and only `S256`.
+Social sign-in and password reset leave the page, so they use the
+authorization code flow with **PKCE**: the realm allows nothing else, and only
+`S256`. Registration no longer does. `RedirectIntent` has one kind, and
+Keycloak's hosted registration page is not an address this app sends anybody
+to.
 
 1. `startRedirect()` makes a verifier, stores it in `sessionStorage`, and sends
    the browser to Keycloak with the S256 challenge.
@@ -99,8 +142,11 @@ flipping `enabled` is the whole activation — see
 src/authentication/
   keycloak.ts          every Keycloak URL and token-endpoint call
   session.tsx          SessionProvider / useSession: who is signed in
-  login-prompt.tsx     the one dialog instance, and who may open it
+  login-prompt.tsx     the two cards, one at a time, and who may open them
   login-dialog.tsx     the mock-up's card
+  sign-up-dialog.tsx   its twin, for making an account
+  registration.ts      the register mutation on main-api
+  registration-schema.ts  what a new account may be, in the browser
   storage.ts           localStorage/sessionStorage that cannot throw
 src/dashboard/         where a completed sign-in lands
 src/routes/
@@ -109,8 +155,8 @@ src/routes/
 ```
 
 `SessionProvider` is in `main.tsx`, outside the router, because it is not a
-page. `LoginPromptProvider` is in `PageShell`, inside the router, because the
-dialog navigates when a sign-in completes — to `/dashboard`, which is the one
+page. `LoginPromptProvider` is in `PageShell`, inside the router, because both
+cards navigate when a sign-in completes, to `/dashboard`, which is the one
 page that is not inside `PageShell`; see [the dashboard](dashboard.md).
 
 ## Color
