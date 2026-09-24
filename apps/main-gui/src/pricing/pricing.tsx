@@ -22,9 +22,9 @@ import { audiences, percentOff, type AudienceId, type Billing } from "./plans";
  * this app's, except for the cards themselves, which are white paper on the
  * violet field. See docs/pricing-page.md.
  *
- * Every plan but Enterprise starts in the sign-in dialog, the same one the
- * header opens, because signing up is signing in for the first time.
- * Enterprise goes to /contact-us, since that plan is a conversation.
+ * Every plan but Enterprise opens the sign-up card, the same one the
+ * header's "Sign Up" opens; somebody choosing a plan does not have an account
+ * yet. Enterprise goes to /contact-us, since that plan is a conversation.
  */
 
 export function Pricing() {
@@ -116,7 +116,7 @@ export function Pricing() {
             <PlanCard
               plan={plan}
               billing={billing}
-              onChoose={loginPrompt.open}
+              onChoose={loginPrompt.signUp}
             />
           </Grid>
         ))}
@@ -168,7 +168,7 @@ export function Pricing() {
           useFlexGap
           sx={{ flexWrap: "wrap", mt: 3.5, justifyContent: "center" }}
         >
-          <Button variant="contained" onClick={loginPrompt.open}>
+          <Button variant="contained" onClick={loginPrompt.signUp}>
             Start free
           </Button>
           <Button variant="outlined" component={Link} to="/contact-us">

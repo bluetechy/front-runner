@@ -64,7 +64,7 @@ under it: Standard is `$15.20 per month`, `$182.40 billed once a year`.
 Every card wears the same button. A plan does not carry its own label: the
 page has two of them, `START_BUTTON` and `CONTACT_BUTTON` in `plans.ts`, and
 which one a card wears is decided by `contactSales`, the same field that
-decides whether the button opens the sign-in dialog or goes to `/contact-us`.
+decides whether the button opens the sign-up dialog or goes to `/contact-us`.
 Four cards say **Get Started** and Enterprise says **Contact Sales**.
 
 Every figure on the page was given rather than worked out, Team included, and
@@ -88,7 +88,7 @@ enforces: nothing in the API or the database knows what a plan is yet.
 | The segmented controls         | Real — local state, not in the URL                    |
 | Prices and the 20% discount    | Real arithmetic over the numbers in `plans.ts`        |
 | Which features sit where       | A first pass, to be argued about                      |
-| "Get Started", on four cards   | Real — it opens the sign-in dialog the header opens   |
+| "Get Started", on four cards   | Real — it opens the sign-up dialog the header opens   |
 | "Contact Sales" / "Talk to us" | Real links to `/contact-us`, which is now a real page |
 | The FAQ answers                | **Copy, not policy** — see below                      |
 

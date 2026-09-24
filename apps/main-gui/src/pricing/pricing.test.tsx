@@ -8,16 +8,15 @@ import { audiences, CONTACT_BUTTON, START_BUTTON } from "./plans";
  * The pricing page: who the plans are for, how often you pay, a row of cards,
  * and the questions people ask before they sign up.
  *
- * Signing up is signing in for the first time, so every plan but Enterprise
- * opens the same dialog the header does. The prompt is stubbed here, which is
- * what lets this assert that -- and `Link` is stubbed because two controls on
- * the page are routes.
+ * Every plan but Enterprise opens the sign-up card, the same one the header's
+ * "Sign Up" opens. The prompt is stubbed here, which is what lets this assert
+ * that -- and `Link` is stubbed because two controls on the page are routes.
  */
 
-const open = vi.fn();
+const signUp = vi.fn();
 
 vi.mock("../authentication", () => ({
-  useLoginPrompt: () => ({ open }),
+  useLoginPrompt: () => ({ signUp }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -38,7 +37,7 @@ vi.mock("@tanstack/react-router", () => ({
 const { Pricing } = await import("./pricing");
 
 const renderPage = () => {
-  open.mockClear();
+  signUp.mockClear();
   return render(
     <ThemeProvider theme={theme}>
       <Pricing />
@@ -107,16 +106,15 @@ describe("how often you pay", () => {
 });
 
 describe("starting a plan", () => {
-  // Signing up is signing in for the first time, so it is the same dialog
-  // the header opens rather than a second way in.
-  it("opens the sign-in dialog for a plan you can start", () => {
+  // The card the header's "Sign Up" opens, rather than a second way in.
+  it("opens the sign-up dialog for a plan you can start", () => {
     renderPage();
 
     /* Every card on the row wears the same button, so this is the first of
      * them rather than the only one. */
     fireEvent.click(screen.getAllByRole("button", { name: START_BUTTON })[0]!);
 
-    expect(open).toHaveBeenCalledTimes(1);
+    expect(signUp).toHaveBeenCalledTimes(1);
   });
 
   it("opens it from the band at the foot of the page as well", () => {
@@ -124,7 +122,7 @@ describe("starting a plan", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start free" }));
 
-    expect(open).toHaveBeenCalledTimes(1);
+    expect(signUp).toHaveBeenCalledTimes(1);
   });
 
   // That plan is a conversation.
