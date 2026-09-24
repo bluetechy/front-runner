@@ -30,7 +30,7 @@ class RegistrationError extends Error {
 
 vi.mock("./registration", () => ({ RegistrationError, registerAccount }));
 
-vi.mock("./keycloak", () => ({ startRedirect }));
+vi.mock("./identity-provider", () => ({ startRedirect }));
 
 vi.mock("./session", () => ({ useSession: () => ({ login }) }));
 

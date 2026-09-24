@@ -3,9 +3,14 @@ import type { ConfigService } from "@nestjs/config";
 import { KeycloakAdminService } from "./keycloak-admin.service.js";
 
 /*
- * Writing to Keycloak: half of what "make this address my login" means -- the
- * other half is dbo.SetPrimaryUserEmail -- the whole of what making an account
- * on the site's own sign-up form means, and the two ends of a password reset.
+ * IdentityAdminService answered against Keycloak's admin API: half of what
+ * "make this address my login" means -- the other half is
+ * dbo.SetPrimaryUserEmail -- the whole of what making an account on the site's
+ * own sign-up form means, and the two ends of a password reset.
+ *
+ * Realms, /admin paths and "emailVerified" are all only in this file and its
+ * implementation, which is the point: every other test in this API drives the
+ * port instead, and would pass unchanged against another provider.
  *
  * Two things here are worth more than the rest. A Keycloak that cannot be
  * reached has to read as an outage rather than as a refused change, because a

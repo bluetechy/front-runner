@@ -18,7 +18,7 @@ import CloseIcon from "@/shared/icons/CloseIcon";
 import FacebookIcon from "@/shared/icons/FacebookIcon";
 import GoogleIcon from "@/shared/icons/GoogleIcon";
 import { useId, useState, type FormEvent } from "react";
-import { startRedirect, type RedirectIntent } from "./keycloak";
+import { startRedirect, type RedirectIntent } from "./identity-provider";
 import {
   checkRegistration,
   type RegistrationForm,
@@ -30,14 +30,14 @@ import { useSession } from "./session";
  * The sign-up card: the login card's twin, asking for the six things the realm
  * needs to make an account.
  *
- * Those six are Keycloak's own registration page's, because that page is what
+ * Those six are the provider's own registration page's, because that page is what
  * this replaces -- the realm does not use the address as the username, so both
  * are asked for. What is different is everything around them: this is our
  * field, our type and our gradient, on the site somebody is already looking
  * at, rather than a page in another application's colors at another address.
  *
  * Making the account and signing in with it are two acts, in that order:
- * main-api creates it through Keycloak's admin API, and then this signs in
+ * main-api creates it through the provider's admin API, and then this signs in
  * through the same password grant the login card uses, with the password
  * still in hand. A failure to sign in after a successful registration is
  * therefore not a failure to register, and says so -- the account is there,
@@ -275,7 +275,7 @@ export function SignUpDialog({
         </Divider>
 
         {/* The same three as the login card. Signing up with a provider and
-         * signing in with one are the same redirect: Keycloak makes the
+         * signing in with one are the same redirect: the provider makes the
          * account the first time it is offered an identity it does not
          * know. */}
         <Stack spacing={1.25}>

@@ -3,9 +3,13 @@ import { describe, expect, it } from "@jest/globals";
 import { APP_GUARD } from "@nestjs/core";
 import { DatabaseModule } from "../database/index.js";
 import { AuthenticationGuard } from "./authentication.guard.js";
+import { IdentityAdminService } from "./identity-admin.service.js";
 import { KeycloakAdminService } from "./keycloak-admin.service.js";
 import { AuthenticationModule } from "./authentication.module.js";
-import { KeycloakService, keycloakKeySetProvider } from "./keycloak.service.js";
+import {
+  TokenVerifierService,
+  identityKeySetProvider,
+} from "./token-verifier.service.js";
 
 /*
  * The guard is registered as APP_GUARD rather than put on each resolver,
@@ -29,14 +33,29 @@ describe("how authentication is wired", () => {
     });
   });
 
-  it("resolves the realm's keys through a provider the tests can replace", () => {
-    expect(wiring("providers")).toContain(keycloakKeySetProvider);
+  it("resolves the signing keys through a provider the tests can replace", () => {
+    expect(wiring("providers")).toContain(identityKeySetProvider);
   });
 
   // The two pieces another vertical may inject: the one that verifies a token
-  // and the one that writes to Keycloak. The guard is not exported -- nothing
-  // should be running it a second time by hand.
-  it("exports the two Keycloak services and nothing else", () => {
-    expect(wiring("exports")).toEqual([KeycloakService, KeycloakAdminService]);
+  // and the one that writes to whoever holds the accounts. The guard is not
+  // exported -- nothing should be running it a second time by hand.
+  it("exports the two identity services and nothing else", () => {
+    expect(wiring("exports")).toEqual([
+      TokenVerifierService,
+      IdentityAdminService,
+    ]);
+  });
+
+  // The one line in the API that picks an identity provider. A vertical asks
+  // for IdentityAdminService and gets whatever is bound here, so a move to
+  // another provider is a new implementation and this line, and no vertical is
+  // edited at all.
+  it("binds the port to the Keycloak implementation, and there alone", () => {
+    expect(wiring("providers")).toContainEqual({
+      provide: IdentityAdminService,
+      useClass: KeycloakAdminService,
+    });
+    expect(wiring("exports")).not.toContain(KeycloakAdminService);
   });
 });

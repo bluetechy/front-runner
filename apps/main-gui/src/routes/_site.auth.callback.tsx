@@ -11,7 +11,7 @@ import {
 
 /*
  * Where every redirect flow comes back to: the three social providers, the
- * registration form, and the password reset. Keycloak puts an authorization
+ * registration form, and the password reset. The provider puts an authorization
  * code on the URL; this trades it for tokens and gets out of the way.
  */
 export const Route = createFileRoute("/_site/auth/callback")({
@@ -41,8 +41,9 @@ function AuthCallback() {
   const attempt = useRef<Promise<TokenSet> | null>(null);
 
   useEffect(() => {
-    /* No code on the URL: the provider was canceled, Keycloak refused, or
-     * this is a password reset coming back, which ends at Keycloak and has
+    /* No code on the URL: the social provider was canceled, the identity
+     * provider refused, or this is a password reset coming back, which ends
+     * there and has
      * nothing to exchange. None of those is an error worth a page. */
     if (error || !code) {
       void navigate({ to: "/", replace: true });

@@ -13,7 +13,7 @@ const wiring = (key: string): unknown[] =>
 describe("how the emails vertical is wired", () => {
   // Three imports, and each is a thing changing an address actually needs:
   // the database holds the list, the mailer sends the link, and
-  // authentication is where the Keycloak admin client lives, because making
+  // authentication is where the identity provider's admin client lives, because making
   // an address primary changes a login.
   it("brings the database, the mailer and the identity provider with it", () => {
     expect(wiring("imports")).toEqual([

@@ -9,4 +9,4 @@ export {
   takeRedirectVerifier,
   type Identity,
   type TokenSet,
-} from "./keycloak";
+} from "./identity-provider";

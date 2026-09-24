@@ -120,5 +120,5 @@ the realm file.
 
 Inside the Compose network it is `http://keycloak-idp:8080`. That split matters:
 the token's issuer is the published address the browser used, while `main-api`
-fetches signing keys over the mesh. `KEYCLOAK_ISSUER_URL` and
-`KEYCLOAK_JWKS_URL` are configured separately for exactly this reason.
+fetches signing keys over the mesh. `IDP_ISSUER_URL` and `IDP_JWKS_URL` are
+configured separately for exactly this reason.

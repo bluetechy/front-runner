@@ -19,7 +19,7 @@ import { PasswordResetError, requestPasswordReset } from "./password-reset";
  * The forgot-password card: the third of the three the prompt owns, and the
  * smallest. One box, because one thing is being asked.
  *
- * It replaces Keycloak's own reset-credentials page, which is a different
+ * It replaces the provider's own reset-credentials page, which is a different
  * site in different colors reached at the moment somebody is already
  * struggling. What it cannot replace is the message and the page the link in
  * it lands on, so those are ours too: main-api mints the token and sends the

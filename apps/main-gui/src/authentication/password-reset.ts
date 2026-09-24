@@ -3,7 +3,8 @@
  * without a session. The first is registering; see `registration.ts`, whose
  * shape this follows.
  *
- * Both calls go to main-api rather than to Keycloak, and they have to: the
+ * Both calls go to main-api rather than to the identity provider, and they
+ * have to: the
  * identity provider will mail its own reset link, but only its own, pointing
  * at its own page in its own colors, which is the page this replaces. So the
  * token is ours, the message is ours, and the page the link lands on is

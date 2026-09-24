@@ -12,7 +12,10 @@ import {
   Principal,
   PUBLIC_OPERATION,
 } from "./authentication.decorators.js";
-import { KeycloakService, type VerifiedIdentity } from "./keycloak.service.js";
+import {
+  TokenVerifierService,
+  type VerifiedIdentity,
+} from "./token-verifier.service.js";
 
 interface Account {
   UserUUID: string;
@@ -26,7 +29,7 @@ interface Account {
 export class AuthenticationGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly keycloak: KeycloakService,
+    private readonly tokens: TokenVerifierService,
     private readonly db: DatabaseService,
   ) {}
 
@@ -50,12 +53,13 @@ export class AuthenticationGuard implements CanActivate {
     const match = /^Bearer ([^\s]+)$/i.exec(header ?? "");
     if (!match?.[1])
       throw new UnauthorizedException("A Bearer token is required");
-    const identity = await this.keycloak.verify(match[1]);
+    const identity = await this.tokens.verify(match[1]);
 
     // The common request is a user who signed in earlier and has changed
     // nothing since, so it costs one indexed read. Provisioning -- which
-    // writes -- is kept for the sign-ins that actually need it: a subject this
-    // installation has never seen, and a profile Keycloak has since edited.
+    // writes -- is kept for the logins that actually need it: a subject this
+    // installation has never seen, and a profile the provider has since
+    // edited.
     const [known] = await this.db.query<Account>(
       'SELECT "UserUUID", "Name", "LoginName", "Email", "IsEnabled" FROM dbo."Users" WHERE "SubjectId" = $1',
       [identity.subjectId],
@@ -91,7 +95,7 @@ export class AuthenticationGuard implements CanActivate {
         identity.loginName,
         identity.name,
         identity.email,
-        // Whether Keycloak says this address has been confirmed. It is what
+        // Whether the provider says this address has been confirmed. It is what
         // dbo.ProvisionUser marks the primary dbo.UserEmails row with, and it
         // can only ever verify a row, never take one back to unverified.
         identity.emailVerified,

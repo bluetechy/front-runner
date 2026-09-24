@@ -9,7 +9,7 @@ const wiring = (key: string): unknown[] =>
   Reflect.getMetadata(key, RegistrationModule) ?? [];
 
 describe("how the registration vertical is wired", () => {
-  // One import, and no database: an account is made in Keycloak, and this
+  // One import, and no database: an account is made at the identity provider, and this
   // application's row for it is written by dbo.ProvisionUser on the first
   // request the new session makes.
   it("brings the identity provider with it, and nothing else", () => {

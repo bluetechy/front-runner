@@ -48,16 +48,20 @@ services:
       POSTGRES_USER: ${APP_DB_USER}
       POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:5173}
-      # The issuer is the browser's address for Keycloak, because that is
-      # what ends up in the token. The key set is fetched over the mesh.
-      KEYCLOAK_ISSUER_URL: http://localhost:${KEYCLOAK_PUBLISHED_PORT}/realms/${KEYCLOAK_REALM}
-      KEYCLOAK_JWKS_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
-      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE}
+      # What main-api knows about any identity provider. The issuer is the
+      # browser's address for it, because that is what ends up in the token;
+      # the key set is fetched over the mesh. Both are spelled out in Keycloak's
+      # realm shape here, which is the only Keycloak left in the IDP_ block.
+      IDP_ISSUER_URL: http://localhost:${KEYCLOAK_PUBLISHED_PORT}/realms/${KEYCLOAK_REALM}
+      IDP_JWKS_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      IDP_AUDIENCE: ${IDP_AUDIENCE}
+      # KeycloakAdminService's own, and nothing else in main-api reads them.
       # Admin calls go over the mesh, like the key set, because they are this
-      # process's rather than the browser's.
+      # process's rather than the browser's. The client id is the audience
+      # because they are the same client.
       KEYCLOAK_ADMIN_URL: http://${KEYCLOAK_ADDRESS}:${KEYCLOAK_PORT}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_AUDIENCE}
+      KEYCLOAK_CLIENT_ID: ${IDP_AUDIENCE}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       WALLET_ENCRYPTION_KEY: ${WALLET_ENCRYPTION_KEY}
       # main-api sends the address-verification mail on the security page. The

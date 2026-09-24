@@ -12,15 +12,15 @@ Object.assign(process.env, {
   POSTGRES_PASSWORD: "test-only",
   POSTGRES_POOL_SIZE: "2",
   POSTGRES_STATEMENT_TIMEOUT_MS: "1000",
-  KEYCLOAK_ISSUER_URL: "https://identity.example.test/realms/front-runner",
-  KEYCLOAK_JWKS_URL:
+  IDP_ISSUER_URL: "https://identity.example.test/realms/front-runner",
+  IDP_JWKS_URL:
     "https://identity.example.test/realms/front-runner/protocol/openid-connect/certs",
-  KEYCLOAK_AUDIENCE: "main-api",
+  IDP_AUDIENCE: "main-api",
   // Nothing under test encrypts anything -- the wallet's service is driven
   // with a stubbed database -- but the key is required at boot, and app.test.ts
   // boots the real module.
   WALLET_ENCRYPTION_KEY: "test-only-wallet-key",
-  // The same arrangement as the Keycloak values above: the admin address
+  // The same arrangement as the IDP_ values above: the admin address
   // points at a host nothing listens on, and every test that exercises the
   // admin client hands it a fetch of its own, so no request leaves the
   // process. The secret is required at boot and app.test.ts boots the real

@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import type { ConfigService } from "@nestjs/config";
-import type { KeycloakAdminService } from "../authentication/index.js";
+import type { IdentityAdminService } from "../authentication/index.js";
 import { DatabaseService } from "../database/index.js";
 import type { MailService } from "../mail/index.js";
 import { EmailsService } from "./emails.service.js";
@@ -11,7 +11,7 @@ import { EmailsService } from "./emails.service.js";
  * Two things are worth more than the rest here and most of this file is
  * about them: the verification token is made in this process rather than in
  * the database, and making an address primary is two writes that have to
- * agree -- the database's copy and Keycloak's, in that order.
+ * agree -- the database's copy and the identity provider's, in that order.
  */
 
 const ADDRESS = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
@@ -35,7 +35,7 @@ function setup(rows: unknown[] = []) {
     .mockResolvedValue(rows as never);
   const send = jest.fn<MailService["send"]>().mockResolvedValue(true);
   const setEmail = jest
-    .fn<KeycloakAdminService["setEmail"]>()
+    .fn<IdentityAdminService["setEmail"]>()
     .mockResolvedValue(undefined);
   const config = {
     getOrThrow: () => "http://localhost",
@@ -48,7 +48,7 @@ function setup(rows: unknown[] = []) {
     service: new EmailsService(
       { query } as unknown as DatabaseService,
       { send } as unknown as MailService,
-      { setEmail } as unknown as KeycloakAdminService,
+      { setEmail } as unknown as IdentityAdminService,
       config,
     ),
   };
@@ -186,11 +186,11 @@ describe("asking for another link", () => {
   });
 });
 
-describe("choosing the address somebody signs in with", () => {
+describe("choosing the address somebody logs in with", () => {
   // The database refuses an unverified address and one belonging to somebody
   // else, so it goes first: only once it has agreed is there anything to tell
-  // Keycloak.
-  it("writes the database before it writes Keycloak", async () => {
+  // the identity provider.
+  it("writes the database before it writes the identity provider", async () => {
     const order: string[] = [];
     const { service, query, setEmail } = setup([]);
     query.mockImplementation(async (text: string) => {
@@ -202,15 +202,15 @@ describe("choosing the address somebody signs in with", () => {
       ) as never;
     });
     setEmail.mockImplementation(async () => {
-      order.push("keycloak");
+      order.push("provider");
     });
 
     await service.setPrimary("marcus", ADDRESS);
     expect(order[0]).toBe("database");
-    expect(order.at(-1)).toBe("keycloak");
+    expect(order.at(-1)).toBe("provider");
   });
 
-  it("tells Keycloak the subject and the new address", async () => {
+  it("tells the identity provider the subject and the new address", async () => {
     const { service, query, setEmail } = setup([]);
     query.mockImplementation(
       async (text: string) =>
@@ -226,10 +226,10 @@ describe("choosing the address somebody signs in with", () => {
     );
   });
 
-  // Seeded and imported rows have no subject: they have never signed in, so
-  // there is nothing at Keycloak to change, and dbo.ProvisionUser will take
-  // the token's address on the first sign-in anyway.
-  it("skips Keycloak for an account that has never signed in", async () => {
+  // Seeded and imported rows have no subject: they have never logged in, so
+  // there is nothing at the provider to change, and dbo.ProvisionUser will
+  // take the token's address on the first login anyway.
+  it("skips the identity provider for an account that has never logged in", async () => {
     const { service, query, setEmail } = setup([]);
     query.mockImplementation(
       async (text: string) =>

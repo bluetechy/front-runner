@@ -5,8 +5,8 @@ const base = {
   POSTGRES_DATABASE: "test",
   POSTGRES_USER: "test",
   POSTGRES_PASSWORD: "test",
-  KEYCLOAK_ISSUER_URL: "https://identity.example.test/realms/front-runner",
-  KEYCLOAK_AUDIENCE: "main-api",
+  IDP_ISSUER_URL: "https://identity.example.test/realms/front-runner",
+  IDP_AUDIENCE: "main-api",
   KEYCLOAK_REALM: "front-runner",
   KEYCLOAK_CLIENT_SECRET: "a-secret-long-enough-to-pass",
   WALLET_ENCRYPTION_KEY: "a-key-long-enough-to-pass",
@@ -32,8 +32,8 @@ describe("environment validation", () => {
     expect(() => validateEnvironment({})).toThrow();
   });
   it.each([
-    "KEYCLOAK_ISSUER_URL",
-    "KEYCLOAK_AUDIENCE",
+    "IDP_ISSUER_URL",
+    "IDP_AUDIENCE",
     "KEYCLOAK_REALM",
     "KEYCLOAK_CLIENT_SECRET",
     "WALLET_ENCRYPTION_KEY",
@@ -99,7 +99,7 @@ describe("environment validation", () => {
       validateEnvironment({
         ...base,
         NODE_ENV: "production",
-        KEYCLOAK_ISSUER_URL: "http://unsafe.test/realms/x",
+        IDP_ISSUER_URL: "http://unsafe.test/realms/x",
       }),
     ).toThrow("HTTPS");
   });
@@ -107,10 +107,10 @@ describe("environment validation", () => {
     expect(
       validateEnvironment({
         ...base,
-        KEYCLOAK_ISSUER_URL: "http://localhost:30003/realms/front-runner",
+        IDP_ISSUER_URL: "http://localhost:30003/realms/front-runner",
       }),
     ).toMatchObject({
-      KEYCLOAK_ISSUER_URL: "http://localhost:30003/realms/front-runner",
+      IDP_ISSUER_URL: "http://localhost:30003/realms/front-runner",
     });
   });
   // Keycloak writes "iss" without a trailing slash, and jwtVerify compares it
@@ -119,26 +119,25 @@ describe("environment validation", () => {
     expect(
       validateEnvironment({
         ...base,
-        KEYCLOAK_ISSUER_URL:
-          "https://identity.example.test/realms/front-runner/",
+        IDP_ISSUER_URL: "https://identity.example.test/realms/front-runner/",
       }),
     ).toMatchObject({
-      KEYCLOAK_ISSUER_URL: "https://identity.example.test/realms/front-runner",
+      IDP_ISSUER_URL: "https://identity.example.test/realms/front-runner",
     });
   });
   it("derives the key set address from the issuer, and lets it be overridden", () => {
     expect(validateEnvironment(base)).toMatchObject({
-      KEYCLOAK_JWKS_URL:
+      IDP_JWKS_URL:
         "https://identity.example.test/realms/front-runner/protocol/openid-connect/certs",
     });
     expect(
       validateEnvironment({
         ...base,
-        KEYCLOAK_JWKS_URL:
+        IDP_JWKS_URL:
           "http://keycloak-idp:8080/realms/front-runner/protocol/openid-connect/certs",
       }),
     ).toMatchObject({
-      KEYCLOAK_JWKS_URL:
+      IDP_JWKS_URL:
         "http://keycloak-idp:8080/realms/front-runner/protocol/openid-connect/certs",
     });
   });

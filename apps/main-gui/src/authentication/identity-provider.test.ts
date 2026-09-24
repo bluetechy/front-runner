@@ -1,21 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /*
- * Every Keycloak URL this app builds and every call it makes to one.
+ * Every identity-provider URL this app uses and every call it makes to one.
  *
- * Keycloak owns accounts, passwords and sessions; main-api only verifies the
- * access token that comes out of here. Nothing outside this file talks to
- * Keycloak, which is what makes it worth testing on its own: the realm's
- * address, the PKCE round trip and the error messages are all only ever
- * decided here.
+ * The provider owns accounts, passwords and sessions; main-api only verifies
+ * the access token that comes out of here. Nothing outside that module talks
+ * to the provider, which is what makes it worth testing on its own: discovery,
+ * the PKCE round trip and the error messages are all only ever decided there.
  *
- * The realm is stubbed into the environment before the module is imported,
- * because the addresses are built once when it loads.
+ * Nothing here spells an endpoint path. The module is told an issuer and reads
+ * the rest from the discovery document, so these tests say what it does with
+ * what a provider answers rather than what Keycloak's paths happen to be. The
+ * issuer is stubbed into the environment before the module is imported,
+ * because it is read once when it loads.
  */
 
-vi.stubEnv("VITE_KEYCLOAK_URL", "https://identity.example.test");
-vi.stubEnv("VITE_KEYCLOAK_REALM", "front-runner");
-vi.stubEnv("VITE_KEYCLOAK_CLIENT_ID", "main-gui");
+vi.stubEnv(
+  "VITE_IDP_ISSUER_URL",
+  "https://identity.example.test/realms/front-runner",
+);
+vi.stubEnv("VITE_IDP_CLIENT_ID", "main-gui");
+vi.stubEnv("VITE_IDP_HINT_PARAMETER", "kc_idp_hint");
+
+const ISSUER = "https://identity.example.test/realms/front-runner";
+const DISCOVERY = `${ISSUER}/.well-known/openid-configuration`;
+const TOKEN = `${ISSUER}/protocol/openid-connect/token`;
+const AUTHORIZE = `${ISSUER}/protocol/openid-connect/auth`;
+const LOGOUT = `${ISSUER}/protocol/openid-connect/logout`;
+
+/* What this provider answers at the well-known address. Keycloak's paths,
+ * because that is what this installation runs, and the point of the tests
+ * below is that they are read from here rather than assumed. */
+const published = {
+  token_endpoint: TOKEN,
+  authorization_endpoint: AUTHORIZE,
+  end_session_endpoint: LOGOUT,
+};
 
 const {
   endSession,
@@ -26,33 +46,54 @@ const {
   signInWithPassword,
   startRedirect,
   takeRedirectVerifier,
-} = await import("./keycloak");
+} = await import("./identity-provider");
 const { read, write } = await import("../browser-storage");
 
 const fetchMock = vi.fn();
 
+const answers = (body: unknown, ok = true) =>
+  ({ ok, json: async () => body }) as Response;
+
+/* Every call in this module begins with discovery, so every test answers it
+ * and says what it wants for the call after. */
+const serving = (responder: () => Response, document: unknown = published) =>
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(url === DISCOVERY ? answers(document) : responder()),
+  );
+
 /* A successful token endpoint answer. */
 const issuing = (overrides: Record<string, unknown> = {}) =>
-  fetchMock.mockResolvedValue({
-    ok: true,
-    json: async () => ({
+  serving(() =>
+    answers({
       access_token: "an-access-token",
       refresh_token: "a-refresh-token",
       id_token: "an-id-token",
       expires_in: 300,
       ...overrides,
     }),
-  });
+  );
 
-/* Keycloak naming a failure the way it names one. */
+/* A provider naming a failure the way OAuth names one. */
 const refusing = (error: string, description?: string) =>
-  fetchMock.mockResolvedValue({
-    ok: false,
-    json: async () => ({ error, error_description: description }),
-  });
+  serving(() => answers({ error, error_description: description }, false));
 
+/* The last call's form body: the token or logout call, never discovery, which
+ * carries none. */
 const body = () =>
-  new URLSearchParams(fetchMock.mock.calls[0]?.[1].body as URLSearchParams);
+  new URLSearchParams(fetchMock.mock.calls.at(-1)?.[1].body as URLSearchParams);
+
+const calledWith = (url: string) =>
+  fetchMock.mock.calls.filter((call: unknown[]) => call[0] === url);
+
+/*
+ * A copy of the module with an empty discovery cache. The document is asked
+ * for once per tab and remembered, so a test about that has to start from a
+ * tab that has not asked yet.
+ */
+async function freshModule() {
+  vi.resetModules();
+  return import("./identity-provider");
+}
 
 /* An unsigned token with these claims, which is all `readIdentity` reads --
  * the signature is main-api's business and is verified there on every call. */
@@ -72,6 +113,9 @@ function token(claims: Record<string, unknown>): string {
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
+  /* The document, and an empty answer to anything else. A test that cares
+   * what the second call answers says so with issuing() or refusing(). */
+  serving(() => answers({}));
   sessionStorage.clear();
 });
 
@@ -80,15 +124,84 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("signing in with an email and a password", () => {
-  it("asks the realm's token endpoint for the password grant", async () => {
+describe("finding out where the provider is", () => {
+  // One address is configured and the rest are asked for. Every OpenID
+  // Connect provider publishes this document, so the paths below are
+  // Keycloak's only because that is what answers here.
+  it("asks the issuer for its discovery document before anything else", async () => {
+    const provider = await freshModule();
+    issuing();
+
+    await provider.signInWithPassword("member@example.test", "a");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(DISCOVERY);
+  });
+
+  it("asks for it once and remembers it for the tab", async () => {
+    const provider = await freshModule();
+    issuing();
+
+    await provider.signInWithPassword("member@example.test", "a");
+    await provider.refreshTokens("a-refresh-token");
+
+    expect(calledWith(DISCOVERY)).toHaveLength(1);
+  });
+
+  // The whole point of reading the document: another provider names other
+  // paths, on another host, and nothing here has to know that.
+  it("goes wherever the document says, not where we would have guessed", async () => {
+    const provider = await freshModule();
+    serving(
+      () => answers({ access_token: "a", refresh_token: "b", expires_in: 1 }),
+      {
+        token_endpoint: "https://elsewhere.test/oauth2/token",
+        authorization_endpoint: "https://elsewhere.test/oauth2/authorize",
+      },
+    );
+
+    await provider.signInWithPassword("member@example.test", "a");
+
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe(
+      "https://elsewhere.test/oauth2/token",
+    );
+  });
+
+  // A provider that was still starting up when the page loaded has to be
+  // reachable on the next try, so a failure is not what gets remembered.
+  it("does not remember a failure", async () => {
+    const provider = await freshModule();
+    fetchMock.mockRejectedValue(new Error("Failed to fetch"));
+
+    await expect(
+      provider.signInWithPassword("member@example.test", "a"),
+    ).rejects.toThrow(/Could not reach the identity provider/);
+
+    issuing();
+    await expect(
+      provider.signInWithPassword("member@example.test", "a"),
+    ).resolves.toMatchObject({ accessToken: "an-access-token" });
+  });
+
+  // Both endpoints are required of every provider. A document without them is
+  // not one this app can log in against, and saying so beats a request to
+  // "undefined".
+  it("refuses a document that names no token endpoint", async () => {
+    const provider = await freshModule();
+    serving(() => answers({}), { authorization_endpoint: AUTHORIZE });
+
+    await expect(
+      provider.signInWithPassword("member@example.test", "a"),
+    ).rejects.toThrow(/Could not reach the identity provider/);
+  });
+});
+
+describe("logging in with an email address and a password", () => {
+  it("asks the token endpoint the document named for the password grant", async () => {
     issuing();
 
     await signInWithPassword("member@example.test", "a-password");
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      "https://identity.example.test/realms/front-runner/protocol/openid-connect/token",
-    );
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe(TOKEN);
     expect(Object.fromEntries(body())).toMatchObject({
       grant_type: "password",
       username: "member@example.test",
@@ -98,7 +211,7 @@ describe("signing in with an email and a password", () => {
     });
   });
 
-  // Not the lifetime Keycloak sent: a token restored from storage has to be
+  // Not the lifetime the provider sent: a token restored from storage has to be
   // judged against the clock rather than against the age of the tab.
   it("turns the lifetime into a moment", async () => {
     issuing({ expires_in: 300 });
@@ -111,7 +224,7 @@ describe("signing in with an email and a password", () => {
     expect(tokens.refreshToken).toBe("a-refresh-token");
   });
 
-  it("carries no id token where the realm sent none", async () => {
+  it("carries no id token where the provider sent none", async () => {
     issuing({ id_token: undefined });
 
     await expect(
@@ -120,15 +233,17 @@ describe("signing in with an email and a password", () => {
   });
 });
 
-describe("when a sign-in fails", () => {
-  // Keycloak's descriptions are written for developers, so the ones somebody
+describe("when a login fails", () => {
+  // A provider's descriptions are written for developers, so the ones somebody
   // can act on are replaced and the rest collapse into one honest sentence.
   it("says plainly that the password was wrong", async () => {
     refusing("invalid_grant", "Invalid user credentials");
 
     await expect(
       signInWithPassword("member@example.test", "no"),
-    ).rejects.toThrow("That email and password do not match an account.");
+    ).rejects.toThrow(
+      "That email address and password do not match an account.",
+    );
   });
 
   // "Account disabled" and "Account is not fully set up" both arrive as
@@ -141,12 +256,12 @@ describe("when a sign-in fails", () => {
     ).rejects.toThrow("Account disabled.");
   });
 
-  it("explains a realm that will not allow this client to sign anybody in", async () => {
+  it("explains a provider that will not let this client log anybody in", async () => {
     refusing("unauthorized_client");
 
     await expect(
       signInWithPassword("member@example.test", "a"),
-    ).rejects.toThrow(/Direct access grants are off/);
+    ).rejects.toThrow(/The password grant is off/);
   });
 
   it("falls back to one honest sentence for anything else", async () => {
@@ -154,11 +269,11 @@ describe("when a sign-in fails", () => {
 
     await expect(
       signInWithPassword("member@example.test", "a"),
-    ).rejects.toThrow("Sign-in failed. Please try again.");
+    ).rejects.toThrow("Login failed. Please try again.");
   });
 
-  // No HTTP status at all: Keycloak is down, or CORS refused the call. That
-  // is not a wrong password and must not read like one.
+  // No HTTP status at all: the provider is down, or CORS refused the call.
+  // That is not a wrong password and must not read like one.
   it("says the identity provider could not be reached at all", async () => {
     fetchMock.mockRejectedValue(new Error("Failed to fetch"));
 
@@ -188,11 +303,9 @@ describe("keeping a session alive", () => {
     });
   });
 
-  // Without this the next sign-in would skip the password: the browser still
-  // holds Keycloak's own session cookie.
-  it("ends the Keycloak session as well as this one", async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) });
-
+  // Without this the next login would skip the password: the browser still
+  // holds the provider's own session cookie.
+  it("ends the provider's session as well as this one", async () => {
     await endSession({
       accessToken: "a",
       refreshToken: "a-refresh-token",
@@ -200,14 +313,14 @@ describe("keeping a session alive", () => {
       expiresAt: Date.now(),
     });
 
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("openid-connect/logout");
+    expect(fetchMock.mock.calls.at(-1)?.[0]).toBe(LOGOUT);
     expect(Object.fromEntries(body())).toMatchObject({
       refresh_token: "a-refresh-token",
     });
   });
 
-  // Signing out locally must succeed even when Keycloak cannot be reached.
-  it("signs out anyway when the realm cannot be reached", async () => {
+  // Logging out locally must succeed even when the provider cannot be reached.
+  it("logs out anyway when the provider cannot be reached", async () => {
     fetchMock.mockRejectedValue(new Error("Failed to fetch"));
 
     await expect(
@@ -218,6 +331,26 @@ describe("keeping a session alive", () => {
         expiresAt: Date.now(),
       }),
     ).resolves.toBeUndefined();
+  });
+
+  // The endpoint is optional in the specification, and a provider that ends a
+  // session some other way names none. Logging out here still has to work.
+  it("logs out anyway when the document names no logout endpoint", async () => {
+    const provider = await freshModule();
+    serving(() => answers({}), {
+      token_endpoint: TOKEN,
+      authorization_endpoint: AUTHORIZE,
+    });
+
+    await expect(
+      provider.endSession({
+        accessToken: "a",
+        refreshToken: "b",
+        idToken: null,
+        expiresAt: Date.now(),
+      }),
+    ).resolves.toBeUndefined();
+    expect(calledWith(LOGOUT)).toHaveLength(0);
   });
 });
 
@@ -269,7 +402,7 @@ describe("reading who the token is about", () => {
 });
 
 /*
- * `startRedirect` hands the browser to Keycloak, and jsdom cannot navigate.
+ * `startRedirect` hands the browser to the provider, and jsdom cannot navigate.
  * The whole `location` is replaced for the tests that do it, keeping the
  * origin the module was loaded with so the callback address still matches.
  */
@@ -291,7 +424,7 @@ afterEach(() => {
   });
 });
 
-describe("handing the browser to Keycloak", () => {
+describe("handing the browser to the provider", () => {
   const assign = watchNavigation;
 
   it("sends it to the authorize endpoint, with a PKCE challenge", async () => {
@@ -300,7 +433,7 @@ describe("handing the browser to Keycloak", () => {
     await startRedirect({ kind: "login" });
 
     const url = new URL(assigned.mock.calls[0]?.[0] as string);
-    expect(url.pathname).toContain("openid-connect/auth");
+    expect(`${url.origin}${url.pathname}`).toBe(AUTHORIZE);
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("code_challenge")).not.toBe("");
@@ -317,8 +450,8 @@ describe("handing the browser to Keycloak", () => {
     expect(read("local", "front-runner.pkce-verifier")).toBeNull();
   });
 
-  // An alias that is not enabled in the realm is ignored, so the hosted login
-  // page is what an unconfigured provider falls back to rather than an error.
+  // An alias the provider does not know is ignored, so the hosted login page
+  // is what an unconfigured provider falls back to rather than an error.
   it("can send it straight on to a social provider", async () => {
     const assigned = assign();
 
@@ -331,8 +464,35 @@ describe("handing the browser to Keycloak", () => {
     ).toBe("google");
   });
 
+  // kc_idp_hint is Keycloak's spelling and is configuration, not a constant:
+  // another provider names the parameter something else, and a deployment
+  // that configures none sends the browser to the hosted login page instead.
+  it("names the hint parameter the way it is configured", async () => {
+    const assigned = assign();
+    vi.stubEnv("VITE_IDP_HINT_PARAMETER", "fidp");
+
+    await startRedirect({ kind: "login", idpHint: "google" });
+
+    const url = new URL(assigned.mock.calls[0]?.[0] as string);
+    expect(url.searchParams.get("fidp")).toBe("google");
+    expect(url.searchParams.get("kc_idp_hint")).toBeNull();
+    vi.stubEnv("VITE_IDP_HINT_PARAMETER", "kc_idp_hint");
+  });
+
+  it("sends no hint at all where none is configured", async () => {
+    const assigned = assign();
+    vi.stubEnv("VITE_IDP_HINT_PARAMETER", "");
+
+    await startRedirect({ kind: "login", idpHint: "google" });
+
+    expect([
+      ...new URL(assigned.mock.calls[0]?.[0] as string).searchParams.keys(),
+    ]).not.toContain("kc_idp_hint");
+    vi.stubEnv("VITE_IDP_HINT_PARAMETER", "kc_idp_hint");
+  });
+
   // Making an account is not one of the ways this hands the browser over.
-  // The site asks for one on its own card and main-api makes it; Keycloak's
+  // The site asks for one on its own card and main-api makes it; a provider's
   // hosted registration page is not a destination this app sends anybody to.
   it("only ever leaves for the authorize endpoint", async () => {
     const assigned = assign();
@@ -340,7 +500,7 @@ describe("handing the browser to Keycloak", () => {
     await startRedirect({ kind: "login" });
 
     const url = new URL(assigned.mock.calls[0]?.[0] as string);
-    expect(url.pathname).toContain("openid-connect/auth");
+    expect(`${url.origin}${url.pathname}`).toBe(AUTHORIZE);
     expect(url.pathname).not.toContain("registrations");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
   });
@@ -357,7 +517,7 @@ describe("handing the browser to Keycloak", () => {
   });
 });
 
-describe("coming back from Keycloak", () => {
+describe("coming back from the provider", () => {
   it("hands back the verifier when the state is the one we sent", async () => {
     watchNavigation();
     await startRedirect({ kind: "login" });
@@ -407,7 +567,7 @@ describe("coming back from Keycloak", () => {
   });
 });
 
-describe("where Keycloak sends the browser back to", () => {
+describe("where the provider sends the browser back to", () => {
   it("is this origin's callback route", () => {
     expect(redirectUri).toBe(`${window.location.origin}/auth/callback`);
   });

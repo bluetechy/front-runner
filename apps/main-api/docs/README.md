@@ -46,12 +46,20 @@ application account. `apps/main-api/.env.example` lists the API configuration;
 copy its values into your local environment, not into the image. The scripts do
 not automatically read an API-local `.env`.
 
-`KEYCLOAK_ISSUER_URL`, `KEYCLOAK_AUDIENCE` and the optional `KEYCLOAK_JWKS_URL`
-configure token verification. The issuer is the address the **browser** signs in
-at, because that is what Keycloak writes into the token; the key set address is
-the one **this process** can reach, which inside Compose is a different host. On
-the host both are `http://localhost:30003/...`. No request is made to Keycloak at
-startup — the keys are fetched when the first token arrives. `CORS_ORIGINS` is an
+`IDP_ISSUER_URL`, `IDP_AUDIENCE` and the optional `IDP_JWKS_URL` and
+`IDP_ACCESS_TOKEN_TYPE` configure token verification. The issuer is the address
+the **browser** logs in at, because that is what the identity provider writes
+into the token; the key set address is the one **this process** can reach, which
+inside Compose is a different host. On the host both are
+`http://localhost:30003/...`. No request is made to the provider at startup: the
+keys are fetched when the first token arrives.
+
+The `IDP_` prefix is the seam. Those four are what any OpenID Connect provider
+has to tell this API, and they are all the request path reads. The `KEYCLOAK_`
+values beside them (`KEYCLOAK_ADMIN_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`,
+`KEYCLOAK_CLIENT_SECRET`) are one implementation's own configuration, read by
+`KeycloakAdminService` and nothing else. See
+`src/authentication/identity-admin.service.ts`. `CORS_ORIGINS` is an
 explicit comma-separated allowlist; set it to the actual frontend origin(s).
 Browser cookies are not used by this API.
 

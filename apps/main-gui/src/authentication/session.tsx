@@ -16,7 +16,7 @@ import {
   signInWithPassword,
   type Identity,
   type TokenSet,
-} from "./keycloak";
+} from "./identity-provider";
 
 /*
  * Who is signed in, for the whole app. One provider in main.tsx owns the
@@ -33,7 +33,7 @@ import {
 const STORAGE_KEY = "front-runner.refresh-token";
 
 /* Refresh this far before expiry, so a call is never made with a token that
- * dies in flight. Keycloak's access tokens last five minutes. */
+ * dies in flight. The provider's access tokens last five minutes. */
 const REFRESH_MARGIN_MS = 30_000;
 
 export type SessionStatus = "loading" | "signed-out" | "signed-in";
@@ -113,7 +113,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const next = await refreshTokens(saved.token);
         if (!canceled) apply(next, saved.remember);
       } catch {
-        /* Expired, revoked, or Keycloak is down. Either way: signed out. */
+        /* Expired, revoked, or the provider is down. Either way: signed out. */
         if (!canceled) clear();
       }
     })();
@@ -153,7 +153,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const current = tokens.current;
-    /* Cleared first, so the UI is signed out even if Keycloak is slow. */
+    /* Cleared first, so the UI is logged out even if the provider is slow. */
     clear();
     if (current) await endSession(current);
   }, [clear]);

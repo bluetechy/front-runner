@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import type { ConfigService } from "@nestjs/config";
-import type { KeycloakAdminService } from "../authentication/index.js";
+import type { IdentityAdminService } from "../authentication/index.js";
 import type { DatabaseService } from "../database/index.js";
 import type { MailService } from "../mail/index.js";
 import { PasswordResetService } from "./password-reset.service.js";
@@ -49,7 +49,7 @@ function setup() {
     service: new PasswordResetService(
       db as unknown as DatabaseService,
       mail as unknown as MailService,
-      keycloak as unknown as KeycloakAdminService,
+      keycloak as unknown as IdentityAdminService,
       config as unknown as ConfigService,
     ),
   };
@@ -64,7 +64,7 @@ const sentMessage = (mail: { send: { mock: { calls: unknown[][] } } }) =>
   };
 
 describe("asking for a link", () => {
-  it("writes a token against the account Keycloak found", async () => {
+  it("writes a token against the account the identity provider found", async () => {
     const { service, db, keycloak } = setup();
 
     await service.request("marcus");
@@ -79,7 +79,7 @@ describe("asking for a link", () => {
     );
   });
 
-  // The address comes from Keycloak, never from the form. This is the whole
+  // The address comes from the identity provider, never from the form. This is the whole
   // of what stops the form mailing a link wherever it is told to.
   it("mails the link to the address on the account", async () => {
     const { service, db, mail } = setup();
@@ -176,7 +176,7 @@ describe("following the link", () => {
     ).resolves.toEqual({ LoginName: "marcus" });
   });
 
-  // The other order would leave a link that failed at Keycloak still working.
+  // The other order would leave a link that failed at the provider still working.
   it("spends the token before it sets anything", async () => {
     const { service, db, keycloak } = setup();
     const order: string[] = [];
@@ -217,7 +217,7 @@ describe("following the link", () => {
     expect(keycloak.setPassword).not.toHaveBeenCalled();
   });
 
-  it("passes a refusal from Keycloak on rather than claiming the password changed", async () => {
+  it("passes a refusal from the identity provider on rather than claiming the password changed", async () => {
     const { service, keycloak } = setup();
     keycloak.setPassword.mockRejectedValue(
       new Error("invalid password: minimum length 8") as never,

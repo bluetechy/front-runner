@@ -11,11 +11,11 @@ import { z } from "zod";
  * The confirmation box is here and not there, for the reason it is on the
  * sign-up form: it is a typing aid, only meaningful next to the box above it,
  * and the API has no use for a second copy of a password it is about to hand
- * to Keycloak.
+ * to the identity provider.
  */
 
 /* A username or an email address, and deliberately not checked against either
- * shape: Keycloak accepts both at a login prompt, and somebody who has
+ * shape: the provider accepts both at a login prompt, and somebody who has
  * forgotten a password should not also have to remember which of them they
  * are known by. */
 export const identifierSchema = z

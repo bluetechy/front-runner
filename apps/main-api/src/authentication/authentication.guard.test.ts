@@ -5,7 +5,10 @@ import type { Reflector } from "@nestjs/core";
 import { DatabaseService } from "../database/index.js";
 import { AuthenticationGuard } from "./authentication.guard.js";
 import type { AuthenticatedRequest } from "./authentication.decorators.js";
-import type { KeycloakService, VerifiedIdentity } from "./keycloak.service.js";
+import type {
+  TokenVerifierService,
+  VerifiedIdentity,
+} from "./token-verifier.service.js";
 
 /*
  * The guard in front of every operation in the schema. It is the one place
@@ -47,12 +50,14 @@ const account = {
 function setup({
   isPublic = false,
   rows = [[account]],
-  verify = jest.fn<KeycloakService["verify"]>().mockResolvedValue(identity),
+  verify = jest
+    .fn<TokenVerifierService["verify"]>()
+    .mockResolvedValue(identity),
   header = "Bearer a-token",
 }: {
   isPublic?: boolean;
   rows?: unknown[][];
-  verify?: jest.Mock<KeycloakService["verify"]>;
+  verify?: jest.Mock<TokenVerifierService["verify"]>;
   /* `null` is a request with no Authorization header at all, which is not
    * the same as one carrying an empty string. */
   header?: string | null;
@@ -76,7 +81,7 @@ function setup({
 
   const guard = new AuthenticationGuard(
     { getAllAndOverride: () => isPublic } as unknown as Reflector,
-    { verify } as unknown as KeycloakService,
+    { verify } as unknown as TokenVerifierService,
     { query } as unknown as DatabaseService,
   );
 
@@ -149,7 +154,7 @@ describe("the account behind the subject", () => {
     expect(query.mock.calls[1]?.[0]).toContain('"ProvisionUser"');
     // The fifth parameter is the token's "email_verified" claim. It is what
     // dbo.ProvisionUser marks the primary dbo.UserEmails row with, so a
-    // sign-in with an address Keycloak has confirmed does not ask its owner
+    // login with an address the provider has confirmed does not ask its owner
     // to confirm it a second time.
     expect(query.mock.calls[1]?.[1]).toEqual([
       "subject-alice",
@@ -168,7 +173,7 @@ describe("the account behind the subject", () => {
     ["renamed", { ...account, Name: "Alice Older" }],
     ["renamed their login", { ...account, LoginName: "alice.example" }],
     ["changed address", { ...account, Email: "new@example.test" }],
-  ])("refreshes an account Keycloak has since %s", async (_case, stale) => {
+  ])("refreshes an account the provider has since %s", async (_case, stale) => {
     const { guard, context, query } = setup({ rows: [[stale], [account]] });
 
     await guard.canActivate(context);
@@ -176,12 +181,12 @@ describe("the account behind the subject", () => {
     expect(query.mock.calls[1]?.[0]).toContain('"ProvisionUser"');
   });
 
-  // Keycloak not telling us a name is not Keycloak telling us the name has
+  // A provider not telling us a name is not a provider telling us the name has
   // changed, and re-provisioning on every request would be a write per call.
   it("leaves an account alone when the token carries no name", async () => {
     const { guard, context, query } = setup({
       verify: jest
-        .fn<KeycloakService["verify"]>()
+        .fn<TokenVerifierService["verify"]>()
         .mockResolvedValue({ ...identity, name: null }),
     });
 

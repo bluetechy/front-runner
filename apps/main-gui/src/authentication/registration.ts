@@ -4,7 +4,8 @@ import type { RegistrationForm } from "./registration-schema";
  * Making an account, which is the one thing this app asks main-api for
  * without a session.
  *
- * Keycloak has no endpoint a browser may call to register somebody: its own
+ * The identity provider has no endpoint a browser may call to register
+ * somebody: its own
  * hosted page is its only self-service way in. So the account is made by
  * main-api, which holds the one service account allowed to make one, and this
  * is the mutation that asks. See apps/main-api/src/registration.

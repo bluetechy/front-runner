@@ -16,7 +16,7 @@ const signInWithPassword = vi.fn();
 const refreshTokens = vi.fn();
 const endSession = vi.fn();
 
-vi.mock("./keycloak", () => ({
+vi.mock("./identity-provider", () => ({
   signInWithPassword,
   refreshTokens,
   endSession,

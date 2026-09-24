@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
-import { KeycloakAdminService } from "../authentication/index.js";
+import { IdentityAdminService } from "../authentication/index.js";
 import { DatabaseService } from "../database/index.js";
 import { MailService } from "../mail/index.js";
 import { EmailSettings, UserEmail, VerifiedEmail } from "./emails.model.js";
@@ -22,7 +22,7 @@ export class EmailsService {
   constructor(
     private readonly db: DatabaseService,
     private readonly mail: MailService,
-    private readonly keycloak: KeycloakAdminService,
+    private readonly identity: IdentityAdminService,
     config: ConfigService,
   ) {
     this.appBaseUrl = config.getOrThrow<string>("APP_BASE_URL");
@@ -99,20 +99,20 @@ export class EmailsService {
     );
   }
 
-  // Change the address somebody signs in with. Two writes that have to agree:
+  // Change the address somebody logs in with. Two writes that have to agree:
   // this application's copy and the identity provider's.
   //
   // The database goes first, because it is the one that refuses: it will not
   // promote an unverified address, and it will not touch an address belonging
-  // to somebody else. Only once it has agreed is there anything to tell
-  // Keycloak.
+  // to somebody else. Only once it has agreed is there anything to tell the
+  // provider.
   //
-  // If Keycloak then refuses, this throws and the transaction is already
-  // committed, so the two disagree until the next sign-in -- at which point
+  // If the provider then refuses, this throws and the transaction is already
+  // committed, so the two disagree until the next login -- at which point
   // dbo.ProvisionUser refreshes the column from the token and the database
-  // quietly loses. That is the right way round: Keycloak holds the
-  // credential, so Keycloak wins, and what somebody signs in with never
-  // becomes an address the identity provider does not know.
+  // quietly loses. That is the right way round: the provider holds the
+  // credential, so the provider wins, and what somebody logs in with never
+  // becomes an email address the identity provider does not know.
   async setPrimary(loginName: string, userEmailId: string) {
     const addresses = await this.db.query<UserEmail>(
       'SELECT * FROM dbo."SetPrimaryUserEmail"($1, $2)',
@@ -127,12 +127,12 @@ export class EmailsService {
       [loginName],
     );
 
-    // An account with no subject has never signed in through Keycloak, so
-    // there is nothing there to change: dbo.ProvisionUser will claim the row
-    // on its first sign-in and take the token's address then. Seeded and
-    // imported rows are the case.
+    // An account with no subject has never logged in through the identity
+    // provider, so there is nothing there to change: dbo.ProvisionUser will
+    // claim the row on its first login and take the token's address then.
+    // Seeded and imported rows are the case.
     if (chosen && account?.SubjectId)
-      await this.keycloak.setEmail(account.SubjectId, chosen.Email);
+      await this.identity.setEmail(account.SubjectId, chosen.Email);
 
     return addresses;
   }

@@ -1,28 +1,39 @@
-# Signing in
+# Logging in
 
-Three cards: the sign-in dialog from the supplied mock-up, wired to Keycloak,
-its twin for making an account, and the small one for a forgotten password.
-All three live in `src/authentication`, which is the only part of the app that
-knows Keycloak exists.
+Three cards: the login dialog from the supplied mock-up, wired to the identity
+provider, its twin for making an account, and the small one for a forgotten
+password. All three live in `src/authentication`, and one file inside it,
+`identity-provider.ts`, is the only part of the app that talks to the provider
+at all.
 
-Keycloak owns accounts, passwords and sessions. `main-api` issues no tokens and
-has no login operation — it verifies the access token the browser presents and
-maps it onto a row with `dbo.ProvisionUser`. So "wiring up the login" means
-wiring up Keycloak, and the API only ever sees the result.
+The provider owns accounts, passwords and sessions. `main-api` issues no tokens
+and has no login operation: it verifies the access token the browser presents
+and maps it onto a row with `dbo.ProvisionUser`. So "wiring up the login" means
+wiring up the provider, and the API only ever sees the result.
+
+This installation runs Keycloak, and the sections below say so wherever a
+choice is really Keycloak's. Everything else is written against OpenID Connect,
+which is what makes the provider replaceable: see
+[changing identity provider](#changing-identity-provider).
 
 ## What the dialog does
 
-| Control                            | Where it goes                                       |
-| ---------------------------------- | --------------------------------------------------- |
-| Email + password, **Login**, the ➜ | Keycloak's token endpoint, in the page. No redirect |
-| **Remember me**                    | Whether the refresh token outlives the tab          |
-| **Forgot Password**                | Another card. It does not leave the site            |
-| **Sign Up**                        | The other card. It does not leave the site          |
-| **Google / Facebook / Apple ID**   | Keycloak's authorize endpoint with `kc_idp_hint`    |
+| Control                            | Where it goes                                           |
+| ---------------------------------- | ------------------------------------------------------- |
+| Email + password, **Login**, the ➜ | The provider's token endpoint, in the page. No redirect |
+| **Remember me**                    | Whether the refresh token outlives the tab              |
+| **Forgot Password**                | Another card. It does not leave the site                |
+| **Sign Up**                        | The other card. It does not leave the site              |
+| **Google / Facebook / Apple ID**   | The authorize endpoint, with the login-provider hint    |
 
 Only the first of those completes in the dialog, and only the last three leave
-the site: those are pages Keycloak hosts, and they come back to
+the site: those are pages the provider hosts, and they come back to
 `/auth/callback`.
+
+None of those addresses is written down here. `identity-provider.ts` is told
+one thing, `VITE_IDP_ISSUER_URL`, and reads the token, authorize and logout
+endpoints from that address's `/.well-known/openid-configuration`, which every
+OpenID Connect provider publishes. The document is fetched once per tab.
 
 ## The sign-up card
 
@@ -39,13 +50,13 @@ is false), which is why both are there. The confirmation box never leaves the
 browser: it is a typing aid, and the API has no use for a second copy of a
 password it is about to hash.
 
-**Keycloak has no endpoint a browser may call to register somebody.** Its own
+**A provider has no endpoint a browser may call to register somebody.** Its own
 hosted page is its only self-service way in, and that page is at another
 address, in another application's colors. So the account is made by `main-api`,
 which holds the one service account on the realm allowed to make one:
 
 ```text
-the card  →  register(account:) on main-api   →  Keycloak admin API
+the card  →  register(account:) on main-api   →  the provider's admin API
           →  login(email, password) as usual  →  /dashboard
 ```
 
@@ -53,7 +64,7 @@ That mutation is `@Public`, because nobody registering has a session yet. It
 opens no way in the realm did not already offer (`registrationAllowed` is true
 on its hosted page), and it creates an enabled account with an unverified
 address, a permanent password and no roles. See
-`apps/main-api/src/registration` and `KeycloakAdminService.createUser`.
+`apps/main-api/src/registration` and `IdentityAdminService.createUser`.
 
 Making the account and signing in with it are **two acts, in that order**, and
 the card says which one failed. An account that was created and then could not
@@ -77,12 +88,12 @@ That page is the one this replaces, so the whole flow is ours:
 
 ```text
 the card  →  requestPasswordReset(identifier:) on main-api
-          →  Keycloak says which account that is
+          →  the provider says which account that is
           →  dbo.StartPasswordReset writes the token
           →  our mail carries the link
 /reset-password?token=…  →  resetPassword(token:, password:)
           →  dbo.SpendPasswordReset says whose it is
-          →  Keycloak admin API sets the password
+          →  the provider's admin API sets the password
 ```
 
 Both mutations are `@Public`, because being unable to login is the situation.
@@ -92,7 +103,7 @@ What keeps that safe is written into each half:
   name that matches an account exactly as it answers one that does not, so the
   form cannot be asked who has an account here. A disabled account and an
   account with no address on it are nobody too.
-- **The message goes to the address Keycloak holds**, never to anything the
+- **The message goes to the email address the provider holds**, never to anything the
   form said, which is what stops it mailing a link wherever it is told to.
 - **The token is the authorization** for the second half, the same argument
   `verifyEmail` rests on: it was only ever written into a message sent to the
@@ -103,7 +114,7 @@ What keeps that safe is written into each half:
 - **It is spent before the password is set**, so a link that failed halfway is
   not still live in a mailbox. The way back from that is a new link.
 
-The rows live in `dbo.PasswordResets`, which names its account by Keycloak
+The rows live in `dbo.PasswordResets`, which names its account by the token's
 `sub` and has no foreign key to `dbo.Users`: an account can exist at the
 identity provider with no row here yet, and somebody who registered and never
 managed to login is exactly the person most likely to need this.
@@ -181,17 +192,47 @@ provider, because Keycloak ships no Apple one — but all three are
 `"enabled": false` with placeholder client IDs, since real ones can only come
 from Google, Meta and Apple.
 
-The buttons are wired anyway, and degrade honestly: `kc_idp_hint` naming a
-provider the realm does not have enabled is ignored, so the button lands on
-Keycloak's own login page instead of erroring. Filling in the credentials and
+The buttons are wired anyway, and degrade honestly: a hint naming a provider
+the realm does not have enabled is ignored, so the button lands on the hosted
+login page instead of erroring. Keycloak spells that hint `kc_idp_hint` and
+other providers spell it otherwise, so the parameter's name is
+`VITE_IDP_HINT_PARAMETER` rather than a constant; empty sends no hint and every
+button goes to the hosted page. Filling in the credentials and
 flipping `enabled` is the whole activation — see
 [`apps/keycloak-idp/README.md`](../../keycloak-idp/README.md).
+
+## Changing identity provider
+
+Keycloak is a choice, not an assumption, and the code is arranged so that the
+choice is small. What a swap actually costs:
+
+| Where                                            | What changes                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `VITE_IDP_ISSUER_URL`, `VITE_IDP_CLIENT_ID`      | Point at the new issuer. Every endpoint follows from discovery                       |
+| `VITE_IDP_HINT_PARAMETER`                        | The new provider's name for the social hint, or empty                                |
+| `IDP_ISSUER_URL`, `IDP_JWKS_URL`, `IDP_AUDIENCE` | `main-api`'s half of the same three facts                                            |
+| `IDP_ACCESS_TOKEN_TYPE`                          | What the provider stamps `typ` with. Keycloak writes `Bearer`                        |
+| `apps/main-api/src/authentication/`              | A new file beside `keycloak-admin.service.ts`, and one `useClass` line in the module |
+| `apps/keycloak-idp/`                             | Replaced wholesale: an image, a container and whatever provisions it                 |
+
+What does **not** change: the four verticals that ask for an account
+(`registration`, `emails`, `password-reset`, the guard) inject
+`IdentityAdminService`, which is five methods and no realms. Their tests drive
+that port, so they pass unchanged against a new provider. In the browser, only
+`identity-provider.ts` knows a provider exists.
+
+What is genuinely provider-shaped and has to be redone by hand: the realm
+import in `apps/keycloak-idp/realm`, the social provider aliases, the mail
+templates, and the user-visible copy that names the real thing (the privacy
+page's list of processors, and the dashboard's "Identity from Keycloak" label).
+Naming the actual processor is the point of that copy, so it is not something
+an abstraction should hide.
 
 ## Where things are
 
 ```
 src/authentication/
-  keycloak.ts          every Keycloak URL and token-endpoint call
+  identity-provider.ts the issuer, discovery, and every call to the provider
   session.tsx          SessionProvider / useSession: who is signed in
   login-prompt.tsx     the three cards, one at a time, and who may open them
   login-dialog.tsx     the mock-up's card

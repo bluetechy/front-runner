@@ -21,7 +21,11 @@ import CloseIcon from "@/shared/icons/CloseIcon";
 import FacebookIcon from "@/shared/icons/FacebookIcon";
 import GoogleIcon from "@/shared/icons/GoogleIcon";
 import { useId, useState, type FormEvent } from "react";
-import { SignInError, startRedirect, type RedirectIntent } from "./keycloak";
+import {
+  SignInError,
+  startRedirect,
+  type RedirectIntent,
+} from "./identity-provider";
 import { useSession } from "./session";
 
 /*
@@ -30,7 +34,7 @@ import { useSession } from "./session";
  * be the only thing on the site not drawn from the violet field.
  *
  * Only the email-and-password form completes here. The three social
- * providers are flows Keycloak hosts, so those leave the page and come back
+ * providers are flows the identity provider hosts, so those leave the page and come back
  * to /auth/callback. "Sign Up" and "Forgot Password" are neither: they are
  * the other two cards, which the prompt owning all three swaps in.
  */
@@ -49,10 +53,10 @@ export function LoginDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  /* "Don't have an Account?" -- the sign-up card, rather than Keycloak's own
+  /* "Don't have an Account?" -- the sign-up card, rather than the provider's own
    * registration page at another address in another application's colors. */
   onSignUp: () => void;
-  /* "Forgot Password" -- the third card, for the same reason. Keycloak's
+  /* "Forgot Password" -- the third card, for the same reason. The provider's
    * reset-credentials page is the one this replaces. */
   onForgotPassword: () => void;
 }) {

@@ -32,7 +32,7 @@ class SignInError extends Error {
   }
 }
 
-vi.mock("./keycloak", () => ({ SignInError, startRedirect }));
+vi.mock("./identity-provider", () => ({ SignInError, startRedirect }));
 
 vi.mock("./session", () => ({ useSession: () => ({ login }) }));
 

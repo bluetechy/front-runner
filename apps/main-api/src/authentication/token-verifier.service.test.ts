@@ -9,7 +9,7 @@ import {
   type JWTVerifyGetKey,
   type JWK,
 } from "jose";
-import { KeycloakService } from "./keycloak.service.js";
+import { TokenVerifierService } from "./token-verifier.service.js";
 
 // Real RS256 signatures against a key pair generated here, so what is under
 // test is the verification itself rather than a stand-in for it. Nothing
@@ -22,10 +22,10 @@ let keys: JWTVerifyGetKey;
 let otherKey: CryptoKey;
 
 const service = (overrides: Record<string, unknown> = {}) =>
-  new KeycloakService(
+  new TokenVerifierService(
     new ConfigService({
-      KEYCLOAK_ISSUER_URL: issuer,
-      KEYCLOAK_AUDIENCE: audience,
+      IDP_ISSUER_URL: issuer,
+      IDP_AUDIENCE: audience,
       ...overrides,
     }),
     keys,
@@ -74,7 +74,7 @@ beforeAll(async () => {
   keys = createLocalJWKSet({ keys: [{ ...jwk, alg: "RS256", use: "sig" }] });
 });
 
-describe("Keycloak access tokens", () => {
+describe("access tokens", () => {
   it("accepts a token the realm signed and reports the identity behind it", async () => {
     await expect(service().verify(await token())).resolves.toEqual({
       subjectId: "subject-alice",
@@ -128,7 +128,7 @@ describe("Keycloak access tokens", () => {
     );
   });
 
-  // Whether Keycloak says the address has been confirmed, passed through
+  // Whether the provider says the address has been confirmed, passed through
   // rather than assumed: dbo.ProvisionUser uses it to decide whether the
   // primary dbo.UserEmails row arrives verified. Anything that is not
   // literally true reads as false, which is the safe direction -- it costs
@@ -189,13 +189,34 @@ describe("Keycloak access tokens", () => {
     );
   });
 
-  // An ID token is signed by the same realm keys and carries the same subject,
-  // so every other check here passes it. It is not an authorization to call
+  // An ID token is signed by the same keys and carries the same subject, so
+  // every other check here passes it. It is not an authorization to call
   // anything, and the browser holds one.
   it("rejects an ID token presented as an access token", async () => {
     await expect(service().verify(await token({ typ: "ID" }))).rejects.toThrow(
       "An access token is required",
     );
+  });
+
+  // "Bearer" is Keycloak's spelling of that distinction and is the default,
+  // not a law: another provider writes "at+jwt", and one that does not
+  // distinguish an access token from an ID token at all sets this empty rather
+  // than having every token it issues refused.
+  it("takes the access token's type from configuration", async () => {
+    const other = service({ IDP_ACCESS_TOKEN_TYPE: "at+jwt" });
+
+    await expect(
+      other.verify(await token({ typ: "at+jwt" })),
+    ).resolves.toMatchObject({ loginName: "alice" });
+    await expect(other.verify(await token())).rejects.toThrow(
+      "An access token is required",
+    );
+  });
+
+  it("checks no type at all when configured with none", async () => {
+    await expect(
+      service({ IDP_ACCESS_TOKEN_TYPE: "" }).verify(await token({ typ: "ID" })),
+    ).resolves.toMatchObject({ loginName: "alice" });
   });
 
   it("rejects a token with no subject or no username", async () => {
@@ -256,10 +277,10 @@ describe("Keycloak access tokens", () => {
   // A key server that cannot be reached has not told us the token is bad. A
   // 401 would log every signed-in user out of a working session.
   it("reports an unreachable key server as an outage, not a bad token", async () => {
-    const offline = new KeycloakService(
+    const offline = new TokenVerifierService(
       new ConfigService({
-        KEYCLOAK_ISSUER_URL: issuer,
-        KEYCLOAK_AUDIENCE: audience,
+        IDP_ISSUER_URL: issuer,
+        IDP_AUDIENCE: audience,
       }),
       () => {
         throw Object.assign(new Error("socket hang up"), { code: undefined });

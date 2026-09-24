@@ -6,7 +6,10 @@ import { SignUpDialog } from "./sign-up-dialog";
 import { ResetPassword } from "./reset-password";
 import { LoginPromptProvider, useLoginPrompt } from "./login-prompt";
 import { SessionProvider, useSession } from "./session";
-import { exchangeAuthorizationCode, takeRedirectVerifier } from "./keycloak";
+import {
+  exchangeAuthorizationCode,
+  takeRedirectVerifier,
+} from "./identity-provider";
 
 /*
  * What the rest of the app may reach for.

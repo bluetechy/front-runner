@@ -1,29 +1,28 @@
 /*
- * Every Keycloak URL this app builds and every call it makes to one. Keycloak
- * owns accounts, passwords and sessions; main-api only verifies the access
- * token that comes out of here. Nothing outside this file talks to Keycloak,
- * and nothing in it talks to main-api.
+ * Every identity-provider URL this app uses and every call it makes to one.
+ * The provider owns accounts, passwords and sessions; main-api only verifies
+ * the access token that comes out of here. Nothing outside this file talks to
+ * the provider, and nothing in it talks to main-api.
+ *
+ * It is told one address, the issuer, and asks that address for the rest:
+ * OpenID Connect requires every provider to publish its endpoints at
+ * /.well-known/openid-configuration, so the paths are the provider's to name
+ * rather than ours to hard-code. Changing provider is changing VITE_IDP_ISSUER_URL.
  */
 
 import { read, remove, write } from "../browser-storage";
 
-const realmUrl = `${import.meta.env.VITE_KEYCLOAK_URL}/realms/${import.meta.env.VITE_KEYCLOAK_REALM}`;
-const clientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID;
+const issuer = import.meta.env.VITE_IDP_ISSUER_URL.replace(/\/$/, "");
+const clientId = import.meta.env.VITE_IDP_CLIENT_ID;
 
-const endpoint = {
-  token: `${realmUrl}/protocol/openid-connect/token`,
-  authorize: `${realmUrl}/protocol/openid-connect/auth`,
-  logout: `${realmUrl}/protocol/openid-connect/logout`,
-} as const;
-
-/* Where Keycloak sends the browser back to after a redirect flow. */
+/* Where the provider sends the browser back to after a redirect flow. */
 export const redirectUri = `${window.location.origin}/auth/callback`;
 
 export interface TokenSet {
   accessToken: string;
   refreshToken: string;
   idToken: string | null;
-  /* Epoch milliseconds, not the lifetime Keycloak sends, so that a token
+  /* Epoch milliseconds, not the lifetime the provider sends, so that a token
    * restored from storage is judged against the clock rather than the age of
    * the tab. */
   expiresAt: number;
@@ -37,7 +36,7 @@ export interface Identity {
   email: string;
 }
 
-/* A sign-in that failed for a reason worth showing someone. */
+/* A login that failed for a reason worth showing someone. */
 export class SignInError extends Error {
   constructor(
     message: string,
@@ -48,6 +47,68 @@ export class SignInError extends Error {
   }
 }
 
+/* No HTTP status at all, or a discovery document that answers nothing: the
+ * provider is down, or CORS refused the call. */
+const unreachable = () =>
+  new SignInError(
+    "Could not reach the identity provider. Is it running?",
+    "unreachable",
+  );
+
+/* ---------------------------------------------------------------- discovery */
+
+interface Endpoints {
+  token: string;
+  authorize: string;
+  /* Optional in the specification, and absent from providers that end a
+   * session some other way. Logging out locally has to work without it. */
+  logout: string | null;
+}
+
+let discovering: Promise<Endpoints> | null = null;
+
+/* Asked for once and remembered for the life of the tab: the document is a
+ * constant of the deployment, and a login should not pay for it twice. A
+ * failure is not remembered, so a provider that was starting up when the page
+ * loaded is reachable on the next try. */
+function endpoints(): Promise<Endpoints> {
+  discovering ??= discover().catch((error: unknown) => {
+    discovering = null;
+    throw error;
+  });
+  return discovering;
+}
+
+async function discover(): Promise<Endpoints> {
+  let response: Response;
+  try {
+    response = await fetch(`${issuer}/.well-known/openid-configuration`);
+  } catch {
+    throw unreachable();
+  }
+  if (!response.ok) throw unreachable();
+
+  const document = (await response.json().catch(() => null)) as {
+    token_endpoint?: unknown;
+    authorization_endpoint?: unknown;
+    end_session_endpoint?: unknown;
+  } | null;
+
+  const token = url(document?.token_endpoint);
+  const authorize = url(document?.authorization_endpoint);
+  /* Both are required of every provider. A document without them is not one
+   * we can log in against, and saying so here is better than a fetch to
+   * "undefined" further down. */
+  if (!token || !authorize) throw unreachable();
+
+  return { token, authorize, logout: url(document?.end_session_endpoint) };
+}
+
+const url = (value: unknown): string | null =>
+  typeof value === "string" && value ? value : null;
+
+/* ------------------------------------------------------------------- tokens */
+
 interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -56,15 +117,14 @@ interface TokenResponse {
 }
 
 /*
- * Keycloak names the failure in `error` and explains it in
- * `error_description`. Those descriptions are written for developers, so the
- * ones a person can act on are replaced here and the rest collapse into one
- * honest sentence.
+ * OAuth names the failure in `error` and explains it in `error_description`.
+ * Those descriptions are written for developers, so the ones a person can act
+ * on are replaced here and the rest collapse into one honest sentence.
  */
 const messages: Record<string, string> = {
-  invalid_grant: "That email and password do not match an account.",
+  invalid_grant: "That email address and password do not match an account.",
   unauthorized_client:
-    "This application is not allowed to sign you in directly. Direct access grants are off for the main-gui client.",
+    "This application is not allowed to log you in directly. The password grant is off for this client.",
   invalid_client:
     "This application is not registered with the identity provider.",
 };
@@ -78,20 +138,17 @@ function capitalize(text: string): string {
 
 async function exchange(body: URLSearchParams): Promise<TokenSet> {
   body.set("client_id", clientId);
+  const { token } = await endpoints();
 
   let response: Response;
   try {
-    response = await fetch(endpoint.token, {
+    response = await fetch(token, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
     });
   } catch {
-    /* No HTTP status at all: Keycloak is down, or CORS refused the call. */
-    throw new SignInError(
-      "Could not reach the identity provider. Is Keycloak running?",
-      "unreachable",
-    );
+    throw unreachable();
   }
 
   const payload: unknown = await response.json().catch(() => null);
@@ -110,7 +167,7 @@ async function exchange(body: URLSearchParams): Promise<TokenSet> {
     throw new SignInError(
       useDescription
         ? capitalize(described)
-        : (messages[code] ?? "Sign-in failed. Please try again."),
+        : (messages[code] ?? "Login failed. Please try again."),
       code,
     );
   }
@@ -125,9 +182,9 @@ async function exchange(body: URLSearchParams): Promise<TokenSet> {
 }
 
 /*
- * The dialog's email-and-password sign-in: OAuth's password grant. It works
- * only because the realm turns `directAccessGrantsEnabled` on for main-gui --
- * see apps/keycloak-idp/README.md for why that is a deliberate trade.
+ * The dialog's email-and-password login: OAuth's password grant. It works only
+ * because the client is allowed to use it -- see apps/keycloak-idp/README.md
+ * for why that is a deliberate trade.
  */
 export function signInWithPassword(
   username: string,
@@ -204,7 +261,7 @@ export function readIdentity(accessToken: string): Identity | null {
 /* ---------------------------------------------------------------- redirects */
 
 /*
- * PKCE. The realm allows the authorization code flow only with S256, so a
+ * PKCE. The client allows the authorization code flow only with S256, so a
  * verifier is made here, kept in session storage for the round trip, and sent
  * back when the code is exchanged. Session storage rather than local: it is
  * scoped to this tab and dies with it, and the round trip never leaves it.
@@ -244,11 +301,12 @@ export interface RedirectIntent {
 }
 
 /*
- * Hand the browser to Keycloak: for a social provider, or for the hosted
+ * Hand the browser to the provider: for a social provider, or for the hosted
  * login page. Both are the same authorization code flow and both come back to
  * /auth/callback.
  */
 export async function startRedirect(intent: RedirectIntent): Promise<void> {
+  const { authorize } = await endpoints();
   const verifier = randomString();
   const state = randomString();
   write("session", VERIFIER_KEY, verifier);
@@ -263,13 +321,18 @@ export async function startRedirect(intent: RedirectIntent): Promise<void> {
     code_challenge: await challenge(verifier),
     code_challenge_method: "S256",
   });
-  /* kc_idp_hint sends the browser straight on to Google, Facebook or Apple
-   * instead of showing Keycloak's own login page first. An alias that is not
-   * enabled in the realm is ignored, so the hosted login page is what an
-   * unconfigured provider falls back to rather than an error. */
-  if (intent.idpHint) parameters.set("kc_idp_hint", intent.idpHint);
+  /* The hint sends the browser straight on to Google, Facebook or Apple
+   * instead of showing the provider's own login page first. Keycloak spells
+   * the parameter kc_idp_hint and others spell it differently, so which one to
+   * send is configuration; an alias the provider does not know is ignored, so
+   * an unconfigured provider falls back to the hosted login page rather than
+   * an error. Empty configuration means no hint at all, and every button goes
+   * to the hosted page. */
+  const hintParameter = import.meta.env.VITE_IDP_HINT_PARAMETER;
+  if (intent.idpHint && hintParameter)
+    parameters.set(hintParameter, intent.idpHint);
 
-  window.location.assign(`${endpoint.authorize}?${parameters}`);
+  window.location.assign(`${authorize}?${parameters}`);
 }
 
 /* The verifier for the code now on the URL, consumed so a reload cannot
@@ -284,19 +347,24 @@ export function takeRedirectVerifier(state: string | null): string | null {
 }
 
 /*
- * End the Keycloak session as well as this one. Without this the next sign-in
- * would skip the password: the browser still holds Keycloak's own session
+ * End the provider's session as well as this one. Without this the next login
+ * would skip the password: the browser still holds the provider's own session
  * cookie, and it would hand back a fresh token without asking anything.
  */
 export async function endSession(tokens: TokenSet): Promise<void> {
-  await fetch(endpoint.logout, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      refresh_token: tokens.refreshToken,
-    }),
-  }).catch(() => {
-    /* Signing out locally must succeed even when Keycloak cannot be reached. */
-  });
+  try {
+    const { logout } = await endpoints();
+    if (!logout) return;
+    await fetch(logout, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        refresh_token: tokens.refreshToken,
+      }),
+    });
+  } catch {
+    /* Logging out locally must succeed even when the provider cannot be
+     * reached, and even when we never learned where its logout endpoint is. */
+  }
 }

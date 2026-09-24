@@ -12,47 +12,44 @@ import {
   type JWTVerifyGetKey,
 } from "jose";
 
-// The realm's public keys, resolved per token so that Keycloak can rotate
-// them without a restart. Injected rather than built in the constructor so the
-// tests can hand over a key set of their own and verify real signatures
+// The identity provider's public keys, resolved per token so that it can
+// rotate them without a restart. Injected rather than built in the constructor
+// so the tests can hand over a key set of their own and verify real signatures
 // without a network.
-export const KEYCLOAK_KEY_SET = Symbol("KEYCLOAK_KEY_SET");
+export const IDENTITY_KEY_SET = Symbol("IDENTITY_KEY_SET");
 
-export const keycloakKeySetProvider = {
-  provide: KEYCLOAK_KEY_SET,
+export const identityKeySetProvider = {
+  provide: IDENTITY_KEY_SET,
   inject: [ConfigService],
   // This address is separate from the issuer on purpose: in Compose the
-  // browser reaches Keycloak on its published port and this process reaches it
-  // inside the network, so the address that signs the token is not the address
-  // the signing keys are fetched from.
+  // browser reaches the provider on its published port and this process
+  // reaches it inside the network, so the address that signs the token is not
+  // the address the signing keys are fetched from.
   useFactory: (config: ConfigService): JWTVerifyGetKey =>
-    createRemoteJWKSet(
-      new URL(config.getOrThrow<string>("KEYCLOAK_JWKS_URL")),
-      {
-        timeoutDuration: 5000,
-        cooldownDuration: 30000,
-        cacheMaxAge: 600000,
-      },
-    ),
+    createRemoteJWKSet(new URL(config.getOrThrow<string>("IDP_JWKS_URL")), {
+      timeoutDuration: 5000,
+      cooldownDuration: 30000,
+      cacheMaxAge: 600000,
+    }),
 };
 
 // What a verified access token tells us about the person holding it. The
-// subject is the identity; the rest is profile data Keycloak owns and this API
-// only mirrors.
+// subject is the identity; the rest is profile data the identity provider owns
+// and this API only mirrors.
 export interface VerifiedIdentity {
   subjectId: string;
   loginName: string;
   name: string | null;
   email: string;
   // The token's "email_verified" claim, passed through rather than assumed.
-  // Keycloak can hold an address nobody has confirmed, and dbo.UserEmails has
+  // A provider can hold an address nobody has confirmed, and dbo.UserEmails has
   // to be able to tell the two apart: the security page offers to send a
   // verification link for an address this is false for. A claim that is
   // missing or is not a boolean is false, which is the safe direction -- it
   // costs somebody one link, where guessing true would put a green tick on an
   // address nobody has proved they read.
   emailVerified: boolean;
-  // When Keycloak minted this token, from the "iat" claim, as a Date.
+  // When the provider minted this token, from the "iat" claim, as a Date.
   //
   // It is what stops a change made on the security page from undoing itself.
   // A token is minted once and used until it expires, so one issued before
@@ -75,16 +72,23 @@ const NAME_LIMIT = 64;
 const EMAIL_LIMIT = 255;
 
 @Injectable()
-export class KeycloakService {
+export class TokenVerifierService {
   private readonly issuer: string;
   private readonly audience: string;
+  private readonly accessTokenType: string;
 
   constructor(
     config: ConfigService,
-    @Inject(KEYCLOAK_KEY_SET) private readonly keys: JWTVerifyGetKey,
+    @Inject(IDENTITY_KEY_SET) private readonly keys: JWTVerifyGetKey,
   ) {
-    this.issuer = config.getOrThrow<string>("KEYCLOAK_ISSUER_URL");
-    this.audience = config.getOrThrow<string>("KEYCLOAK_AUDIENCE");
+    this.issuer = config.getOrThrow<string>("IDP_ISSUER_URL");
+    this.audience = config.getOrThrow<string>("IDP_AUDIENCE");
+    // What the provider stamps an access token's "typ" with. Configurable
+    // because it is the one part of this file that is not the same everywhere:
+    // Keycloak writes "Bearer", others write "at+jwt" or nothing at all. Empty
+    // turns the check off for a provider that does not distinguish the two.
+    this.accessTokenType =
+      config.get<string>("IDP_ACCESS_TOKEN_TYPE") ?? "Bearer";
   }
 
   async verify(token: string): Promise<VerifiedIdentity> {
@@ -111,11 +115,12 @@ export class KeycloakService {
   }
 
   private identity(payload: JWTPayload): VerifiedIdentity {
-    // Keycloak stamps access tokens "Bearer" and ID tokens "ID". They are
-    // signed by the same keys and carry the same subject, so without this an ID
-    // token -- which the browser also holds, and which is not an authorization
-    // to call anything -- would pass every other check here.
-    if (payload.typ !== "Bearer")
+    // An access token and an ID token are signed by the same keys and carry
+    // the same subject, so without this an ID token -- which the browser also
+    // holds, and which is not an authorization to call anything -- would pass
+    // every other check here. Keycloak tells them apart by stamping "Bearer"
+    // and "ID" into "typ"; see accessTokenType for providers that do not.
+    if (this.accessTokenType && payload.typ !== this.accessTokenType)
       throw new UnauthorizedException("An access token is required");
 
     const subjectId = this.text(payload.sub, SUBJECT_LIMIT);

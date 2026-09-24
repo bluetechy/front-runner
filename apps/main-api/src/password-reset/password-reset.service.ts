@@ -1,19 +1,19 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
-import { KeycloakAdminService, type Account } from "../authentication/index.js";
+import { IdentityAdminService, type Account } from "../authentication/index.js";
 import { DatabaseService } from "../database/index.js";
 import { MailService } from "../mail/index.js";
 import { PasswordReset, PasswordResetRequest } from "./password-reset.model.js";
 
 // Forgetting a password and choosing a new one.
 //
-// Three parties, each doing the one thing it is for. Keycloak knows which
-// account somebody named and holds the password at the end. This database
-// holds the token in between, because Keycloak has no way to hand out a reset
-// link for a message we wrote: it will mail its own, pointing at its own page,
-// which is the page this flow exists to replace. And the mail is ours, because
-// the link in it is.
+// Three parties, each doing the one thing it is for. The identity provider
+// knows which account somebody named and holds the password at the end. This
+// database holds the token in between, because a provider has no way to hand
+// out a reset link for a message we wrote: it will mail its own, pointing at
+// its own page, which is the page this flow exists to replace. And the mail is
+// ours, because the link in it is.
 //
 // The token is made here rather than in the database, for the reason written
 // on dbo.AddUserEmail: a guessable token is a way into somebody else's
@@ -31,7 +31,7 @@ export class PasswordResetService {
   constructor(
     private readonly db: DatabaseService,
     private readonly mail: MailService,
-    private readonly keycloak: KeycloakAdminService,
+    private readonly identity: IdentityAdminService,
     config: ConfigService,
   ) {
     this.appBaseUrl = config.getOrThrow<string>("APP_BASE_URL");
@@ -46,7 +46,7 @@ export class PasswordResetService {
   // the product's own account lookup -- type a name, watch which ones come
   // back different.
   async request(identifier: string): Promise<PasswordResetRequest> {
-    const account = await this.keycloak.findAccount(identifier);
+    const account = await this.identity.findAccount(identifier);
 
     if (account) {
       const token = randomUUID();
@@ -64,10 +64,10 @@ export class PasswordResetService {
   //
   // The token is spent first and the password is set second, so a link works
   // once whatever happens next. The other order would leave a link that failed
-  // at Keycloak still live in a mailbox.
+  // at the identity provider still live in a mailbox.
   //
   // The account is read back by its subject id rather than trusted from the
-  // row, because the row holds an identity and Keycloak holds the account: a
+  // row, because the row holds an identity and the provider holds the account: a
   // subject that no longer answers is an account that was deleted between the
   // mail and the click, and that is a refusal rather than a password set on
   // nothing.
@@ -84,18 +84,18 @@ export class PasswordResetService {
         "That password reset link is not valid or has already been used.",
       );
 
-    const account = await this.keycloak.account(spent.SubjectId);
+    const account = await this.identity.account(spent.SubjectId);
     if (!account)
       throw new BadRequestException(
         "That account is no longer here. Ask for a new link.",
       );
 
-    await this.keycloak.setPassword(spent.SubjectId, password);
+    await this.identity.setPassword(spent.SubjectId, password);
 
     return { LoginName: account.username };
   }
 
-  // The message. It goes to the address Keycloak has for the account rather
+  // The message. It goes to the email address the provider has for the account rather
   // than to anything the form said, which is the whole of what makes this
   // safe: the person asking gets nothing, and the person who can read the
   // account's mailbox gets the link.
@@ -135,7 +135,7 @@ export class PasswordResetService {
 }
 
 // The one value in this message that came from somewhere else. A username is
-// Keycloak's to hold and its realm allows characters ours does not, so it is
+// the identity provider's to hold and it allows characters ours does not, so it is
 // escaped rather than trusted: markup in a name would otherwise be markup in
 // the mail we sent.
 function escapeHtml(value: string): string {

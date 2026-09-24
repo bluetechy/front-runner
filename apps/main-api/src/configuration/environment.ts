@@ -21,21 +21,28 @@ export function validateEnvironment(env: Record<string, unknown>) {
       throw new Error(`${name} is invalid`);
     return value;
   };
-  // The issuer has to match the token's "iss" exactly, and Keycloak writes it
-  // without a trailing slash whatever is configured here.
-  const issuer = new URL(required("KEYCLOAK_ISSUER_URL")).href.replace(
-    /\/$/,
-    "",
-  );
+  // IDP_* is what any identity provider has to tell us and is all the request
+  // path knows about; the KEYCLOAK_* block further down is the one
+  // implementation's own configuration. The split is the seam: see
+  // apps/main-api/src/authentication/identity-admin.service.ts.
+  //
+  // The issuer has to match the token's "iss" exactly, and a provider writes
+  // it without a trailing slash whatever is configured here.
+  const issuer = new URL(required("IDP_ISSUER_URL")).href.replace(/\/$/, "");
   if (env.NODE_ENV === "production" && !issuer.startsWith("https:")) {
-    throw new Error("KEYCLOAK_ISSUER_URL must use HTTPS");
+    throw new Error("IDP_ISSUER_URL must use HTTPS");
   }
-  // Separate from the issuer on purpose: in Compose the browser reaches
-  // Keycloak on its published port and this process reaches it inside the
+  // Separate from the issuer on purpose: in Compose the browser reaches the
+  // provider on its published port and this process reaches it inside the
   // network, so the address that signs the token is not the address we fetch
   // the signing keys from.
+  //
+  // The fallback spells Keycloak's path for it, which is the one place an
+  // IDP_* value knows today's provider. A deployment on anything else sets
+  // IDP_JWKS_URL, which every provider publishes at
+  // /.well-known/openid-configuration.
   const jwks = new URL(
-    String(env.KEYCLOAK_JWKS_URL ?? `${issuer}/protocol/openid-connect/certs`),
+    String(env.IDP_JWKS_URL ?? `${issuer}/protocol/openid-connect/certs`),
   ).href;
   return {
     ...env,
@@ -52,9 +59,14 @@ export function validateEnvironment(env: Record<string, unknown>) {
       10000,
       120000,
     ),
-    KEYCLOAK_ISSUER_URL: issuer,
-    KEYCLOAK_JWKS_URL: jwks,
-    KEYCLOAK_AUDIENCE: required("KEYCLOAK_AUDIENCE"),
+    IDP_ISSUER_URL: issuer,
+    IDP_JWKS_URL: jwks,
+    IDP_AUDIENCE: required("IDP_AUDIENCE"),
+    // What the provider stamps an access token's "typ" with, so that an ID
+    // token cannot be spent as one. Keycloak writes "Bearer"; empty turns the
+    // check off for a provider that does not distinguish the two. See
+    // TokenVerifierService.
+    IDP_ACCESS_TOKEN_TYPE: String(env.IDP_ACCESS_TOKEN_TYPE ?? "Bearer"),
     // What dbo.AddCreditCard and dbo.AddBankAccount encrypt a card or account
     // number under. It is passed to them on every call and is never stored in
     // the database, which is the only thing that makes encrypting the column
@@ -62,11 +74,13 @@ export function validateEnvironment(env: Record<string, unknown>) {
     // reads those columns back today, so nothing breaks, but see
     // apps/main-db/sql/Tables/CreditCards.sql before that stops being true.
     WALLET_ENCRYPTION_KEY: secret("WALLET_ENCRYPTION_KEY", 16),
-    // The realm main-api administers, and the credentials it does it with.
-    // Changing the address somebody signs in with is two writes -- one here
-    // and one at Keycloak -- and this is the half that reaches Keycloak. The
-    // secret belongs to the "main-api" client's service account, which holds
-    // manage-users and view-users and nothing else.
+    // KeycloakAdminService's own configuration, and nothing else in the API
+    // reads it. The realm main-api administers, and the credentials it does it
+    // with: changing the address somebody logs in with is two writes, one here
+    // and one at the provider, and this is the half that reaches the provider.
+    // The secret belongs to the "main-api" client's service account, which
+    // holds manage-users and view-users and nothing else. A move to another
+    // provider replaces this block along with that file.
     KEYCLOAK_REALM: required("KEYCLOAK_REALM"),
     KEYCLOAK_CLIENT_ID: String(env.KEYCLOAK_CLIENT_ID ?? "main-api"),
     KEYCLOAK_CLIENT_SECRET: secret("KEYCLOAK_CLIENT_SECRET", 16),
@@ -78,7 +92,7 @@ export function validateEnvironment(env: Record<string, unknown>) {
       String(env.KEYCLOAK_ADMIN_URL ?? issuer.replace(/\/realms\/[^/]+$/, "")),
     ).href.replace(/\/$/, ""),
     // The mail main-api sends itself: address verification, and nothing else
-    // yet. The server is the one Keycloak already uses.
+    // yet. The server is the one the identity provider already uses.
     MAIL_ADDRESS: required("MAIL_ADDRESS"),
     MAIL_SMTP_PORT: integer("MAIL_SMTP_PORT", 1025, 65535),
     MAIL_FROM_ADDRESS: required("MAIL_FROM_ADDRESS"),

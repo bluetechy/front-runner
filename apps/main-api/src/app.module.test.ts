@@ -26,7 +26,7 @@ import {
 } from "jose";
 import { AppModule } from "./app.module.js";
 import { DatabaseService } from "./database/index.js";
-import { KEYCLOAK_KEY_SET } from "./authentication/index.js";
+import { IDENTITY_KEY_SET } from "./authentication/index.js";
 
 const userId = "00000000-0000-4000-8000-000000000001";
 const orgId = "00000000-0000-4000-8000-000000000002";
@@ -143,7 +143,7 @@ describe("GraphQL application", () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(DatabaseService)
       .useValue({ query })
-      .overrideProvider(KEYCLOAK_KEY_SET)
+      .overrideProvider(IDENTITY_KEY_SET)
       .useValue(
         createLocalJWKSet({ keys: [{ ...jwk, alg: "RS256", use: "sig" }] }),
       )

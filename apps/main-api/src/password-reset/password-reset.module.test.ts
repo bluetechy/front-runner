@@ -12,7 +12,7 @@ const wiring = (key: string): unknown[] =>
 
 describe("how the password reset vertical is wired", () => {
   // Three imports, one for each party in a reset: the database holds the
-  // token, the mail carries it, and Keycloak holds the password at the end.
+  // token, the mail carries it, and the identity provider holds the password at the end.
   it("brings the database, the mail and the identity provider with it", () => {
     expect(wiring("imports")).toEqual([
       DatabaseModule,
