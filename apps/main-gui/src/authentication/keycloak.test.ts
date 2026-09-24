@@ -20,7 +20,6 @@ vi.stubEnv("VITE_KEYCLOAK_CLIENT_ID", "main-gui");
 const {
   endSession,
   exchangeAuthorizationCode,
-  passwordResetUrl,
   readIdentity,
   redirectUri,
   refreshTokens,
@@ -405,16 +404,6 @@ describe("coming back from Keycloak", () => {
       code_verifier: "a-verifier",
       redirect_uri: redirectUri,
     });
-  });
-});
-
-describe("the forgotten-password page", () => {
-  it("is Keycloak's own, and comes back where sign-in does", () => {
-    const url = new URL(passwordResetUrl());
-
-    expect(url.pathname).toContain("login-actions/reset-credentials");
-    expect(url.searchParams.get("client_id")).toBe("main-gui");
-    expect(url.searchParams.get("redirect_uri")).toBe(redirectUri);
   });
 });
 

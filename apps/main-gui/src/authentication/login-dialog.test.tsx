@@ -6,12 +6,12 @@ import { theme } from "../design-system";
 /*
  * The sign-in dialog.
  *
- * Only the email-and-password form completes here. The three providers and
- * Forgot Password are flows Keycloak hosts, so those leave the page and come
- * back to /auth/callback; the test for each of them is that the browser was
- * handed over with the right intent and that nothing was signed in locally.
- * "Sign Up" is neither: it asks for the other card, and the provider owning
- * both of them swaps it in.
+ * Only the email-and-password form completes here. The three providers are
+ * flows Keycloak hosts, so those leave the page and come back to
+ * /auth/callback; the test for each of them is that the browser was handed
+ * over with the right intent and that nothing was signed in locally. "Sign Up"
+ * and "Forgot Password" are neither: they ask for the other two cards, and the
+ * provider owning all three swaps them in.
  *
  * Keycloak, the session and the router are all stubbed. What is under test is
  * the dialog's own behavior: what it does while a sign-in is in flight, what
@@ -32,12 +32,7 @@ class SignInError extends Error {
   }
 }
 
-vi.mock("./keycloak", () => ({
-  SignInError,
-  startRedirect,
-  passwordResetUrl: () =>
-    "https://identity.example.test/realms/front-runner/login-actions/reset-credentials",
-}));
+vi.mock("./keycloak", () => ({ SignInError, startRedirect }));
 
 vi.mock("./session", () => ({ useSession: () => ({ login }) }));
 
@@ -50,12 +45,18 @@ const { LoginDialog } = await import("./login-dialog");
 const renderDialog = () => {
   const onClose = vi.fn();
   const onSignUp = vi.fn();
+  const onForgotPassword = vi.fn();
   render(
     <ThemeProvider theme={theme}>
-      <LoginDialog open onClose={onClose} onSignUp={onSignUp} />
+      <LoginDialog
+        open
+        onClose={onClose}
+        onSignUp={onSignUp}
+        onForgotPassword={onForgotPassword}
+      />
     </ThemeProvider>,
   );
-  return { onClose, onSignUp };
+  return { onClose, onSignUp, onForgotPassword };
 };
 
 /*
@@ -110,13 +111,16 @@ describe("what the card offers", () => {
       expect(screen.getByRole("button", { name: label })).toBeVisible();
   });
 
-  // Keycloak owns the reset: it emails a link and takes it from there.
-  it("sends a forgotten password to Keycloak's own page", () => {
-    renderDialog();
+  // The third card, rather than Keycloak's reset-credentials page: it asks
+  // for the link, main-api sends it, and our own /reset-password takes it
+  // from there.
+  it("asks for the forgot-password card rather than leaving the site", () => {
+    const { onForgotPassword } = renderDialog();
 
-    expect(
-      screen.getByRole("link", { name: "Forgot Password" }),
-    ).toHaveAttribute("href", expect.stringContaining("reset-credentials"));
+    fireEvent.click(screen.getByRole("button", { name: "Forgot Password" }));
+
+    expect(onForgotPassword).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("link", { name: "Forgot Password" })).toBeNull();
   });
 
   // A password kept past the browser closing is the usual expectation, and

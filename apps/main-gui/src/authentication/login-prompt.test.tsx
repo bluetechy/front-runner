@@ -2,17 +2,17 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 /*
- * The two cards that let somebody in, and one owner for both.
+ * The three cards that deal with getting in, and one owner for all of them.
  *
  * Every way in is something the visitor clicked -- the header's "Login", its
  * "Sign Up", a pricing card's button -- and without a single owner they would
- * be dialogs that could both be on screen. That is the whole of what this
- * provider is for, so it is what is asserted: one card at a time, every
- * caller reaching the same one, and the link on each card swapping it for the
- * other rather than opening a second.
+ * be dialogs that could all be on screen at once. That is the whole of what
+ * this provider is for, so it is what is asserted: one card at a time, every
+ * caller reaching the same one, and the links between them swapping which is
+ * showing rather than opening a second.
  *
- * Both dialogs are stubbed. What each of them does with what it is given is
- * its own test's business.
+ * All three dialogs are stubbed. What each of them does with what it is given
+ * is its own test's business.
  */
 
 vi.mock("./login-dialog", () => ({
@@ -20,16 +20,38 @@ vi.mock("./login-dialog", () => ({
     open,
     onClose,
     onSignUp,
+    onForgotPassword,
   }: {
     open: boolean;
     onClose: () => void;
     onSignUp: () => void;
+    onForgotPassword: () => void;
   }) =>
     open ? (
       <dialog open aria-label="Login">
         The login card
         <button onClick={onClose}>Close it</button>
         <button onClick={onSignUp}>Don&rsquo;t have an Account ?</button>
+        <button onClick={onForgotPassword}>Forgot Password</button>
+      </dialog>
+    ) : null,
+}));
+
+vi.mock("./forgot-password-dialog", () => ({
+  ForgotPasswordDialog: ({
+    open,
+    onClose,
+    onLogin,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    onLogin: () => void;
+  }) =>
+    open ? (
+      <dialog open aria-label="Forgot Password">
+        The forgot-password card
+        <button onClick={onClose}>Close it</button>
+        <button onClick={onLogin}>Back to Login</button>
       </dialog>
     ) : null,
 }));
@@ -56,11 +78,12 @@ vi.mock("./sign-up-dialog", () => ({
 const { LoginPromptProvider, useLoginPrompt } = await import("./login-prompt");
 
 function Header() {
-  const { open, signUp } = useLoginPrompt();
+  const { open, signUp, forgotPassword } = useLoginPrompt();
   return (
     <>
       <button onClick={open}>Login</button>
       <button onClick={signUp}>Sign Up</button>
+      <button onClick={forgotPassword}>Reset it</button>
     </>
   );
 }
@@ -121,6 +144,14 @@ describe("the prompt", () => {
     expect(screen.getByText("open")).toBeInTheDocument();
   });
 
+  it("opens the forgot-password card from anywhere that asks", () => {
+    renderApp();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset it" }));
+
+    expect(showing()).toEqual(["Forgot Password"]);
+  });
+
   it("closes again", () => {
     renderApp();
     fireEvent.click(screen.getByRole("button", { name: "Login" }));
@@ -132,9 +163,10 @@ describe("the prompt", () => {
 });
 
 /*
- * The two links that read "Don't have an Account?" and "Already have an
- * Account?". Swapping which card is showing, rather than a card opening a
- * card: "both at once" is not a state this provider can reach.
+ * The links that read "Don't have an Account?", "Already have an Account?",
+ * "Forgot Password" and "Back to Login". Swapping which card is showing,
+ * rather than a card opening a card: "two at once" is not a state this
+ * provider can reach.
  */
 describe("swapping one card for the other", () => {
   it("goes from the login card to the sign-up card", () => {
@@ -159,9 +191,27 @@ describe("swapping one card for the other", () => {
     expect(showing()).toEqual(["Login"]);
   });
 
-  it("is still open, whichever of the two is showing", () => {
+  it("goes from the login card to the forgot-password card", () => {
     renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Sign Up" }));
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Forgot Password" }));
+
+    expect(showing()).toEqual(["Forgot Password"]);
+  });
+
+  it("goes back from the forgot-password card to the login card", () => {
+    renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Reset it" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Login" }));
+
+    expect(showing()).toEqual(["Login"]);
+  });
+
+  it("is still open, whichever of the three is showing", () => {
+    renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Reset it" }));
 
     expect(screen.getByText("open")).toBeInTheDocument();
   });

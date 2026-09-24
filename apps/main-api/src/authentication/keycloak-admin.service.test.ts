@@ -4,8 +4,8 @@ import { KeycloakAdminService } from "./keycloak-admin.service.js";
 
 /*
  * Writing to Keycloak: half of what "make this address my login" means -- the
- * other half is dbo.SetPrimaryUserEmail -- and the whole of what making an
- * account on the site's own sign-up form means.
+ * other half is dbo.SetPrimaryUserEmail -- the whole of what making an account
+ * on the site's own sign-up form means, and the two ends of a password reset.
  *
  * Two things here are worth more than the rest. A Keycloak that cannot be
  * reached has to read as an outage rather than as a refused change, because a
@@ -309,5 +309,175 @@ describe("making an account", () => {
     await service.createUser(account);
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+});
+
+/*
+ * Finding an account, and setting its password: the two ends of a reset.
+ *
+ * The finding is the careful half. It searches exactly, twice, and answers
+ * nobody for anything ambiguous, because a partial match here would reset a
+ * password on an account somebody did not name.
+ */
+describe("finding the account somebody named", () => {
+  const found = [
+    {
+      id: "subject-marcus",
+      username: "marcus",
+      email: "marcus@example.test",
+      firstName: "Marcus",
+      enabled: true,
+    },
+  ];
+
+  it("looks for the username first, exactly", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok(found));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.findAccount("marcus")).resolves.toEqual({
+      subjectId: "subject-marcus",
+      username: "marcus",
+      email: "marcus@example.test",
+      firstName: "Marcus",
+    });
+
+    const [url] = fetchMock.mock.calls[1]!;
+    expect(String(url)).toContain("/admin/realms/front-runner/users?");
+    expect(String(url)).toContain("username=marcus");
+    expect(String(url)).toContain("exact=true");
+  });
+
+  // The form asks for "username or email address" because Keycloak accepts
+  // either at a login prompt.
+  it("looks for the address when nothing answered to the name", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([]))
+      .mockResolvedValueOnce(ok(found));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.findAccount("marcus@example.test")).resolves.toEqual(
+      expect.objectContaining({ subjectId: "subject-marcus" }),
+    );
+    expect(String(fetchMock.mock.calls[2]![0])).toContain(
+      "email=marcus%40example.test",
+    );
+  });
+
+  it("answers nobody when neither search found anything", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([]))
+      .mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.findAccount("nobody")).resolves.toBeNull();
+  });
+
+  // "Which of these two did you mean" is not a question this flow can ask.
+  it("answers nobody when more than one account came back", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([found[0], { ...found[0], id: "another" }]))
+      .mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.findAccount("marcus")).resolves.toBeNull();
+  });
+
+  // A reset link is an invitation back in, and there is nowhere to send one
+  // for an account with no address on it.
+  it.each([
+    ["a disabled account", { ...found[0], enabled: false }],
+    ["an account with no address", { ...found[0], email: "" }],
+  ])("answers nobody for %s", async (_, row) => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([row]))
+      .mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.findAccount("marcus")).resolves.toBeNull();
+  });
+
+  it("does not search at all for an empty name", async () => {
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.findAccount("   ")).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reads the account a spent token named, by its subject id", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok(found[0]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.account("subject-marcus")).resolves.toEqual(
+      expect.objectContaining({ username: "marcus" }),
+    );
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus",
+    );
+  });
+
+  // The account was deleted between the mail going out and the link being
+  // followed.
+  it("answers nobody for a subject the realm no longer has", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(404));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.account("subject-gone")).resolves.toBeNull();
+  });
+});
+
+describe("setting a password", () => {
+  it("puts the new password on the account, permanently", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.setPassword("subject-marcus", "a-good-enough-password");
+
+    const [url, init] = fetchMock.mock.calls[1]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/reset-password",
+    );
+    expect(init?.method).toBe("PUT");
+    // Not temporary: somebody who has just typed a new password twice has
+    // chosen one, and a temporary credential would put Keycloak's own
+    // "update your password" page in front of them at the next login.
+    expect(JSON.parse(String(init?.body))).toEqual({
+      type: "password",
+      value: "a-good-enough-password",
+      temporary: false,
+    });
+  });
+
+  // A realm password policy is the likely 400, and its sentence names the
+  // rule that was broken. It has to arrive as a bad request to reach the page
+  // at all: see the note on making an account.
+  it("passes on what Keycloak said, as a bad request", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(
+        failed(400, { errorMessage: "invalid password: minimum length 12" }),
+      );
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.setPassword("subject-marcus", "short"),
+    ).rejects.toMatchObject({
+      status: 400,
+      message: expect.stringContaining("minimum length 12"),
+    });
+  });
+
+  it("reads a server that cannot be reached as an outage", async () => {
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.setPassword("subject-marcus", "a-good-enough-password"),
+    ).rejects.toThrow("unavailable");
   });
 });

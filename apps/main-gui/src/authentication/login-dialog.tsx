@@ -21,12 +21,7 @@ import CloseIcon from "@/shared/icons/CloseIcon";
 import FacebookIcon from "@/shared/icons/FacebookIcon";
 import GoogleIcon from "@/shared/icons/GoogleIcon";
 import { useId, useState, type FormEvent } from "react";
-import {
-  SignInError,
-  passwordResetUrl,
-  startRedirect,
-  type RedirectIntent,
-} from "./keycloak";
+import { SignInError, startRedirect, type RedirectIntent } from "./keycloak";
 import { useSession } from "./session";
 
 /*
@@ -35,9 +30,9 @@ import { useSession } from "./session";
  * be the only thing on the site not drawn from the violet field.
  *
  * Only the email-and-password form completes here. The three social
- * providers and Forgot Password are flows Keycloak hosts, so those leave the
- * page and come back to /auth/callback. "Sign Up" is neither: it is the other
- * card, which the prompt owning both of them swaps in.
+ * providers are flows Keycloak hosts, so those leave the page and come back
+ * to /auth/callback. "Sign Up" and "Forgot Password" are neither: they are
+ * the other two cards, which the prompt owning all three swaps in.
  */
 
 const providers = [
@@ -50,12 +45,16 @@ export function LoginDialog({
   open,
   onClose,
   onSignUp,
+  onForgotPassword,
 }: {
   open: boolean;
   onClose: () => void;
   /* "Don't have an Account?" -- the sign-up card, rather than Keycloak's own
    * registration page at another address in another application's colors. */
   onSignUp: () => void;
+  /* "Forgot Password" -- the third card, for the same reason. Keycloak's
+   * reset-credentials page is the one this replaces. */
+  onForgotPassword: () => void;
 }) {
   const { login } = useSession();
   const navigate = useNavigate();
@@ -218,10 +217,13 @@ export function LoginDialog({
             label="Remember me"
             slotProps={{ typography: { sx: { fontSize: "0.85rem" } } }}
           />
-          {/* Keycloak owns the reset: it emails a link and takes it from there. */}
+          {/* The third card. main-api mails the link and our own
+           * /reset-password page takes it from there. */}
           <Link
-            href={passwordResetUrl()}
+            component="button"
+            type="button"
             underline="hover"
+            onClick={onForgotPassword}
             sx={{ fontSize: "0.8rem", color: "primary.light" }}
           >
             Forgot Password

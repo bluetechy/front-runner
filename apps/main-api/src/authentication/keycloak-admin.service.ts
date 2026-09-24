@@ -8,7 +8,7 @@ import { ConfigService } from "@nestjs/config";
 
 // Writing to Keycloak, which this API otherwise only reads from.
 //
-// Two things. Changing the address an account signs in with: Keycloak holds
+// Three things. Changing the address an account signs in with: Keycloak holds
 // one address per user and it is the credential, so making an address primary
 // on the security page is two writes that have to agree -- dbo.SetPrimaryUserEmail
 // for this application's copy, and this for the identity provider. Without the
@@ -16,10 +16,16 @@ import { ConfigService } from "@nestjs/config";
 // sign-in and the change quietly undoes itself. See
 // apps/main-db/sql/Functions/SetPrimaryUserEmail.sql.
 //
-// And creating one, for the site's own sign-up form. Keycloak has no endpoint
-// a browser may call to register somebody -- its own registration page is the
+// Creating one, for the site's own sign-up form. Keycloak has no endpoint a
+// browser may call to register somebody -- its own registration page is the
 // only self-service way in -- so an account made on our page is made here, by
 // the one account in this system that is allowed to.
+//
+// And setting a password, for the site's own forgot-password form, along with
+// the two reads that flow needs: which account somebody named, and who a reset
+// token belongs to. Keycloak will mail its own reset link, but only its own,
+// pointing at its own page -- so the link is ours and the password is set here
+// once somebody has followed it. See apps/main-api/src/password-reset.
 //
 // It authenticates as the "main-api" client's own service account rather than
 // as the bootstrap administrator: that account holds manage-users and
@@ -47,6 +53,17 @@ export interface NewAccount {
   firstName: string;
   lastName: string;
   password: string;
+}
+
+// An account as Keycloak has it, cut down to what anything here does with
+// one: who to mail, what to call them, and the subject id everything else is
+// addressed by. No credential of any kind is in it, because Keycloak never
+// hands one out.
+export interface Account {
+  subjectId: string;
+  username: string;
+  email: string;
+  firstName: string;
 }
 
 @Injectable()
@@ -144,6 +161,114 @@ export class KeycloakAdminService {
     throw new ServiceUnavailableException(
       "The identity provider could not create the account",
     );
+  }
+
+  // Which account somebody named on the forgot-password form.
+  //
+  // The form asks for "username or email address" because Keycloak accepts
+  // either at the login prompt, so both are looked for here: the username
+  // first, and the address only if nothing answered to the name. Two exact
+  // searches rather than one loose one, because a search that matched
+  // partially would reset a password for an account somebody did not name.
+  //
+  // An answer of null covers every way this can come to nothing -- no such
+  // account, an account with no address to mail, a disabled account -- and
+  // that is deliberate: the caller must not be able to tell them apart, and
+  // neither must the form.
+  async findAccount(identifier: string): Promise<Account | null> {
+    const wanted = identifier.trim();
+    if (!wanted) return null;
+    return (
+      (await this.search("username", wanted)) ??
+      (await this.search("email", wanted))
+    );
+  }
+
+  // The account a spent reset token belongs to. The subject id comes from our
+  // own table, never from a request.
+  async account(subjectId: string): Promise<Account | null> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}`,
+      { method: "GET" },
+    );
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider is unavailable",
+      );
+    }
+    return readAccount(await response.json().catch(() => null));
+  }
+
+  // Set an account's password, which is the end of a reset.
+  //
+  // "temporary" is false: somebody who has just typed a new password twice
+  // has chosen one, and a temporary credential would put Keycloak's own
+  // "update your password" page in front of them at the next login, which is
+  // the page this whole flow exists to avoid.
+  //
+  // This does not end the account's other sessions. Keycloak keeps them, and
+  // whoever reset the password is the one holding the mailbox -- the case for
+  // logging everybody out is a session somebody else stole, which is a
+  // different feature and a security page's to offer.
+  async setPassword(subjectId: string, password: string): Promise<void> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/reset-password`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          type: "password",
+          value: password,
+          temporary: false,
+        }),
+      },
+    );
+
+    if (response.ok) return;
+
+    // A realm password policy refusing this one. Keycloak's own sentence is
+    // the useful one, and a bad request rather than anything else because
+    // that is what survives the GraphQL transport: see createUser.
+    if (response.status === 400)
+      throw new BadRequestException(
+        (await errorMessage(response)) ?? "That password was refused",
+      );
+
+    if (response.status === 401 || response.status === 403) this.token = null;
+
+    throw new ServiceUnavailableException(
+      "The identity provider could not set the password",
+    );
+  }
+
+  // One exact search. Keycloak answers a list; anything but exactly one match
+  // is nobody, because "which of these two did you mean" is not a question
+  // this flow can ask.
+  private async search(
+    field: "username" | "email",
+    value: string,
+  ): Promise<Account | null> {
+    const query = new URLSearchParams({
+      [field]: value,
+      exact: "true",
+      max: "2",
+    });
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users?${query}`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider is unavailable",
+      );
+    }
+
+    const found: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(found) || found.length !== 1) return null;
+    return readAccount(found[0]);
   }
 
   private async call(path: string, init: RequestInit): Promise<void> {
@@ -246,6 +371,33 @@ export class KeycloakAdminService {
       );
     }
   }
+}
+
+// What Keycloak says about an account, read down to the four fields anything
+// here uses.
+//
+// An account with no address is nobody, because every use of this is about
+// mailing somebody, and a disabled account is nobody either: a reset link is
+// an invitation back in, and an account that has been turned off should not
+// be handed one.
+function readAccount(body: unknown): Account | null {
+  const account = body as {
+    id?: unknown;
+    username?: unknown;
+    email?: unknown;
+    firstName?: unknown;
+    enabled?: unknown;
+  } | null;
+  if (!account || account.enabled === false) return null;
+  if (typeof account.id !== "string" || typeof account.username !== "string")
+    return null;
+  if (typeof account.email !== "string" || !account.email) return null;
+  return {
+    subjectId: account.id,
+    username: account.username,
+    email: account.email,
+    firstName: typeof account.firstName === "string" ? account.firstName : "",
+  };
 }
 
 // Keycloak's own sentence from a refusal, if the body carries one. A body

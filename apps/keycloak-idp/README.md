@@ -98,9 +98,11 @@ unconfigured button lands on Keycloak's own login page rather than an error.
 ## Mail
 
 The realm's SMTP server is **Mailpit**, on the Compose network. Keycloak needs
-one to send the "forgot password" link, and Mailpit accepts everything and
-delivers nothing — the message stops at its web inbox on
-<http://localhost:30004> rather than leaving the machine.
+one for the mail it sends itself, and `main-api` sends its own through the same
+server: the verification links on the security page, and the "forgot password"
+link, which is ours rather than Keycloak's because it points at our own page.
+Mailpit accepts everything and delivers nothing, so a message stops at its web
+inbox on <http://localhost:30004> rather than leaving the machine.
 
 ## Local development only
 

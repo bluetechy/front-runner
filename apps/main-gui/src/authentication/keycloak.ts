@@ -14,7 +14,6 @@ const endpoint = {
   token: `${realmUrl}/protocol/openid-connect/token`,
   authorize: `${realmUrl}/protocol/openid-connect/auth`,
   logout: `${realmUrl}/protocol/openid-connect/logout`,
-  resetPassword: `${realmUrl}/login-actions/reset-credentials`,
 } as const;
 
 /* Where Keycloak sends the browser back to after a redirect flow. */
@@ -236,8 +235,9 @@ async function challenge(verifier: string): Promise<string> {
 }
 
 /* One shape rather than a bare string, because a hint is optional and what
- * this is for is naming the way in. Making an account is not one of them: the
- * site asks for that on its own card, and main-api makes it. */
+ * this is for is naming the way in. Making an account is not one of them, and
+ * neither is resetting a password: the site asks for both on its own cards,
+ * and main-api does the work. */
 export interface RedirectIntent {
   kind: "login";
   idpHint?: string;
@@ -281,19 +281,6 @@ export function takeRedirectVerifier(state: string | null): string | null {
   remove("session", VERIFIER_KEY);
   if (!expected || !verifier || expected !== state) return null;
   return verifier;
-}
-
-/*
- * Keycloak's own "forgot password" page. It emails a reset link, so it needs
- * the realm to have an SMTP server -- Compose runs Mailpit for that, and the
- * message lands in its inbox rather than in the world.
- */
-export function passwordResetUrl(): string {
-  return `${endpoint.resetPassword}?${new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-  })}`;
 }
 
 /*

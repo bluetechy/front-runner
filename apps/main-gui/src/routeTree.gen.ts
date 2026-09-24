@@ -29,6 +29,7 @@ import { Route as SiteContactUsRouteImport } from './routes/_site.contact-us'
 import { Route as SiteFeaturesRouteImport } from './routes/_site.features'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
 import { Route as SitePrivacyRouteImport } from './routes/_site.privacy'
+import { Route as SiteResetPasswordRouteImport } from './routes/_site.reset-password'
 import { Route as SiteVerifyEmailRouteImport } from './routes/_site.verify-email'
 import { Route as SiteAuthCallbackRouteImport } from './routes/_site.auth.callback'
 
@@ -130,6 +131,11 @@ const SitePrivacyRoute = SitePrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteResetPasswordRoute = SiteResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteVerifyEmailRoute = SiteVerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
   '/privacy': typeof SitePrivacyRoute
+  '/reset-password': typeof SiteResetPasswordRoute
   '/verify-email': typeof SiteVerifyEmailRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
 }
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/features': typeof SiteFeaturesRoute
   '/pricing': typeof SitePricingRoute
   '/privacy': typeof SitePrivacyRoute
+  '/reset-password': typeof SiteResetPasswordRoute
   '/verify-email': typeof SiteVerifyEmailRoute
   '/auth/callback': typeof SiteAuthCallbackRoute
 }
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/_site/features': typeof SiteFeaturesRoute
   '/_site/pricing': typeof SitePricingRoute
   '/_site/privacy': typeof SitePrivacyRoute
+  '/_site/reset-password': typeof SiteResetPasswordRoute
   '/_site/verify-email': typeof SiteVerifyEmailRoute
   '/_site/': typeof SiteIndexRoute
   '/_site/auth/callback': typeof SiteAuthCallbackRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
     | '/verify-email'
     | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/pricing'
     | '/privacy'
+    | '/reset-password'
     | '/verify-email'
     | '/auth/callback'
   id:
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/_site/features'
     | '/_site/pricing'
     | '/_site/privacy'
+    | '/_site/reset-password'
     | '/_site/verify-email'
     | '/_site/'
     | '/_site/auth/callback'
@@ -428,6 +440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitePrivacyRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/reset-password': {
+      id: '/_site/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof SiteResetPasswordRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/verify-email': {
       id: '/_site/verify-email'
       path: '/verify-email'
@@ -483,6 +502,7 @@ interface SiteRouteChildren {
   SiteFeaturesRoute: typeof SiteFeaturesRoute
   SitePricingRoute: typeof SitePricingRoute
   SitePrivacyRoute: typeof SitePrivacyRoute
+  SiteResetPasswordRoute: typeof SiteResetPasswordRoute
   SiteVerifyEmailRoute: typeof SiteVerifyEmailRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAuthCallbackRoute: typeof SiteAuthCallbackRoute
@@ -494,6 +514,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteFeaturesRoute: SiteFeaturesRoute,
   SitePricingRoute: SitePricingRoute,
   SitePrivacyRoute: SitePrivacyRoute,
+  SiteResetPasswordRoute: SiteResetPasswordRoute,
   SiteVerifyEmailRoute: SiteVerifyEmailRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAuthCallbackRoute: SiteAuthCallbackRoute,

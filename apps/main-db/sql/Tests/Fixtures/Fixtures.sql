@@ -86,7 +86,10 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('UserEmail.MemberWork',     '15151515-0000-4000-8000-000000000003'),
     ('UserEmail.MemberFresh',    '15151515-0000-4000-8000-000000000004'),
     ('UserEmail.MemberStale',    '15151515-0000-4000-8000-000000000005'),
-    ('UserEmail.OutsiderPrimary','15151515-0000-4000-8000-000000000006');
+    ('UserEmail.OutsiderPrimary','15151515-0000-4000-8000-000000000006'),
+    ('PasswordReset.Fresh',      '16161616-0000-4000-8000-000000000001'),
+    ('PasswordReset.Stale',      '16161616-0000-4000-8000-000000000002'),
+    ('PasswordReset.Spent',      '16161616-0000-4000-8000-000000000003');
 
 INSERT INTO "dbo"."Organizations" ("OrganizationUUID", "Name", "IsEnabled", "CreatedBy") VALUES
     ("test"."Fixture"('Organization.Acme'),     'Acme',             true,  'fixtures'),
@@ -389,3 +392,20 @@ INSERT INTO "dbo"."UserEmails" ("UserEmailUUID", "UserUUID", "Email", "IsPrimary
     ("test"."Fixture"('UserEmail.MemberFresh'),     "test"."Fixture"('User.Member'),   'marcus.new@example.test',  false, NULL,                     'token-fresh',        CURRENT_TIMESTAMP - interval '1 hour',    'fixtures'),
     ("test"."Fixture"('UserEmail.MemberStale'),     "test"."Fixture"('User.Member'),   'marcus.old@example.test',  false, NULL,                     'token-stale',        CURRENT_TIMESTAMP - interval '48 hours',  'fixtures'),
     ("test"."Fixture"('UserEmail.OutsiderPrimary'), "test"."Fixture"('User.Outsider'), 'outsider@example.test',    true,  '2024-01-01 00:00:00+00', NULL,                 NULL,                                     'fixtures');
+
+--
+-- Password reset links, one of each state dbo.SpendPasswordReset branches on:
+-- one still good, one whose hour has passed, and one that has already been
+-- followed.
+--
+-- They name the member by Keycloak "sub" rather than by "UserUUID", because
+-- the table does: a reset is about an account in the identity provider, and
+-- the row here may well be the only thing this database knows about it.
+--
+-- "SentAt" is written relative to now for the reason the verification tokens
+-- are: the hour is measured from it, so a literal would start fresh and
+-- quietly go stale as the suite aged.
+INSERT INTO "dbo"."PasswordResets" ("PasswordResetUUID", "SubjectId", "Token", "SentAt", "SpentAt", "CreatedBy") VALUES
+    ("test"."Fixture"('PasswordReset.Fresh'), 'subject-member', 'reset-fresh', CURRENT_TIMESTAMP - interval '10 minutes', NULL,                                      'fixtures'),
+    ("test"."Fixture"('PasswordReset.Stale'), 'subject-member', 'reset-stale', CURRENT_TIMESTAMP - interval '2 hours',    NULL,                                      'fixtures'),
+    ("test"."Fixture"('PasswordReset.Spent'), 'subject-owner',  'reset-spent', CURRENT_TIMESTAMP - interval '20 minutes', CURRENT_TIMESTAMP - interval '15 minutes', 'fixtures');

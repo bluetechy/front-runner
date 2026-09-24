@@ -108,10 +108,11 @@ and has no login operation.
   their username
 
 The GUI signs in through the dialog on the landing page. Email and password
-complete in the page; **Sign Up**, **Forgot Password** and the three social
-buttons are flows Keycloak hosts, so they leave the site and come back to
-`/auth/callback`. How that works, and what enabling the password grant costs,
-is in [signing in](apps/main-gui/docs/authentication.md).
+complete in the page, and so do **Sign Up** and **Forgot Password**: those are
+two more cards of our own, and `main-api` makes the account and mails the reset
+link. The three social buttons are flows Keycloak hosts, so they leave the site
+and come back to `/auth/callback`. How that works, and what enabling the
+password grant costs, is in [signing in](apps/main-gui/docs/authentication.md).
 
 ### The test account
 

@@ -1,8 +1,9 @@
 # Signing in
 
-Two cards: the sign-in dialog from the supplied mock-up, wired to Keycloak,
-and its twin for making an account. Both live in `src/authentication`, which
-is the only part of the app that knows Keycloak exists.
+Three cards: the sign-in dialog from the supplied mock-up, wired to Keycloak,
+its twin for making an account, and the small one for a forgotten password.
+All three live in `src/authentication`, which is the only part of the app that
+knows Keycloak exists.
 
 Keycloak owns accounts, passwords and sessions. `main-api` issues no tokens and
 has no login operation — it verifies the access token the browser presents and
@@ -15,19 +16,20 @@ wiring up Keycloak, and the API only ever sees the result.
 | ---------------------------------- | --------------------------------------------------- |
 | Email + password, **Login**, the ➜ | Keycloak's token endpoint, in the page. No redirect |
 | **Remember me**                    | Whether the refresh token outlives the tab          |
-| **Forgot Password**                | Keycloak's reset-credentials page; it emails a link |
-| **Sign Up**                        | The other card. It does not leave the site           |
+| **Forgot Password**                | Another card. It does not leave the site            |
+| **Sign Up**                        | The other card. It does not leave the site          |
 | **Google / Facebook / Apple ID**   | Keycloak's authorize endpoint with `kc_idp_hint`    |
 
-Only the first of those completes in the dialog. The rest are pages Keycloak
-hosts, so they leave the site and come back to `/auth/callback`.
+Only the first of those completes in the dialog, and only the last three leave
+the site: those are pages Keycloak hosts, and they come back to
+`/auth/callback`.
 
 ## The sign-up card
 
 The header's **Sign Up** and the login card's "Don't have an Account?" open the
 same card, and its "Already have an Account?" goes back. `LoginPromptProvider`
-owns both and shows one at a time ("both at once" is not a state it can
-reach), so a link on either card is that provider swapping which one is
+owns all three cards and shows one at a time ("two at once" is not a state it
+can reach), so a link on any of them is that provider swapping which one is
 showing rather than a dialog opening a dialog.
 
 It asks for the six things Keycloak's own registration page asks for: first
@@ -62,6 +64,55 @@ realm would refuse.
 This application's own row is not written by either act. `dbo.ProvisionUser`
 writes it from the verified token on the first request the new session makes,
 the same as for somebody who arrived through Google.
+
+## The forgot-password card, and the page its link lands on
+
+**Forgot Password** on the login card opens the third card, and "Back to Login"
+goes back. It asks for one thing, a username or an email address, because
+Keycloak accepts either at a login prompt and somebody who has forgotten a
+password should not also have to remember which of them they are known by.
+
+Keycloak will mail a reset link, but only its own, pointing at its own page.
+That page is the one this replaces, so the whole flow is ours:
+
+```text
+the card  →  requestPasswordReset(identifier:) on main-api
+          →  Keycloak says which account that is
+          →  dbo.StartPasswordReset writes the token
+          →  our mail carries the link
+/reset-password?token=…  →  resetPassword(token:, password:)
+          →  dbo.SpendPasswordReset says whose it is
+          →  Keycloak admin API sets the password
+```
+
+Both mutations are `@Public`, because being unable to login is the situation.
+What keeps that safe is written into each half:
+
+- **The card says the same sentence whatever it was given.** The API answers a
+  name that matches an account exactly as it answers one that does not, so the
+  form cannot be asked who has an account here. A disabled account and an
+  account with no address on it are nobody too.
+- **The message goes to the address Keycloak holds**, never to anything the
+  form said, which is what stops it mailing a link wherever it is told to.
+- **The token is the authorization** for the second half, the same argument
+  `verifyEmail` rests on: it was only ever written into a message sent to the
+  account's own mailbox. It is a random UUID, it is spent on first use, asking
+  for a second link retires the first, and it expires after **an hour** rather
+  than the day a verification link gets. A reset is acted on by somebody
+  sitting there wanting to login.
+- **It is spent before the password is set**, so a link that failed halfway is
+  not still live in a mailbox. The way back from that is a new link.
+
+The rows live in `dbo.PasswordResets`, which names its account by Keycloak
+`sub` and has no foreign key to `dbo.Users`: an account can exist at the
+identity provider with no row here yet, and somebody who registered and never
+managed to login is exactly the person most likely to need this.
+
+`/reset-password` is on the marketing shell, like `/verify-email`, and for the
+same reason: it is opened by whoever reads the mailbox, in a browser with no
+session in it. Unlike that page, nothing happens on arrival. The token is
+spent when the new password is submitted, so a mail client that follows links
+to preview them does not burn the link before anybody reads the message.
 
 ## The password grant, and what it costs
 
@@ -107,11 +158,11 @@ onto one refresh.
 
 ## The redirect flow
 
-Social sign-in and password reset leave the page, so they use the
-authorization code flow with **PKCE**: the realm allows nothing else, and only
-`S256`. Registration no longer does. `RedirectIntent` has one kind, and
-Keycloak's hosted registration page is not an address this app sends anybody
-to.
+Social sign-in leaves the page, so it uses the authorization code flow with
+**PKCE**: the realm allows nothing else, and only `S256`. Registration and
+password reset no longer leave. `RedirectIntent` has one kind, and neither
+Keycloak's hosted registration page nor its reset-credentials page is an
+address this app sends anybody to.
 
 1. `startRedirect()` makes a verifier, stores it in `sessionStorage`, and sends
    the browser to Keycloak with the S256 challenge.
@@ -142,22 +193,27 @@ flipping `enabled` is the whole activation — see
 src/authentication/
   keycloak.ts          every Keycloak URL and token-endpoint call
   session.tsx          SessionProvider / useSession: who is signed in
-  login-prompt.tsx     the two cards, one at a time, and who may open them
+  login-prompt.tsx     the three cards, one at a time, and who may open them
   login-dialog.tsx     the mock-up's card
   sign-up-dialog.tsx   its twin, for making an account
+  forgot-password-dialog.tsx  the third card: ask for a reset link
+  reset-password.tsx   the page that link lands on
   registration.ts      the register mutation on main-api
   registration-schema.ts  what a new account may be, in the browser
+  password-reset.ts    the two reset mutations on main-api
+  password-reset-schema.ts  what a reset may ask for, in the browser
   storage.ts           localStorage/sessionStorage that cannot throw
 src/dashboard/         where a completed sign-in lands
 src/routes/
   dashboard.tsx        /dashboard
   _site.auth.callback.tsx  /auth/callback — the redirect round trip
+  _site.reset-password.tsx  /reset-password, where a reset link lands
 ```
 
 `SessionProvider` is in `main.tsx`, outside the router, because it is not a
-page. `LoginPromptProvider` is in `PageShell`, inside the router, because both
-cards navigate when a sign-in completes, to `/dashboard`, which is the one
-page that is not inside `PageShell`; see [the dashboard](dashboard.md).
+page. `LoginPromptProvider` is in `PageShell`, inside the router, because two of the
+cards navigate when a sign-in completes, to `/dashboard`, which is the one page
+that is not inside `PageShell`; see [the dashboard](dashboard.md).
 
 ## Color
 

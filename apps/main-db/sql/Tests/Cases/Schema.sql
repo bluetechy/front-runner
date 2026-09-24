@@ -20,7 +20,7 @@ BEGIN
         ('BadgeGroups'), ('BadgeReviews'), ('BadgeStatistics'), ('Badges'), ('BankAccounts'),
         ('Checklists'), ('CreditCards'),
         ('EventLog'), ('Labels'), ('Notifications'), ('OrganizationInvitations'),
-        ('Organizations'), ('PointLevels'),
+        ('Organizations'), ('PasswordResets'), ('PointLevels'),
         ('PointMultipliers'), ('PointRedemptions'), ('PointTransfers'), ('Points'),
         ('Roadmaps'), ('Roles'), ('SharedBadges'), ('SurveyAnswers'),
         ('SurveyParticipants'), ('SurveyQuestionOptions'), ('SurveyQuestions'),
@@ -43,7 +43,7 @@ BEGIN
             'BadgeCategories', 'BadgeCriteria', 'BadgeEventCriteria', 'BadgeEvents',
             'BadgeGroupRelationships', 'BadgeGroups', 'BadgeReviews', 'BadgeStatistics',
             'Badges', 'BankAccounts', 'Checklists', 'CreditCards', 'EventLog', 'Labels',
-            'Notifications', 'OrganizationInvitations', 'Organizations',
+            'Notifications', 'OrganizationInvitations', 'Organizations', 'PasswordResets',
             'PointLevels', 'PointMultipliers', 'PointRedemptions', 'PointTransfers',
             'Points', 'Roadmaps', 'Roles', 'SharedBadges', 'SurveyAnswers',
             'SurveyParticipants', 'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
@@ -92,7 +92,8 @@ BEGIN
         ('SetOrganizationEnabled'),
         ('SetOrganizationRole'), ('SetPrimaryUserEmail'), ('SetUserEmailPrivacy'),
         ('SetUserProfile'), ('SettlePointRedemption'),
-        ('SettlePointTransfer'), ('VerifyUserEmail'),
+        ('SettlePointTransfer'), ('SpendPasswordReset'), ('StartPasswordReset'),
+        ('VerifyUserEmail'),
         ('calculate_tallies'), ('insert_modified_info'),
         ('update_modified_info')
     ) AS "Expected" ("Name")

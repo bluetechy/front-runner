@@ -41,6 +41,12 @@ BEGIN
     -- and this helper writes rows directly to prove the table accepts them.
     INSERT INTO "dbo"."UserEmails" ("UserUUID", "Email", "IsPrimary", "VerifiedAt", "CreatedBy")
         VALUES (_UserUUID, 'smoke@example.test', true, CURRENT_TIMESTAMP, _By);
+    -- A password reset names its account by Keycloak "sub" rather than by
+    -- "UserUUID", so this row needs nothing from the user above. That is the
+    -- table's point: a reset can exist for an account that has never signed in
+    -- here and so has no row in dbo.Users at all.
+    INSERT INTO "dbo"."PasswordResets" ("SubjectId", "Token", "CreatedBy")
+        VALUES ('smoke-subject', 'smoke-reset-token', _By);
     -- The wallet, written directly rather than through dbo.AddCreditCard, because
     -- this helper's job is to prove the tables accept a row. The number is
     -- encrypted here the way the function would do it: the column is bytea, so

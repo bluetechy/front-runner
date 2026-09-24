@@ -22,7 +22,7 @@ Button with layout in `sx`.
 | "Sign Up"                      | Real: opens the sign-up card; see [signing in](authentication.md)    |
 | About / Features / Contact     | Real routes, rendering `coming-soon`                                 |
 | Pricing                        | Real — see [the pricing page](pricing-page.md)                       |
-| The sign-in dialog             | Real: opens on "Login", and from the sign-up card                    |
+| The sign-in dialog             | Real: opens on "Login", and from the other two cards                 |
 
 ## Type
 

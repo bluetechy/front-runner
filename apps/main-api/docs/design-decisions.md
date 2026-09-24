@@ -104,10 +104,19 @@ timeouts. These are bounds, not a full cost model or deployment rate limiter.
 
 **Keycloak issues the tokens; this API only verifies them.** The browser runs
 authorization code with PKCE against Keycloak directly and sends the access
-token it gets back. There is no `login` operation, no signing secret, and no
-public operation at all — the API mints nothing and holds no credential, which
-is the only arrangement that lets MFA, password reset, self-registration and any
-future social or enterprise identity provider work without further changes here.
+token it gets back. There is no `login` operation and no signing secret: the API
+mints no session and holds no credential of its own, which is the arrangement
+that lets MFA and any future social or enterprise identity provider work
+without further changes here.
+
+Four operations are `@Public`, and each one is public because a session is the
+thing its caller does not have. `verifyEmail` is followed from a mailbox;
+`register` is how somebody without an account makes one; `requestPasswordReset`
+and `resetPassword` are for somebody who cannot login at all. All four go
+through the realm's admin API using the service account on the `main-api`
+client, which holds `manage-users` and `view-users` and nothing else. Every
+other operation in the schema is refused without a token, and
+`app.module.test.ts` asserts exactly that, one operation at a time.
 
 Every request carries an RS256 Bearer token verified against the realm's public
 keys, fetched over the Compose network and cached until Keycloak rotates them.
