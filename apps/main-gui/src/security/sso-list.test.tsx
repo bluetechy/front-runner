@@ -25,7 +25,11 @@ const method = (overrides: Partial<SignInMethod> = {}): SignInMethod => ({
   ...overrides,
 });
 
-const draw = (methods: SignInMethod[], busyAlias: string | null = null) => {
+const draw = (
+  methods: SignInMethod[],
+  busyAlias: string | null = null,
+  failed = false,
+) => {
   const onConnect = vi.fn();
   const onDisconnect = vi.fn();
   render(
@@ -33,6 +37,7 @@ const draw = (methods: SignInMethod[], busyAlias: string | null = null) => {
       <SsoList
         methods={methods}
         loading={false}
+        failed={failed}
         busyAlias={busyAlias}
         onConnect={onConnect}
         onDisconnect={onDisconnect}
@@ -146,6 +151,7 @@ describe("before anything has been read", () => {
         <SsoList
           methods={[]}
           loading
+          failed={false}
           busyAlias={null}
           onConnect={vi.fn()}
           onDisconnect={vi.fn()}
@@ -169,5 +175,19 @@ describe("before anything has been read", () => {
     expect(
       screen.getByText("This site does not offer any other way to login yet."),
     ).toBeInTheDocument();
+  });
+
+  /* The third thing an empty list can mean, and the one it must not report as
+   * the second. A card saying "this site offers nothing" under a red alert
+   * saying the list could not be read is telling somebody their providers are
+   * gone and that a failure to read them is why, in the same breath. */
+  it("says nothing about the site when the list could not be read", () => {
+    draw([], null, true);
+
+    expect(
+      screen.queryByText(
+        "This site does not offer any other way to login yet.",
+      ),
+    ).not.toBeInTheDocument();
   });
 });

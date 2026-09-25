@@ -255,10 +255,11 @@ describe("making an account", () => {
     );
   });
 
-  // The transport passes BAD_REQUEST and FORBIDDEN through and collapses
-  // everything else into "Internal server error". A sentence somebody has to
-  // act on has to arrive as one of the two, so this is asserted rather than
-  // left to the name of the exception.
+  // The transport passes BAD_REQUEST, FORBIDDEN and SERVICE_UNAVAILABLE
+  // through and collapses everything else into "Internal server error". A
+  // sentence somebody has to act on has to arrive as one of the three, and a
+  // conflict is the caller's to fix rather than an outage, so this is
+  // asserted rather than left to the name of the exception.
   it.each([
     ["a name already taken", failed(409)],
     ["details the realm will not have", failed(400)],

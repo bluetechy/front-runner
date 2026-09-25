@@ -25,6 +25,11 @@ import { kindOf } from "./sso-kinds";
  * it offers nothing: an account that connected Google before Google was
  * switched off still has it connected, and a card that quietly dropped the row
  * would be hiding a credential from the page whose whole job is showing them.
+ *
+ * An empty list means one of three things, and the third is why `failed` is a
+ * prop: nothing has been read yet, the realm has no providers, or the read
+ * failed. The first waits, the second says so, and the third says nothing at
+ * all, because the card above has already said what happened.
  */
 
 /* The mark a provider is drawn at. Bigger than the glyphs in the two tables
@@ -35,12 +40,17 @@ const MARK = 26;
 export function SsoList({
   methods,
   loading,
+  failed,
   busyAlias,
   onConnect,
   onDisconnect,
 }: {
   methods: SignInMethod[];
   loading: boolean;
+  /* Whether the read failed, which is the third thing an empty list can mean
+   * and the one it must not report as the second. The message itself is the
+   * card's, above this list, the same arrangement `activity-list.tsx` has. */
+  failed: boolean;
   /* The provider with something in flight, so its own row can say so without
    * the rest of the card going quiet. */
   busyAlias: string | null;
@@ -58,8 +68,13 @@ export function SsoList({
 
   /* A realm with no providers at all, which is a fair state and not a broken
    * one: this application ships three aliases the realm may never be given
-   * credentials for. It says so rather than drawing an empty card. */
-  if (methods.length === 0)
+   * credentials for. It says so rather than drawing an empty card.
+   *
+   * Not said over a list that could not be read, which is empty for a reason
+   * the card has already given above it. Saying both is the card telling
+   * somebody their providers are gone and that the failure to read them is
+   * why, in the same breath. */
+  if (methods.length === 0 && !failed)
     return (
       <Typography
         sx={{

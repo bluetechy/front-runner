@@ -144,10 +144,10 @@ export class KeycloakAdminService extends IdentityAdminService {
     // person have an account here" to anybody who asked.
     //
     // A bad request rather than a conflict, which is what this is: the
-    // transport passes BAD_REQUEST and FORBIDDEN through and collapses
-    // everything else into "Internal server error", and this sentence is the
-    // one thing somebody looking at the form can act on. The same trade
-    // DatabaseService makes for a rule the database refused.
+    // transport passes BAD_REQUEST, FORBIDDEN and SERVICE_UNAVAILABLE through
+    // and collapses everything else into "Internal server error", and this
+    // sentence is the one thing somebody looking at the form can act on. The
+    // same trade DatabaseService makes for a rule the database refused.
     if (response.status === 409)
       throw new BadRequestException(
         "That username or email address is already taken",

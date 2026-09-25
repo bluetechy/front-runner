@@ -1,7 +1,12 @@
 import "reflect-metadata";
 import { describe, expect, it } from "@jest/globals";
+import {
+  InternalServerErrorException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GraphQLModule } from "@nestjs/graphql";
+import { GraphQLError } from "graphql";
 import { ApiGraphqlModule } from "./graphql.module.js";
 import { queryLimits } from "./query-limits.js";
 
@@ -90,12 +95,13 @@ describe("what the endpoint will not do", () => {
   });
 });
 
-const formatError = async (error: Record<string, unknown>) =>
+const formatError = async (error: Record<string, unknown>, thrown?: unknown) =>
   (
     (await optionsFor("production")).formatError as (
       error: Record<string, unknown>,
+      thrown: unknown,
     ) => Record<string, unknown>
-  )(error);
+  )(error, thrown);
 
 describe("what an error is allowed to say", () => {
   it("never includes a stack trace", async () => {
@@ -136,5 +142,75 @@ describe("what an error is allowed to say", () => {
     expect(
       await formatError({ message: "something", extensions: {} }),
     ).toMatchObject({ extensions: { code: "INTERNAL_SERVER_ERROR" } });
+  });
+
+  /* The one unrecognized failure that keeps its message.
+   *
+   * Every ServiceUnavailableException in this API carries a sentence somebody
+   * wrote for a person to read, and Nest hands it here looking exactly like a
+   * bug. Without this the security page answers an identity provider that is
+   * down with "Internal server error", which says the fault is ours when the
+   * fault is that something we depend on is not answering. */
+  it("keeps the message on an outage this API raised on purpose", async () => {
+    expect(
+      await formatError(
+        {
+          message:
+            "The identity provider would not say what login providers it has",
+          extensions: { code: "INTERNAL_SERVER_ERROR" },
+        },
+        new ServiceUnavailableException(
+          "The identity provider would not say what login providers it has",
+        ),
+      ),
+    ).toMatchObject({
+      message:
+        "The identity provider would not say what login providers it has",
+      extensions: { code: "SERVICE_UNAVAILABLE" },
+    });
+  });
+
+  /* Apollo wraps whatever a resolver threw in a GraphQLError, so the thrown
+   * value reaching here is the wrapper rather than the exception. The path is
+   * on it because that is how Apollo's own unwrapping tells a resolver's
+   * failure from an error raised where there was no field to blame. */
+  it("finds the outage inside the error Apollo wrapped it in", async () => {
+    expect(
+      await formatError(
+        { message: "anything", extensions: { code: "INTERNAL_SERVER_ERROR" } },
+        new GraphQLError("anything", {
+          path: ["signInMethods"],
+          originalError: new ServiceUnavailableException(
+            "The provider is down",
+          ),
+        }),
+      ),
+    ).toMatchObject({ message: "The provider is down" });
+  });
+
+  // A database error is still a database error. It is not raised by us for
+  // anybody to read, and 503 is the only status that says it was.
+  it("still hides anything that is not one", async () => {
+    expect(
+      await formatError(
+        {
+          message: 'relation "dbo.Users" does not exist',
+          extensions: { code: "INTERNAL_SERVER_ERROR" },
+        },
+        new Error('relation "dbo.Users" does not exist'),
+      ),
+    ).toMatchObject({ message: "Internal server error" });
+  });
+
+  it("hides a 500 raised with an exception class too", async () => {
+    expect(
+      await formatError(
+        {
+          message: "The two have drifted",
+          extensions: { code: "INTERNAL_SERVER_ERROR" },
+        },
+        new InternalServerErrorException("The two have drifted"),
+      ),
+    ).toMatchObject({ message: "Internal server error" });
   });
 });

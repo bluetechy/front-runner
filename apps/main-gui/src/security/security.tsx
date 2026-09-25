@@ -456,6 +456,7 @@ export function Security({ connected }: { connected?: string }) {
         <SsoList
           methods={methods}
           loading={loadingMethods}
+          failed={methodsError !== null}
           busyAlias={busyAlias}
           onConnect={(method: SignInMethod) =>
             setConnection({ method, action: "connect" })

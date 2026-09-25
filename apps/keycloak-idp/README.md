@@ -225,8 +225,9 @@ service account, which is a fourth role beside the three above. This is one of
 the settings a running installation will not have, for the reason at the top of
 the event-log section: the realm file is imported once. On an existing Keycloak
 database it is `make dc3-clean`, or the role added by hand in the admin console
-under Clients, main-api, Service accounts roles. Until then the SSO card says it
-could not read the list, rather than drawing a site that offers nothing.
+under Clients, main-api, Service accounts roles. Until then Keycloak answers
+403, the card says the provider would not give it the list, and it draws no
+rows at all rather than claiming the site offers nothing.
 
 ## Mail
 
