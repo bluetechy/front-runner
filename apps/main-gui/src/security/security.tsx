@@ -21,11 +21,12 @@ import { useEmails, type UserEmail } from "./email-api";
  * The security page, at /security-and-access, which is Security & Access in
  * the rail.
  *
- * What it holds today is the account's user name, its email addresses and its
- * recent activity: what the account is called, which addresses are on file,
- * which one is the login, which of them anybody has proved they can read, and
- * what has lately happened to the account. Passwords and sessions are
- * Keycloak's and are not here yet.
+ * What it holds today is the account's user name, its email addresses, who is
+ * shown them, its password and its recent activity: what the account is
+ * called, which addresses are on file, which one is the login, which of them
+ * anybody has proved they can read, when the password last changed and how to
+ * change it, and what has lately happened to the account. The password itself
+ * stays Keycloak's: this is where it is asked for, not where it is kept.
  *
  * The user name comes off the token rather than out of the API. It is on this
  * page to be read, so there is nothing to fetch for it: `useSession` already
@@ -259,12 +260,47 @@ export function Security() {
         />
       </CardSurface>
 
-      {/* Under the addresses and above the log, because the page is ordered by
-       * what each block is: what the account is called, then everything about
-       * getting into it that can be changed, then what has happened. A
-       * password is the credential the addresses above it and the logins below
-       * it both rest on, so it ends the first group rather than starting the
-       * second. */}
+      {/* Directly under the addresses, because it is a setting about them:
+       * the table above says which addresses are on file, and this says
+       * whether the other members are shown the one you login with. Reading
+       * the list and then reading who else can see it is one thought, and it
+       * was two scrolls apart while this card sat at the foot of the page.
+       *
+       * It is the only card the page does not draw itself: the switch sits on
+       * the card's title line, opposite EMAIL PRIVACY, so the card and the
+       * control are one component. The space between the two cards is still
+       * the page's to set. */}
+      <PrivacyCard
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+        isPrivate={isPrivate}
+        busy={savingPrivacy || loading}
+        onChange={(next) => {
+          setSavingPrivacy(true);
+          setPrivacy(next)
+            .then((saved) =>
+              setNotice({
+                /* Neither sentence says "again". Public is the state somebody
+                 * opts into, so for most accounts this is the first time the
+                 * address has been in that list at all. */
+                message: saved
+                  ? "Your email address is now hidden from the members list."
+                  : "Your email address is now shown in the members list.",
+                tone: "success",
+              }),
+            )
+            .catch((failure: unknown) =>
+              report(failure, "The setting was not saved."),
+            )
+            .finally(() => setSavingPrivacy(false));
+        }}
+      />
+
+      {/* Under the addresses and their setting, and above the log, because the
+       * page is ordered by what each block is: what the account is called,
+       * then everything about getting into it that can be changed, then what
+       * has happened. A password is the credential the addresses above it and
+       * the logins below it both rest on, so it ends the first group rather
+       * than starting the second. */}
       <PasswordCard
         sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
         changedAt={changedAt}
@@ -273,11 +309,11 @@ export function Security() {
         onChange={(form, done) => void changing(form, done)}
       />
 
-      {/* Under the addresses, because it is the record of what has been done to
-       * them and to everything else about getting in: the page says what the
+      {/* Last, because it is the record of what has been done to the addresses
+       * and to everything else about getting in: the page says what the
        * account is, then what can be changed about it, then what has changed.
-       * The privacy switch stays last -- it is a preference rather than a way
-       * in, and it is the one card that draws its own surface. */}
+       * Nothing on it is a control, which is the other reason it is the block
+       * a page of settings ends on. */}
       <CardSurface
         title="Recent Activity"
         sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
@@ -338,35 +374,6 @@ export function Security() {
               report(failure, "That activity was not answered."),
             )
             .finally(() => setAnswering(null));
-        }}
-      />
-
-      {/* The only card the page does not draw itself: the switch sits on the
-       * card's title line, opposite EMAIL PRIVACY, so the card and the
-       * control are one component. The space between the two cards is still
-       * the page's to set. */}
-      <PrivacyCard
-        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
-        isPrivate={isPrivate}
-        busy={savingPrivacy || loading}
-        onChange={(next) => {
-          setSavingPrivacy(true);
-          setPrivacy(next)
-            .then((saved) =>
-              setNotice({
-                /* Neither sentence says "again". Public is the state somebody
-                 * opts into, so for most accounts this is the first time the
-                 * address has been in that list at all. */
-                message: saved
-                  ? "Your email address is now hidden from the members list."
-                  : "Your email address is now shown in the members list.",
-                tone: "success",
-              }),
-            )
-            .catch((failure: unknown) =>
-              report(failure, "The setting was not saved."),
-            )
-            .finally(() => setSavingPrivacy(false));
         }}
       />
 

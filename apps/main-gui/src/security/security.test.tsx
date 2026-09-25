@@ -165,10 +165,10 @@ describe("the page itself", () => {
   });
 
   // Five cards, headed the same way, and the order is the argument: what the
-  // account is called and cannot change, then the addresses that can, then the
-  // password both of those rest on, then what has lately been done to any of
-  // them, then what the other members are shown.
-  it("holds the user name, the addresses, the password, the activity and the switch, in that order", () => {
+  // account is called and cannot change, then the addresses that can, then who
+  // else is shown them, then the password all of that rests on, then what has
+  // lately been done to any of it.
+  it("holds the user name, the addresses, the switch, the password and the activity, in that order", () => {
     renderPage();
 
     /* The tables' own column headings are drawn with the same label, so the
@@ -176,9 +176,9 @@ describe("the page itself", () => {
     const cards = [
       "User Name",
       "Email Addresses",
+      "Email Privacy",
       "Change Password",
       "Recent Activity",
-      "Email Privacy",
     ];
 
     expect(

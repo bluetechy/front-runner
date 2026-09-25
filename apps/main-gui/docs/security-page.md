@@ -200,6 +200,82 @@ Two consequences worth knowing:
   the very next request, which is exactly what it did before the parameter
   existed.
 
+## The privacy switch
+
+`privacy-card.tsx`, directly under the table, in a card headed **EMAIL
+PRIVACY**. It is a setting about the addresses above it: the table says which
+ones are on file, and this says whether the other members are shown the one you
+login with. Reading the list and then reading who else can see it is one
+thought, and it was two scrolls apart while this card sat at the foot of the
+page. That
+heading is `CardSurface`'s own small uppercase label, the same one EMAIL
+ADDRESSES has over the table, so the two blocks on the page are named the same
+way and the switch's block carries no heading of its own.
+
+The switch sits **on that title line**, opposite the heading and centered
+against it, which is what `CardSurface`'s `action` row is for: the heading
+names the setting and the control is the answer to it. That makes this the one
+card on the page that draws its own surface, because the card and the control
+have to be one component to sit in one row. The paragraph underneath is tied to
+the switch with `htmlFor` rather than by being wrapped in it, so clicking the
+copy still moves the switch now that the two are in different halves of the
+card.
+
+It withholds the address from the members list other people in your
+organizations read: `dbo.GetOrganizationMembers` and `dbo.SetOrganizationRole`
+return an empty `Email` for an account that is private, and the name and login
+name stay.
+
+**Private is where every account starts.** `dbo.ProvisionUser` writes a
+`dbo.UserProfiles` row holding `EmailIsPrivate` true when the account is
+created, the column defaults to true, and every reader of it treats a missing
+row the same way: `dbo.GetUserProfile`, main-api's `settings`, and the hook in
+`email-api.tsx`, which shows Private until the first answer arrives rather than
+showing Public and correcting itself. An address is something a person hands
+out, not something a members list helps itself to, so the switch is read as the
+way an address is given away rather than the way it is taken back.
+
+That changed a default that had been the other way, and it changed it for
+everybody: an account that had never touched the switch was public before and
+is private now. There are no migrations here, so the change is the column
+default plus `make db-rebuild`, and nothing had to be written over. A
+development database built before that still holds the old default until it is
+rebuilt, which is what a switch reading Public on a page whose code says
+Private means.
+
+The demo dataset carries the setting explicitly for `jdoe`, the account this
+page is demonstrated on: `47_UserProfiles.sql`. A seeded account is claimed by
+`dbo.ProvisionUser` rather than created by it, so it never goes through the
+insert that would have written the row, and seeding one puts the demo account
+in the state a real new account is already in.
+
+The word beside the switch is **Private** or **Public**, not On or Off. On
+says the switch moved; Private says what that did, and it is a state rather
+than an event. The paragraph explains the setting in those same two words, so
+the control and the copy are not describing it separately, and it opens by
+saying which one the reader is already in.
+
+That paragraph runs the width of the card, the way the one above the table
+does, and it is **one paragraph**, caveat included. It leads with the state
+the account is already in, because a setting somebody has been given reads as
+a promise and a setting they have to go and find reads as a chore. The caveat
+used to sit on a line of its own, where on a card this wide it read as a
+footnote somebody else added rather than as part of the promise: what it does
+and what it does not do belong in the same breath. It does not remove the
+address from the account, from mail already sent, or from an administrator's
+reach, and a security page is the last place to promise more than the query
+delivers.
+
+The switch itself is repainted for the paper: Material draws it for a dark
+surface, and off is the state that shows least of all. Both ends come off
+`brand.cardSwitch*`. See [switches](style-guide.md#switches).
+
+It is stored on `dbo.UserProfiles."EmailIsPrivate"` and written by
+`dbo.SetUserEmailPrivacy`, which is a function of its own rather than a trip
+through `dbo.SetUserProfile`: that one writes the profile form's seventeen
+fields, and a switch that submitted a whole profile to move one boolean would
+overwrite whatever the profile page had open.
+
 ## Changing the password
 
 `password-card.tsx`, in a card headed **CHANGE PASSWORD**, between the
@@ -369,87 +445,16 @@ page has to be able to send somebody a link; nothing anywhere has a reason to
 change a password on an account's behalf, and an exported service that could
 would be a way to do it without the current password.
 
-## The privacy switch
-
-`privacy-card.tsx`, under the table, in a card headed **EMAIL PRIVACY**. That
-heading is `CardSurface`'s own small uppercase label, the same one EMAIL
-ADDRESSES has over the table, so the two blocks on the page are named the same
-way and the switch's block carries no heading of its own.
-
-The switch sits **on that title line**, opposite the heading and centered
-against it, which is what `CardSurface`'s `action` row is for: the heading
-names the setting and the control is the answer to it. That makes this the one
-card on the page that draws its own surface, because the card and the control
-have to be one component to sit in one row. The paragraph underneath is tied to
-the switch with `htmlFor` rather than by being wrapped in it, so clicking the
-copy still moves the switch now that the two are in different halves of the
-card.
-
-It withholds the address from the members list other people in your
-organizations read: `dbo.GetOrganizationMembers` and `dbo.SetOrganizationRole`
-return an empty `Email` for an account that is private, and the name and login
-name stay.
-
-**Private is where every account starts.** `dbo.ProvisionUser` writes a
-`dbo.UserProfiles` row holding `EmailIsPrivate` true when the account is
-created, the column defaults to true, and every reader of it treats a missing
-row the same way: `dbo.GetUserProfile`, main-api's `settings`, and the hook in
-`email-api.tsx`, which shows Private until the first answer arrives rather than
-showing Public and correcting itself. An address is something a person hands
-out, not something a members list helps itself to, so the switch is read as the
-way an address is given away rather than the way it is taken back.
-
-That changed a default that had been the other way, and it changed it for
-everybody: an account that had never touched the switch was public before and
-is private now. There are no migrations here, so the change is the column
-default plus `make db-rebuild`, and nothing had to be written over. A
-development database built before that still holds the old default until it is
-rebuilt, which is what a switch reading Public on a page whose code says
-Private means.
-
-The demo dataset carries the setting explicitly for `jdoe`, the account this
-page is demonstrated on: `47_UserProfiles.sql`. A seeded account is claimed by
-`dbo.ProvisionUser` rather than created by it, so it never goes through the
-insert that would have written the row, and seeding one puts the demo account
-in the state a real new account is already in.
-
-The word beside the switch is **Private** or **Public**, not On or Off. On
-says the switch moved; Private says what that did, and it is a state rather
-than an event. The paragraph explains the setting in those same two words, so
-the control and the copy are not describing it separately, and it opens by
-saying which one the reader is already in.
-
-That paragraph runs the width of the card, the way the one above the table
-does, and it is **one paragraph**, caveat included. It leads with the state
-the account is already in, because a setting somebody has been given reads as
-a promise and a setting they have to go and find reads as a chore. The caveat
-used to sit on a line of its own, where on a card this wide it read as a
-footnote somebody else added rather than as part of the promise: what it does
-and what it does not do belong in the same breath. It does not remove the
-address from the account, from mail already sent, or from an administrator's
-reach, and a security page is the last place to promise more than the query
-delivers.
-
-The switch itself is repainted for the paper: Material draws it for a dark
-surface, and off is the state that shows least of all. Both ends come off
-`brand.cardSwitch*`. See [switches](style-guide.md#switches).
-
-It is stored on `dbo.UserProfiles."EmailIsPrivate"` and written by
-`dbo.SetUserEmailPrivacy`, which is a function of its own rather than a trip
-through `dbo.SetUserProfile`: that one writes the profile form's seventeen
-fields, and a switch that submitted a whole profile to move one boolean would
-overwrite whatever the profile page had open.
-
 ## Recent activity
 
 `activity-list.tsx` and `activity-dialog.tsx`, in a card headed **RECENT
-ACTIVITY** under the addresses. Built from two supplied mock-ups, which are
+ACTIVITY** at the foot of the page. Built from two supplied mock-ups, which are
 Google's "Recent security activity" and the card behind one of its rows.
 
-It sits under the addresses because it is the record of what has been done to
-them and to everything else about getting in: the page says what the account
-is, then what can be changed about it, then what has changed. The privacy
-switch stays last, because it is a preference rather than a way in.
+It sits last because it is the record of what has been done to the addresses
+and to everything else about getting in: the page says what the account is,
+then what can be changed about it, then what has changed. Nothing on it is a
+control, which is the other reason it is the block a page of settings ends on.
 
 ### The table
 
