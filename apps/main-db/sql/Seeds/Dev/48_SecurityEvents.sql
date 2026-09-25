@@ -3,7 +3,7 @@
 -- belongs to a real person, no device or place named here was ever used by
 -- anybody, and nothing in this file should ever reach a real installation.
 --
--- The security page's RECENT ACTIVITY section, given something to draw. The
+-- The security page's RECENT ACTIVITY LOG section, given something to draw. The
 -- application does not write a login event yet -- logins are Keycloak's, and
 -- what main-api records today is what it does itself: an address added,
 -- removed or made the login. So the logins below are seeded rather than
@@ -20,7 +20,7 @@
 --
 -- The times are relative to when the dataset is seeded rather than fixed
 -- dates, because this is the one seeded list whose whole subject is being
--- recent: a page headed RECENT ACTIVITY showing nothing from the last eighteen
+-- recent: a page headed RECENT ACTIVITY LOG showing nothing from the last eighteen
 -- months is demonstrating the wrong thing. Re-seeding moves them forward,
 -- which is the point.
 --

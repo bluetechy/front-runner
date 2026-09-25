@@ -277,7 +277,7 @@ describe("the rest of the writes", () => {
 
 /*
  * Everything here that changes how somebody gets into their account is written
- * into their security log as well, because that log is what the RECENT ACTIVITY
+ * into their security log as well, because that log is what the RECENT ACTIVITY LOG
  * section of the same page shows. Nothing records a login yet -- those are
  * Keycloak's -- so these three are the rows a real account accumulates.
  */

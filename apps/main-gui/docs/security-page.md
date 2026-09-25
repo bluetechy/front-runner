@@ -587,8 +587,8 @@ of an outage.
 
 Two event types, both recorded only once the provider has confirmed them:
 `SignInMethodConnected` and `SignInMethodDisconnected`. They show up in RECENT
-ACTIVITY under the card, headed "Login provider connected" and "Login provider
-disconnected", and the first carries a warning for the reason `EmailAdded`
+ACTIVITY LOG under the card, headed "Login provider connected" and "Login
+provider disconnected", and the first carries a warning for the reason `EmailAdded`
 does: a way into your account that you did not add is how an account is quietly
 kept.
 
@@ -604,10 +604,10 @@ It has no `connectSignInMethod`, and the absence is the design rather than an
 omission. Connecting ends at Google with a browser, so a mutation named connect
 would be a mutation that could not connect anything.
 
-## Recent activity
+## Recent activity log
 
 `activity-list.tsx` and `activity-dialog.tsx`, in a card headed **RECENT
-ACTIVITY** at the foot of the page. Built from two supplied mock-ups, which are
+ACTIVITY LOG** at the foot of the page. Built from two supplied mock-ups, which are
 Google's "Recent security activity" and the card behind one of its rows.
 
 It sits last because it is the record of what has been done to the addresses
@@ -1052,7 +1052,7 @@ typing the address it was sent to.
 
 Changing a password from this page, seeing active sessions, and signing other
 devices out. All three are Keycloak's, all three would go on this page, and
-none of them is built. The first is the one RECENT ACTIVITY leans on hardest:
+none of them is built. The first is the one RECENT ACTIVITY LOG leans on hardest:
 "No, secure account" sends a reset link because there is no in-place password
 change to send somebody to.
 

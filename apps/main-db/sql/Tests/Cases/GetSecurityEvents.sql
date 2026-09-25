@@ -1,5 +1,5 @@
 --
--- The security page's RECENT ACTIVITY list: one account's own events, newest
+-- The security page's RECENT ACTIVITY LOG list: one account's own events, newest
 -- first.
 --
 

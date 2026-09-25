@@ -239,7 +239,7 @@ describe("the page itself", () => {
       "Email Privacy",
       "Change Password",
       "Single Sign-On (SSO)",
-      "Recent Activity",
+      "Recent Activity Log",
     ];
 
     expect(
@@ -637,7 +637,7 @@ describe("the change-password card", () => {
     fireEvent.click(screen.getByRole("button", { name: "Change Password" }));
 
     expect(
-      await screen.findByText(/Check Recent Activity below/),
+      await screen.findByText(/Check Recent Activity Log below/),
     ).toBeInTheDocument();
   });
 

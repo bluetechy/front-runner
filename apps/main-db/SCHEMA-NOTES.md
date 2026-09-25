@@ -642,7 +642,7 @@ somebody's activity feed, the rest is the audit trail. That column is the one
 thing neither draft had.
 
 **`dbo.SecurityEvents` is a second log, and that is not a contradiction of the
-paragraph above.** It was added for the security page's RECENT ACTIVITY
+paragraph above.** It was added for the security page's RECENT ACTIVITY LOG
 section, and the obvious thing was more rows in `dbo.EventLog`. That log is
 what happens **inside an organization**: `TaskCompleted`, `PointsEarned`,
 `TalliesRebuilt`. It carries `OrganizationUUID` and `IsUserVisible` because it
@@ -734,7 +734,7 @@ they are.
 Twelve months is also a promise the privacy policy makes, so the number lives in
 that trigger and in `main-gui`'s `src/privacy/sections.ts`, and a test on each
 side holds them together. See
-[the security page](../main-gui/docs/security-page.md#recent-activity).
+[the security page](../main-gui/docs/security-page.md#recent-activity-log).
 
 **Three columns were added that no draft carried**, each because the table
 cannot answer its own question without them: `Notifications."ReadAt"` (nothing

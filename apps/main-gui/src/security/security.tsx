@@ -134,7 +134,7 @@ export function Security({ connected }: { connected?: string }) {
          * would tell somebody to stop looking. */
         message:
           changed.OtherSessionsEnded === null
-            ? "Your password was changed. Check Recent Activity below for any session that is still open."
+            ? "Your password was changed. Check Recent Activity Log below for any session that is still open."
             : changed.OtherSessionsEnded > 0
               ? `Your password was changed, and ${sessions(changed.OtherSessionsEnded)} on your other devices ended.`
               : "Your password was changed. There were no other sessions open.",
@@ -473,7 +473,7 @@ export function Security({ connected }: { connected?: string }) {
        * Nothing on it is a control, which is the other reason it is the block
        * a page of settings ends on. */}
       <CardSurface
-        title="Recent Activity"
+        title="Recent Activity Log"
         sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
       >
         {/* The log could not be read at all, which is a different thing from an

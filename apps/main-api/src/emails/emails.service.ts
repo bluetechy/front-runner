@@ -26,7 +26,7 @@ export class EmailsService {
     private readonly identity: IdentityAdminService,
     // Everything in here that changes how somebody gets into their account is
     // written into their security log as well as into the address table. That
-    // is the whole of what feeds RECENT ACTIVITY on the same page today: logins
+    // is the whole of what feeds RECENT ACTIVITY LOG on the same page today: logins
     // are Keycloak's and nothing records them yet, so these three are the rows
     // a real account actually accumulates. Recording never fails a write it is
     // describing -- see SecurityEventsService.record.

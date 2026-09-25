@@ -1,7 +1,7 @@
 --
 -- What has happened to one account lately, newest first.
 --
--- The whole of the security page's RECENT ACTIVITY section, and the only
+-- The whole of the security page's RECENT ACTIVITY LOG section, and the only
 -- reader of "dbo"."SecurityEvents" there is. It answers with the review
 -- columns rather than a flag derived from them, because the page shows both
 -- halves: "ReviewedAt" IS NULL is the New mark, and "Recognized" is what the

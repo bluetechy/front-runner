@@ -85,7 +85,7 @@ describe("the section about cookies", () => {
 
 /*
  * The security log is personal data the product started keeping when RECENT
- * ACTIVITY was built, and a policy that does not mention it is a policy
+ * ACTIVITY LOG was built, and a policy that does not mention it is a policy
  * somebody would be surprised by on their own Security & Access page.
  *
  * The number is the part worth pinning. Twelve months is enforced by
