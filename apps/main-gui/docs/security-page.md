@@ -711,6 +711,14 @@ points at. A disabled arrow stays where it is rather than being taken away,
 drawn in the card's muted ink at less than full strength, because an arrow that
 vanished at the last page would read as a control that had broken.
 
+It sits on the **left margin**, which is the one thing about it settled by
+something other than taste. The cookie pill is fixed to the bottom right corner
+of the window and [cannot be covered up](cookie-consent.md), because it is the
+only way back into that choice, and this is the last card on the page: a pager
+in its right corner would be under that pill exactly when somebody has scrolled
+to the foot of the page to reach it. The left margin is out of its way, and
+lines the pager up with the column of Whens above it.
+
 Answering a row replaces the whole list, and saying no makes it one row longer,
 so the page somebody is standing on can stop existing underneath them. The page
 number is **clamped rather than reset**: they stay on page three while page

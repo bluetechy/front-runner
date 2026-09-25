@@ -179,12 +179,20 @@ export function ActivityList({
 }
 
 /*
- * The way between the pages: where you are, and an arrow either side of it.
+ * The way between the pages: where you are, and then the two arrows.
  *
  * **Always drawn, even over a log that fits on one page**, with both arrows
  * disabled. A pager that appeared when the twenty-first event was recorded
  * would move the card's foot on the day somebody least wants the page to move
  * under them, and the table above it is a fixed height for the same reason.
+ *
+ * **On the left margin**, which is the one thing here settled by something
+ * other than taste. The cookie pill is fixed to the bottom right corner of the
+ * window at `zIndex.drawer + 2` and cannot be covered up, because it is the
+ * only way back into that choice; this card is the last one on the page, so a
+ * pager in its right corner is under that pill exactly when somebody has
+ * scrolled to the foot of the page to use it. The left margin is out of its
+ * way, and it lines the pager up with the column of Whens above it.
  *
  * Left is newer and right is older, because the list is newest first: the
  * arrows walk down the log in the direction it is written. They say that in
@@ -212,7 +220,7 @@ function Pager({
       sx={{
         gap: 1,
         alignItems: "center",
-        justifyContent: "flex-end",
+        justifyContent: "flex-start",
         paddingTop: 1,
       }}
     >

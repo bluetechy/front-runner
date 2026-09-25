@@ -93,6 +93,10 @@ const heightOf = (container: HTMLElement) =>
 
 const rows = () => screen.queryAllByRole("button", { name: /^View Event/ });
 
+/* The pager is the last thing in the table, under the box the rows sit in. */
+const pagerRow = (container: HTMLElement) =>
+  container.firstElementChild?.children[2] as HTMLElement;
+
 beforeEach(() => onOpen.mockReset());
 
 describe("the columns", () => {
@@ -325,6 +329,16 @@ describe("the pages it is read in", () => {
 
     expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
     expect(screen.getByText("Event number 21.")).toBeInTheDocument();
+  });
+
+  /* The cookie pill is fixed to the bottom right corner of the window and
+   * cannot be covered up, and this is the last card on the page: a pager in
+   * the right corner would be under that pill exactly when somebody has
+   * scrolled to the foot of the page to reach it. */
+  it("keeps the pager on the left margin, out of the cookie pill's corner", () => {
+    const { container } = renderList();
+
+    expect(pagerRow(container)).toHaveStyle({ justifyContent: "flex-start" });
   });
 
   /* The whole point of the box: one row, a full page or none at all, the card
