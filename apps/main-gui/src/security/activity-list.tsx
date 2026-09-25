@@ -42,7 +42,7 @@ import { occurredAt } from "./activity-time";
  * exactly who needs the way back in; the Status column says which rows are
  * still asking.
  *
- * **Twenty rows at a time, and the box they sit in never changes height.** The
+ * **Ten rows at a time, and the box they sit in never changes height.** The
  * API hands over one window -- the last thirty days, which the sentence above
  * this table says out loud -- and the paging is done here, over a list this
  * component already holds. Nothing is fetched by turning a page, so the arrows
@@ -52,10 +52,16 @@ import { occurredAt } from "./activity-time";
  * table that shrank to three rows on the last page would walk the pager up the
  * screen from under the finger pressing it, and a card that changed height
  * every time somebody paged would make the whole page jump. So the rows sit in
- * a box twenty rows tall, whatever is in it: one row, twenty, or none at all.
- * A page whose rows all carry a device and a place is taller than twenty
- * nominal rows and scrolls those last few pixels inside the box, which is the
- * cost of the height never moving.
+ * a box ten rows tall, whatever is in it: one row, ten, or none at all.
+ *
+ * **Nothing scrolls inside that box.** An inner scroll area on a card this far
+ * down the page is a trap rather than a convenience: a wheel or a swipe that
+ * lands on the table scrolls the table instead of the page, and somebody on
+ * their way past the last card is stopped by it. So the height is a floor
+ * rather than a ceiling -- a `minHeight`, which nothing here exceeds because
+ * every row is drawn at the same height and the two lines in a row are kept to
+ * one line each. The full sentence is a click away in the dialog, which is
+ * what the eye in the last column is for.
  */
 
 /* The column widths, in one place, because the head and every row have to
@@ -71,16 +77,18 @@ const ACTION_ICON = 22;
  * the table rather than acting on anything in it. */
 const PAGE_ICON = 18;
 
-/* How many rows a page holds. Twenty is about a screen of a list somebody
- * scans rather than reads, and it is the browser's number alone: the API's is
- * the thirty days, and the two are deliberately not the same knob. */
-const PAGE_SIZE = 20;
+/* How many rows a page holds. Ten is a table somebody takes in at a glance
+ * without the card growing taller than the page it sits on, and it is the
+ * browser's number alone: the API's is the thirty days, and the two are
+ * deliberately not the same knob. */
+const PAGE_SIZE = 10;
 
-/* What one row stands at when it carries a sentence and nothing under it. The
- * box below is twenty of these, so this is the number that makes the table's
- * height fixed; a row with a device and a place under the sentence is taller,
- * and the box scrolls rather than growing. */
-const ROW_HEIGHT = "4rem";
+/* What every row stands at, sentence and muted line and all, from the width
+ * the table becomes a table at. Every row is the same height, which is what
+ * lets ten of them fill the box below exactly and leaves nothing to scroll.
+ * Narrower than that the columns stack, a row is as tall as what is in it, and
+ * the box grows rather than clipping any of it. */
+const ROW_HEIGHT = "4.5rem";
 
 const TEMPLATE = {
   xs: "1fr",
@@ -126,15 +134,10 @@ export function ActivityList({
     <Box>
       <HeadRow />
 
-      {/* Twenty rows tall whatever is in it: an empty log, one row, a full
-       * page, or the skeletons. See the note at the top of this file for why
-       * the height is the point rather than a side effect. */}
-      <Box
-        sx={{
-          height: `calc(${PAGE_SIZE} * ${ROW_HEIGHT})`,
-          overflowY: "auto",
-        }}
-      >
+      {/* Ten rows tall whatever is in it: an empty log, one row, a full page,
+       * or the skeletons. A floor rather than a ceiling, so that nothing ever
+       * has to scroll inside it. See the note at the top of this file. */}
+      <Box sx={{ minHeight: `calc(${PAGE_SIZE} * ${ROW_HEIGHT})` }}>
         {loading ? (
           <Stack sx={{ gap: 1, paddingBlock: 1 }}>
             {[0, 1, 2].map((row) => (
@@ -344,6 +347,11 @@ function ActivityRow({
         gap: { xs: 0.5, sm: 2 },
         alignItems: "center",
         paddingBlock: 1.5,
+        /* The same height whatever is in it, so that ten rows are exactly the
+         * box they sit in and there is nothing to scroll. Off again where the
+         * columns stack, because a row that is four cells high there would be
+         * clipped by it. */
+        height: { xs: "auto", sm: ROW_HEIGHT },
         borderBottom: (theme) => `1px solid ${theme.palette.brand.cardRule}`,
         opacity: busy ? 0.55 : 1,
         transition: "opacity 150ms ease",
@@ -371,12 +379,19 @@ function ActivityRow({
         </Typography>
       </Box>
 
+      {/* One line each, cut with an ellipsis where the row is a fixed height,
+       * because a sentence that wrapped to a second line would push the row
+       * past it. Nothing is lost: the eye in the last column opens the whole
+       * sentence in the dialog, which is where a long one is read anyway. */}
       <Box sx={{ minWidth: 0 }}>
         <Typography
           sx={{
             fontSize: "0.95rem",
             color: (theme) => theme.palette.brand.cardInk,
             overflowWrap: "anywhere",
+            whiteSpace: { xs: "normal", sm: "nowrap" },
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {event.Description}
@@ -387,6 +402,9 @@ function ActivityRow({
               fontSize: "0.78rem",
               color: (theme) => theme.palette.brand.cardInkMuted,
               overflowWrap: "anywhere",
+              whiteSpace: { xs: "normal", sm: "nowrap" },
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {where}

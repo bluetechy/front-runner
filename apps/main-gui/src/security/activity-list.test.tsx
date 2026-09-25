@@ -88,8 +88,11 @@ const many = (count: number) =>
 const rowsBox = (container: HTMLElement) =>
   container.firstElementChild?.children[1] as HTMLElement;
 
+/* A floor rather than a fixed height, because nothing is allowed to scroll
+ * inside that box: every row is drawn the same height, so ten of them are
+ * exactly the floor and never more than it. */
 const heightOf = (container: HTMLElement) =>
-  window.getComputedStyle(rowsBox(container)).height;
+  window.getComputedStyle(rowsBox(container)).minHeight;
 
 const rows = () => screen.queryAllByRole("button", { name: /^View Event/ });
 
@@ -245,29 +248,29 @@ describe("when there is nothing to show", () => {
  * finger pressing it when the last page holds three rows.
  */
 describe("the pages it is read in", () => {
-  it("draws twenty rows and keeps the rest for the next page", () => {
-    renderList({ events: many(45) });
+  it("draws ten rows and keeps the rest for the next page", () => {
+    renderList({ events: many(25) });
 
-    expect(rows()).toHaveLength(20);
-    expect(screen.getByText("Event number 20.")).toBeInTheDocument();
-    expect(screen.queryByText("Event number 21.")).toBeNull();
+    expect(rows()).toHaveLength(10);
+    expect(screen.getByText("Event number 10.")).toBeInTheDocument();
+    expect(screen.queryByText("Event number 11.")).toBeNull();
   });
 
   it("walks forward into the older rows and back out again", () => {
-    renderList({ events: many(45) });
+    renderList({ events: many(25) });
 
     fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
 
-    expect(screen.getByText("Event number 21.")).toBeInTheDocument();
-    expect(screen.queryByText("Event number 20.")).toBeNull();
+    expect(screen.getByText("Event number 11.")).toBeInTheDocument();
+    expect(screen.queryByText("Event number 10.")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Newer activity" }));
 
-    expect(screen.getByText("Event number 20.")).toBeInTheDocument();
+    expect(screen.getByText("Event number 10.")).toBeInTheDocument();
   });
 
   it("says which page of how many is being read", () => {
-    renderList({ events: many(45) });
+    renderList({ events: many(25) });
 
     expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
 
@@ -279,7 +282,7 @@ describe("the pages it is read in", () => {
   /* A quiet arrow is the edge of the log, which is worth showing: one that
    * vanished at the last page would read as a control that had broken. */
   it("quiets the arrow there is nothing behind", () => {
-    renderList({ events: many(45) });
+    renderList({ events: many(25) });
 
     expect(
       screen.getByRole("button", { name: "Newer activity" }),
@@ -301,8 +304,8 @@ describe("the pages it is read in", () => {
   });
 
   /* Drawn over a log that fits on one page as well. A pager that appeared on
-   * the day the twenty-first event was recorded would move the card's foot
-   * exactly when nobody wants this page moving under them. */
+   * the day the eleventh event was recorded would move the card's foot exactly
+   * when nobody wants this page moving under them. */
   it("draws the pager over a log with one page, with both arrows quiet", () => {
     renderList();
 
@@ -319,16 +322,16 @@ describe("the pages it is read in", () => {
    * shorter than the page somebody is standing on. They are walked back one
    * rather than thrown to the top of the log for having answered a question. */
   it("walks back a page when the one being read stops existing", () => {
-    const { rerender } = renderList({ events: many(45) });
+    const { rerender } = renderList({ events: many(25) });
 
     fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
     fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
     expect(screen.getByText("Page 3 of 3")).toBeInTheDocument();
 
-    rerender(listWith({ events: many(21) }));
+    rerender(listWith({ events: many(11) }));
 
     expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
-    expect(screen.getByText("Event number 21.")).toBeInTheDocument();
+    expect(screen.getByText("Event number 11.")).toBeInTheDocument();
   });
 
   /* The cookie pill is fixed to the bottom right corner of the window and
@@ -345,11 +348,27 @@ describe("the pages it is read in", () => {
    * below it does not move. */
   it("stands the same height over one row as over a full page", () => {
     const one = renderList({ events: [event()] }).container;
-    const full = renderList({ events: many(20) }).container;
+    const full = renderList({ events: many(10) }).container;
     const empty = renderList({ events: [] }).container;
 
     expect(heightOf(one)).not.toBe("");
     expect(heightOf(full)).toBe(heightOf(one));
     expect(heightOf(empty)).toBe(heightOf(one));
+  });
+
+  /* An inner scroll area on the last card of the page is a trap: a wheel or a
+   * swipe meant for the page lands on the table and moves the table. Every row
+   * is the same height and the box is a floor rather than a ceiling, so there
+   * is never anything to scroll to. */
+  it("gives the rows no scroll area of their own", () => {
+    const { container } = renderList({ events: many(25) });
+
+    const box = window.getComputedStyle(rowsBox(container));
+
+    expect(box.overflowY).not.toBe("auto");
+    expect(box.overflowY).not.toBe("scroll");
+    /* And the floor is a floor: a fixed height would be something for a full
+     * page to overflow, which is what would put the scrollbar back. */
+    expect(box.height).toBe("auto");
   });
 });

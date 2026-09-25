@@ -14,7 +14,7 @@ import { useApiCall } from "./api-call";
  *
  * It is one read because it asks for a window rather than a page: main-api
  * hands over the last thirty days and `activity-list.tsx` pages what comes
- * back, twenty rows at a time, without asking again. That is the opposite of
+ * back, ten rows at a time, without asking again. That is the opposite of
  * the bell, which pages against the server through Query's infinite query, and
  * the difference is how much there is: a month of one account's logins is a
  * list, and a notification feed is not.

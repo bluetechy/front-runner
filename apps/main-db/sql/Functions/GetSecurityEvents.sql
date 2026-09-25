@@ -9,7 +9,7 @@
 --
 -- _Days is how "recent" is defined, and it is a window rather than a row cap:
 -- main-api asks for thirty days and the page says so in the sentence above the
--- table, which pages what comes back twenty rows at a time. A cap could not be
+-- table, which pages what comes back ten rows at a time. A cap could not be
 -- said out loud that way. "Your last twenty" is a sentence nobody can check
 -- against their own week, and on a busy account it hides yesterday behind this
 -- morning; a month is a length somebody can hold in their head, and everything

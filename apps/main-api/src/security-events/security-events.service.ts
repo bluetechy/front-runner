@@ -8,7 +8,7 @@ import { SecurityEvent } from "./security-events.model.js";
 // because the database is where the window is applied.
 //
 // A window rather than the row cap it replaced, because the page now says the
-// number out loud above the table and pages what comes back twenty rows at a
+// number out loud above the table and pages what comes back ten rows at a
 // time. "The last twenty things that happened" is not a sentence anybody can
 // check against their own week, and on a busy account it hides yesterday behind
 // this morning; a month is a length somebody can hold in their head.

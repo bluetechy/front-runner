@@ -35,7 +35,7 @@ describe("the security log a caller may read and answer", () => {
 
   /* "Recent" is a window rather than a row cap, and it is applied in the
    * database rather than in the browser: the page pages everything it is
-   * handed, twenty rows at a time, and says the thirty days out loud above the
+   * handed, ten rows at a time, and says the thirty days out loud above the
    * table. The number has to be the one the sentence promises. */
   it("asks for the last thirty days rather than the whole log", async () => {
     const { service, query } = setup([]);

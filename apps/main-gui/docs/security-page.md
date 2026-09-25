@@ -670,7 +670,7 @@ through `Intl.DateTimeFormat`.
 pressed the wrong button is exactly who needs the way back in; the Status column
 is what says which rows are still asking.
 
-### The last 30 days, twenty rows at a time
+### The last 30 days, ten rows at a time
 
 The card says **the last 30 days** in the sentence above the table, and that
 sentence is the contract: `dbo.GetSecurityEvents` takes a window in days,
@@ -688,23 +688,34 @@ would be for; it would be a control rather than a number, so it is not in that
 constant.
 
 The **paging is the browser's**, over a list it already holds. One read fetches
-the window, `activity-list.tsx` cuts it into pages of twenty, and turning a page
+the window, `activity-list.tsx` cuts it into pages of ten, and turning a page
 asks the API nothing: the arrows answer at once and there is no spinner to draw
 for them. That is the opposite of the bell, which pages against the server
 through Query's infinite query, and the difference is how much there is. A month
 of one account's logins is a list; a notification feed is not.
 
-The rows sit in a box **twenty rows tall, whatever is in it**: one row, twenty,
-or none at all. The fixed height is the point rather than a side effect. A table
+The rows sit in a box **ten rows tall, whatever is in it**: one row, ten, or
+none at all. The fixed height is the point rather than a side effect. A table
 that shrank to three rows on the last page would walk the pager up the screen
 from under the finger pressing it, and a card that changed height every time
-somebody paged would make the whole page jump. A page whose rows all carry a
-device and a place stands taller than twenty nominal rows and scrolls those last
-few pixels inside the box, which is the cost of the height never moving.
+somebody paged would make the whole page jump.
+
+**Nothing scrolls inside that box**, which is why the height is written as a
+`minHeight` rather than a `height`. An inner scroll area on the last card of the
+page is a trap rather than a convenience: a wheel or a swipe meant for the page
+lands on the table and moves the table, and somebody on their way past the card
+is stopped by it. So there is never anything to scroll to. Every row is drawn at
+the same height from the width the columns stop stacking at, the sentence and
+the muted line under it are each kept to one line and cut with an ellipsis, and
+ten rows are therefore exactly the floor and never more than it. Nothing is lost
+in the cut: the eye in the last column opens the whole sentence in the dialog,
+which is where a long one is read anyway. Narrower than that the columns stack,
+a row is as tall as what is in it, and the box grows rather than clipping any of
+it.
 
 The pager is drawn **even over a log that fits on one page**, with both arrows
-quiet. One that appeared on the day the twenty-first event was recorded would
-move the card's foot exactly when nobody wants this page moving under them. Left
+quiet. One that appeared on the day the eleventh event was recorded would move
+the card's foot exactly when nobody wants this page moving under them. Left
 is newer and right is older, because the list is newest first, and both say so
 in words: an arrow alone leaves somebody to work out which end of the log it
 points at. A disabled arrow stays where it is rather than being taken away,
@@ -1091,7 +1102,7 @@ line out rather than guessing, which is the same rule the device itself follows.
 promises, while the table itself keeps twelve months. An account wanting to look
 further back needs a date range on the card and a window the browser can ask
 for, which is a control rather than a number: see
-[the last 30 days, twenty rows at a time](#the-last-30-days-twenty-rows-at-a-time).
+[the last 30 days, ten rows at a time](#the-last-30-days-ten-rows-at-a-time).
 Paging that read against the server rather than in the browser is the same
 change, and it is the argument the bell already had and won. See
 [notifications](notifications.md).
