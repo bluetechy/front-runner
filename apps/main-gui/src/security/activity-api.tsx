@@ -9,8 +9,15 @@ import { useApiCall } from "./api-call";
  * A hook rather than a provider, for the reason `email-api.tsx` gives: nothing
  * outside this page wants this list. A `useEffect` and a `useState` rather than
  * TanStack Query, for the reason the rest of this vertical does it that way --
- * this is one unpaged read that nothing else invalidates, which is the case
- * Query buys the least in.
+ * this is one read that nothing else invalidates, which is the case Query buys
+ * the least in.
+ *
+ * It is one read because it asks for a window rather than a page: main-api
+ * hands over the last thirty days and `activity-list.tsx` pages what comes
+ * back, twenty rows at a time, without asking again. That is the opposite of
+ * the bell, which pages against the server through Query's infinite query, and
+ * the difference is how much there is: a month of one account's logins is a
+ * list, and a notification feed is not.
  *
  * Answering a question about an event replaces the **whole list**, the way
  * every write on this page does, and here it has to: saying "no, this was not

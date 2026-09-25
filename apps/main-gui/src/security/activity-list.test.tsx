@@ -50,21 +50,48 @@ const answered = event({
   Recognized: true,
 });
 
+/* Split from `renderList` because the clamping test below has to hand the same
+ * table a shorter list than it drew a moment ago, which is a rerender rather
+ * than a second render. */
+const listWith = (
+  props: Partial<React.ComponentProps<typeof ActivityList>> = {},
+) => (
+  <ThemeProvider theme={theme}>
+    <ActivityList
+      events={[event(), added, answered]}
+      loading={false}
+      failed={false}
+      busyId={null}
+      onOpen={onOpen}
+      {...props}
+    />
+  </ThemeProvider>
+);
+
 const renderList = (
   props: Partial<React.ComponentProps<typeof ActivityList>> = {},
-) =>
-  render(
-    <ThemeProvider theme={theme}>
-      <ActivityList
-        events={[event(), added, answered]}
-        loading={false}
-        failed={false}
-        busyId={null}
-        onOpen={onOpen}
-        {...props}
-      />
-    </ThemeProvider>,
+) => render(listWith(props));
+
+/* A log long enough to page, each row saying its own number so a test can name
+ * the row it expects rather than counting them. */
+const many = (count: number) =>
+  Array.from({ length: count }, (_, index) =>
+    event({
+      SecurityEventUUID: `2d000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+      Description: `Event number ${index + 1}.`,
+    }),
   );
+
+/* The rows sit between the head and the pager, and that box is what holds the
+ * table's height. Reached by position because nothing about it is worth a test
+ * id: it draws nothing of its own. */
+const rowsBox = (container: HTMLElement) =>
+  container.firstElementChild?.children[1] as HTMLElement;
+
+const heightOf = (container: HTMLElement) =>
+  window.getComputedStyle(rowsBox(container)).height;
+
+const rows = () => screen.queryAllByRole("button", { name: /^View Event/ });
 
 beforeEach(() => onOpen.mockReset());
 
@@ -173,7 +200,9 @@ describe("when there is nothing to show", () => {
     renderList({ events: [], loading: true });
 
     expect(
-      screen.queryByText("Nothing has happened to this account yet."),
+      screen.queryByText(
+        "Nothing has happened to this account in the last 30 days.",
+      ),
     ).toBeNull();
   });
 
@@ -183,7 +212,9 @@ describe("when there is nothing to show", () => {
     renderList({ events: [], loading: false });
 
     expect(
-      screen.getByText("Nothing has happened to this account yet."),
+      screen.getByText(
+        "Nothing has happened to this account in the last 30 days.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -194,7 +225,117 @@ describe("when there is nothing to show", () => {
     renderList({ events: [], loading: false, failed: true });
 
     expect(
-      screen.queryByText("Nothing has happened to this account yet."),
+      screen.queryByText(
+        "Nothing has happened to this account in the last 30 days.",
+      ),
     ).toBeNull();
+  });
+});
+
+/*
+ * Twenty rows a page, and the box they sit in never changes height.
+ *
+ * The paging is done here rather than against the API: main-api hands over one
+ * window, the last thirty days of it, and turning a page fetches nothing. The
+ * fixed height is what stops the pager walking up the screen from under the
+ * finger pressing it when the last page holds three rows.
+ */
+describe("the pages it is read in", () => {
+  it("draws twenty rows and keeps the rest for the next page", () => {
+    renderList({ events: many(45) });
+
+    expect(rows()).toHaveLength(20);
+    expect(screen.getByText("Event number 20.")).toBeInTheDocument();
+    expect(screen.queryByText("Event number 21.")).toBeNull();
+  });
+
+  it("walks forward into the older rows and back out again", () => {
+    renderList({ events: many(45) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
+
+    expect(screen.getByText("Event number 21.")).toBeInTheDocument();
+    expect(screen.queryByText("Event number 20.")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Newer activity" }));
+
+    expect(screen.getByText("Event number 20.")).toBeInTheDocument();
+  });
+
+  it("says which page of how many is being read", () => {
+    renderList({ events: many(45) });
+
+    expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
+
+    expect(screen.getByText("Page 2 of 3")).toBeInTheDocument();
+  });
+
+  /* A quiet arrow is the edge of the log, which is worth showing: one that
+   * vanished at the last page would read as a control that had broken. */
+  it("quiets the arrow there is nothing behind", () => {
+    renderList({ events: many(45) });
+
+    expect(
+      screen.getByRole("button", { name: "Newer activity" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Older activity" }),
+    ).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
+
+    expect(rows()).toHaveLength(5);
+    expect(
+      screen.getByRole("button", { name: "Older activity" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Newer activity" }),
+    ).toBeEnabled();
+  });
+
+  /* Drawn over a log that fits on one page as well. A pager that appeared on
+   * the day the twenty-first event was recorded would move the card's foot
+   * exactly when nobody wants this page moving under them. */
+  it("draws the pager over a log with one page, with both arrows quiet", () => {
+    renderList();
+
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Newer activity" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Older activity" }),
+    ).toBeDisabled();
+  });
+
+  /* Answering a row replaces the whole list, and the list can come back
+   * shorter than the page somebody is standing on. They are walked back one
+   * rather than thrown to the top of the log for having answered a question. */
+  it("walks back a page when the one being read stops existing", () => {
+    const { rerender } = renderList({ events: many(45) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Older activity" }));
+    expect(screen.getByText("Page 3 of 3")).toBeInTheDocument();
+
+    rerender(listWith({ events: many(21) }));
+
+    expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Event number 21.")).toBeInTheDocument();
+  });
+
+  /* The whole point of the box: one row, a full page or none at all, the card
+   * below it does not move. */
+  it("stands the same height over one row as over a full page", () => {
+    const one = renderList({ events: [event()] }).container;
+    const full = renderList({ events: many(20) }).container;
+    const empty = renderList({ events: [] }).container;
+
+    expect(heightOf(one)).not.toBe("");
+    expect(heightOf(full)).toBe(heightOf(one));
+    expect(heightOf(empty)).toBe(heightOf(one));
   });
 });

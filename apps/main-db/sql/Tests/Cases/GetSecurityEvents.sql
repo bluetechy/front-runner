@@ -53,20 +53,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- The cap is how "recent" is defined: this list is not paged, so main-api asks
--- for the latest handful and the page shows all of it.
-CREATE FUNCTION "test"."TestGetSecurityEvents_CapsTheListWhenAskedTo" () RETURNS void AS $$
+-- The window is how "recent" is defined: main-api asks for thirty days, the
+-- page says so in the sentence above the table, and it pages what comes back.
+-- The number on the page is only true if this leaves out what is older.
+--
+-- The old event is written here rather than put in the fixtures, because every
+-- other case in this file counts the member's rows and a fourth one would
+-- change all of them. Each test runs in its own transaction and is rolled back.
+CREATE FUNCTION "test"."TestGetSecurityEvents_LeavesOutWhatIsOlderThanTheWindow" () RETURNS void AS $$
 BEGIN
+    INSERT INTO "dbo"."SecurityEvents" ("UserUUID", "EventType", "Description", "OccurredAt", "CreatedBy")
+    VALUES ("test"."Fixture"('User.Member'), 'LoginSucceeded', 'New login on a laptop last seen in July.', CURRENT_TIMESTAMP - interval '40 days', 'tests');
+
     PERFORM "test"."AssertRowCount"(
-        $sql$SELECT * FROM "dbo"."GetSecurityEvents"('member', 2)$sql$,
-        2,
-        'a row limit should cap the list'
+        $sql$SELECT * FROM "dbo"."GetSecurityEvents"('member', 30)$sql$,
+        3,
+        'an event from forty days ago is not part of the last thirty days'
     );
 
     PERFORM "test"."AssertRowCount"(
         $sql$SELECT * FROM "dbo"."GetSecurityEvents"('member', 0)$sql$,
-        3,
-        'nought means every row, the way the point readers take it'
+        4,
+        'nought means every row, the way the point readers take their cap'
+    );
+
+    PERFORM "test"."AssertRowCount"(
+        $sql$SELECT * FROM "dbo"."GetSecurityEvents"('member')$sql$,
+        4,
+        'and so does leaving the window out altogether'
     );
 END;
 $$ LANGUAGE plpgsql;

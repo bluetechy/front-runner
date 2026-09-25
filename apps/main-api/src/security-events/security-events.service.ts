@@ -3,16 +3,22 @@ import { DatabaseService } from "../database/index.js";
 import { PasswordResetService } from "../password-reset/index.js";
 import { SecurityEvent } from "./security-events.model.js";
 
-// How much of the log "recent" means. The list is not paged -- the page shows
-// all of it, the way the address list above it does -- so this is the one place
-// the word is defined, and it is here rather than in the browser because the
-// database is where the cap is applied.
+// How much of the log "recent" means: the last thirty days of it. This is the
+// one place the word is defined, and it is here rather than in the browser
+// because the database is where the window is applied.
 //
-// Twenty is about a screen and a half of a list somebody scans rather than
-// reads. An account busy enough to push an unanswered event off the end of it
-// is the argument for paging this, which is the same argument the bell already
-// lost; when that happens this becomes a PageArgs the way notifications did.
-const RECENT = 20;
+// A window rather than the row cap it replaced, because the page now says the
+// number out loud above the table and pages what comes back twenty rows at a
+// time. "The last twenty things that happened" is not a sentence anybody can
+// check against their own week, and on a busy account it hides yesterday behind
+// this morning; a month is a length somebody can hold in their head.
+//
+// It is shorter than the twelve months dbo.trim_security_events keeps, which is
+// deliberate: what is kept and what is shown are different questions, and the
+// longer answer is the one an investigation needs. An account that wants to
+// look further back than this is the argument for a date range on the card,
+// which is a control rather than a number and does not belong in this constant.
+const WINDOW_DAYS = 30;
 
 @Injectable()
 export class SecurityEventsService {
@@ -23,11 +29,11 @@ export class SecurityEventsService {
     private readonly passwordReset: PasswordResetService,
   ) {}
 
-  // The account's own security log, newest first.
+  // The account's own security log for the last thirty days, newest first.
   list(loginName: string) {
     return this.db.query<SecurityEvent>(
       'SELECT * FROM dbo."GetSecurityEvents"($1, $2)',
-      [loginName, RECENT],
+      [loginName, WINDOW_DAYS],
     );
   }
 
@@ -56,7 +62,7 @@ export class SecurityEventsService {
   ) {
     const events = await this.db.query<SecurityEvent>(
       'SELECT * FROM dbo."ReviewSecurityEvent"($1, $2, $3, $4)',
-      [loginName, securityEventId, recognized, RECENT],
+      [loginName, securityEventId, recognized, WINDOW_DAYS],
     );
 
     if (!recognized) await this.passwordReset.request(loginName);

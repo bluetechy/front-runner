@@ -492,9 +492,9 @@ export function Security({ connected }: { connected?: string }) {
             color: (theme) => theme.palette.brand.cardInkMuted,
           }}
         >
-          Logins, and the changes that alter how you get into your account. Open
-          anything you do not recognize and tell us: we will send you a link to
-          choose a new password.
+          The last 30 days of logins, and of the changes that alter how you get
+          into your account. Open anything you do not recognize and tell us: we
+          will send you a link to choose a new password.
         </Typography>
 
         <ActivityList

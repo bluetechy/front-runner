@@ -670,6 +670,58 @@ through `Intl.DateTimeFormat`.
 pressed the wrong button is exactly who needs the way back in; the Status column
 is what says which rows are still asking.
 
+### The last 30 days, twenty rows at a time
+
+The card says **the last 30 days** in the sentence above the table, and that
+sentence is the contract: `dbo.GetSecurityEvents` takes a window in days,
+main-api asks for thirty, and the database applies it. The number is defined
+once, in `security-events.service.ts`, and it is a window rather than the row
+cap it replaced because a cap cannot be said out loud. "Your last twenty" is not
+something anybody can check against their own week, and on a busy account it
+hides yesterday behind this morning.
+
+A window is **not** what the table is kept to. `dbo.trim_security_events` keeps
+twelve months, and that stays as it is: what is kept and what is shown are
+different questions, and the longer answer is the one an investigation needs.
+Nothing today reads past thirty days, which is what a date range on the card
+would be for; it would be a control rather than a number, so it is not in that
+constant.
+
+The **paging is the browser's**, over a list it already holds. One read fetches
+the window, `activity-list.tsx` cuts it into pages of twenty, and turning a page
+asks the API nothing: the arrows answer at once and there is no spinner to draw
+for them. That is the opposite of the bell, which pages against the server
+through Query's infinite query, and the difference is how much there is. A month
+of one account's logins is a list; a notification feed is not.
+
+The rows sit in a box **twenty rows tall, whatever is in it**: one row, twenty,
+or none at all. The fixed height is the point rather than a side effect. A table
+that shrank to three rows on the last page would walk the pager up the screen
+from under the finger pressing it, and a card that changed height every time
+somebody paged would make the whole page jump. A page whose rows all carry a
+device and a place stands taller than twenty nominal rows and scrolls those last
+few pixels inside the box, which is the cost of the height never moving.
+
+The pager is drawn **even over a log that fits on one page**, with both arrows
+quiet. One that appeared on the day the twenty-first event was recorded would
+move the card's foot exactly when nobody wants this page moving under them. Left
+is newer and right is older, because the list is newest first, and both say so
+in words: an arrow alone leaves somebody to work out which end of the log it
+points at. A disabled arrow stays where it is rather than being taken away,
+drawn in the card's muted ink at less than full strength, because an arrow that
+vanished at the last page would read as a control that had broken.
+
+Answering a row replaces the whole list, and saying no makes it one row longer,
+so the page somebody is standing on can stop existing underneath them. The page
+number is **clamped rather than reset**: they stay on page three while page
+three still has rows, and are walked back one when it does not, instead of being
+thrown to the top of the log for having answered a question.
+
+An empty table says **"Nothing has happened to this account in the last 30
+days"**, not "yet". An account that has been quiet for a month is not a new one,
+and telling somebody nothing has ever happened to an account they have had for a
+year would be the only lie on the page.
+
 ### The dialog
 
 `activity-dialog.tsx`: when it happened and whether it is new, what it was, what
@@ -945,6 +997,12 @@ policy's "How long we keep it" section, which promises it to the reader.
 `sections.test.ts` asserts the sentence, so moving one without the other breaks
 the suite.
 
+**Twelve months is not what the card shows.** The page reads the last 30 days of
+it, which is a separate number in a separate place (`security-events.service.ts`)
+and answers a separate question: how long a record is worth keeping is not how
+much of it is worth putting in front of somebody. The shorter one moving would
+not touch this section or the privacy policy.
+
 ### It is not dbo.EventLog
 
 The obvious place for this was the log that already existed, and it is the wrong
@@ -1021,8 +1079,11 @@ moment to record. See
 provider's event log carries no `User-Agent`, so a mirrored logout leaves the
 line out rather than guessing, which is the same rule the device itself follows.
 
-The list is **not paged**. `dbo.GetSecurityEvents` takes a row cap and main-api
-asks for twenty, which is where "recent" is defined. An account busy enough to
-push an unanswered event off the end of that is the argument for paging it,
-which is the argument the bell already lost. See
+**Nothing reads past 30 days.** That is the window the API asks for and the card
+promises, while the table itself keeps twelve months. An account wanting to look
+further back needs a date range on the card and a window the browser can ask
+for, which is a control rather than a number: see
+[the last 30 days, twenty rows at a time](#the-last-30-days-twenty-rows-at-a-time).
+Paging that read against the server rather than in the browser is the same
+change, and it is the argument the bell already had and won. See
 [notifications](notifications.md).

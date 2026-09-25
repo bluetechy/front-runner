@@ -33,12 +33,14 @@ describe("the security log a caller may read and answer", () => {
     expect(query.mock.calls[0]?.[1]?.[0]).toBe("member");
   });
 
-  /* "Recent" is a cap rather than a window, and it is applied in the database
-   * rather than in the browser: the page shows everything it is handed. */
-  it("asks for a capped list rather than the whole log", async () => {
+  /* "Recent" is a window rather than a row cap, and it is applied in the
+   * database rather than in the browser: the page pages everything it is
+   * handed, twenty rows at a time, and says the thirty days out loud above the
+   * table. The number has to be the one the sentence promises. */
+  it("asks for the last thirty days rather than the whole log", async () => {
     const { service, query } = setup([]);
     await service.list("member");
-    expect(query.mock.calls[0]?.[1]?.[1]).toBe(20);
+    expect(query.mock.calls[0]?.[1]?.[1]).toBe(30);
   });
 
   it("records an answer and hands back the list it belongs to", async () => {
@@ -46,7 +48,7 @@ describe("the security log a caller may read and answer", () => {
     const { service, query } = setup(rows);
     expect(await service.review("member", EVENT, true)).toEqual(rows);
     expect(sqlOf(query)).toContain('"ReviewSecurityEvent"');
-    expect(query.mock.calls[0]?.[1]).toEqual(["member", EVENT, true, 20]);
+    expect(query.mock.calls[0]?.[1]).toEqual(["member", EVENT, true, 30]);
   });
 
   /* "Yes, it was me" is not an incident, so nothing else happens. */

@@ -68,7 +68,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- The whole list back, the way the email address writers on the same page
--- answer, because this list is short and entirely on screen.
+-- answer, because the browser holds this whole window and pages it itself.
 CREATE FUNCTION "test"."TestReviewSecurityEvent_AnswersWithTheList" () RETURNS void AS $$
 BEGIN
     PERFORM "test"."AssertRowCount"(
@@ -82,12 +82,15 @@ $$ LANGUAGE plpgsql;
 -- And no more of it than was asked for: a mutation that answered with a longer
 -- list than the query did would grow the table under somebody who pressed a
 -- button in it.
-CREATE FUNCTION "test"."TestReviewSecurityEvent_KeepsTheCapItWasGiven" () RETURNS void AS $$
+CREATE FUNCTION "test"."TestReviewSecurityEvent_KeepsTheWindowItWasGiven" () RETURNS void AS $$
 BEGIN
+    INSERT INTO "dbo"."SecurityEvents" ("UserUUID", "EventType", "Description", "OccurredAt", "CreatedBy")
+    VALUES ("test"."Fixture"('User.Member'), 'LoginSucceeded', 'New login on a laptop last seen in July.', CURRENT_TIMESTAMP - interval '40 days', 'tests');
+
     PERFORM "test"."AssertRowCount"(
-        format($sql$SELECT * FROM "dbo"."ReviewSecurityEvent"('member', %L, true, 2)$sql$, "test"."Fixture"('SecurityEvent.Login')),
-        2,
-        'the row limit should reach the reader'
+        format($sql$SELECT * FROM "dbo"."ReviewSecurityEvent"('member', %L, true, 30)$sql$, "test"."Fixture"('SecurityEvent.Login')),
+        3,
+        'the window should reach the reader, so the forty-day-old event stays out of the answer'
     );
 END;
 $$ LANGUAGE plpgsql;

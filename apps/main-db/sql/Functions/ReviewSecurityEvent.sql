@@ -3,10 +3,13 @@
 -- whole list as it now stands.
 --
 -- The whole list rather than the row that changed, which is what
--- dbo.MarkNotificationRead does. The difference is paging: the bell holds page
--- three of a long list and cannot be handed all of it, while this list is short,
--- unpaged and entirely on screen -- so this behaves like the email address
--- writers on the same page, which answer with the list for the same reason.
+-- dbo.MarkNotificationRead does. The difference is where the paging happens:
+-- the bell holds page three of a list the server is cutting up and cannot be
+-- handed all of it, while this list is one window the browser already holds and
+-- pages itself -- so this behaves like the email address writers on the same
+-- page, which answer with the list for the same reason. Answering also writes a
+-- second event, so the row that was answered is not the only thing that moved,
+-- and a caller handed that row alone would be drawing a list short of a row.
 --
 -- An answer can be changed. Somebody who pressed "Yes, it was me" and then
 -- thought again has to be able to say so, and on a security page that is the
@@ -15,8 +18,8 @@
 -- refuses to move "ReadAt" on a second read -- being seen twice is still being
 -- seen once, but being answered twice is a different answer.
 --
--- _RowLimit is passed straight through to the reader, so a caller showing the
--- latest twenty gets the latest twenty back rather than the whole log: a
+-- _Days is passed straight through to the reader, so a caller showing the last
+-- thirty days gets the last thirty days back rather than the whole log: a
 -- mutation that answers with a longer list than the query did would grow the
 -- table under somebody who pressed a button in it.
 --
@@ -27,7 +30,7 @@ CREATE FUNCTION "dbo"."ReviewSecurityEvent" (
     _LoginName varchar(64),
     _SecurityEventUUID uuid,
     _Recognized boolean,
-    _RowLimit integer DEFAULT NULL
+    _Days integer DEFAULT NULL
 ) RETURNS TABLE(
     "SecurityEventUUID" uuid,
     "EventType" varchar(100),
@@ -84,6 +87,6 @@ CREATE FUNCTION "dbo"."ReviewSecurityEvent" (
 
         -- Read back through the reader, so the list a caller is handed is
         -- assembled exactly once and in one order.
-        RETURN QUERY SELECT * FROM "dbo"."GetSecurityEvents"(_LoginName, _RowLimit);
+        RETURN QUERY SELECT * FROM "dbo"."GetSecurityEvents"(_LoginName, _Days);
     END;
 $$ LANGUAGE plpgsql;

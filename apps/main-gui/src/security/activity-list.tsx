@@ -4,6 +4,9 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { useState } from "react";
+import ArrowLeftIcon from "@/shared/icons/ArrowLeftIcon";
+import ArrowRightIcon from "@/shared/icons/ArrowRightIcon";
 import EyeIcon from "@/shared/icons/EyeIcon";
 import { CardLabel } from "../card-surface";
 import { useLanguage } from "../language";
@@ -38,6 +41,21 @@ import { occurredAt } from "./activity-time";
  * answered. An answer can be changed, and somebody who pressed the wrong one is
  * exactly who needs the way back in; the Status column says which rows are
  * still asking.
+ *
+ * **Twenty rows at a time, and the box they sit in never changes height.** The
+ * API hands over one window -- the last thirty days, which the sentence above
+ * this table says out loud -- and the paging is done here, over a list this
+ * component already holds. Nothing is fetched by turning a page, so the arrows
+ * answer at once and there is no spinner to draw for them.
+ *
+ * The fixed height is the point of the box rather than a side effect of it. A
+ * table that shrank to three rows on the last page would walk the pager up the
+ * screen from under the finger pressing it, and a card that changed height
+ * every time somebody paged would make the whole page jump. So the rows sit in
+ * a box twenty rows tall, whatever is in it: one row, twenty, or none at all.
+ * A page whose rows all carry a device and a place is taller than twenty
+ * nominal rows and scrolls those last few pixels inside the box, which is the
+ * cost of the height never moving.
  */
 
 /* The column widths, in one place, because the head and every row have to
@@ -48,6 +66,21 @@ const COLUMNS = { when: "8.5rem", status: "7.5rem", action: "8rem" };
 /* The same size the bin and the link in the address table above are drawn at,
  * so the two Action(s) columns line up down the page. */
 const ACTION_ICON = 22;
+
+/* The arrows in the pager, drawn a size down from the action column: they move
+ * the table rather than acting on anything in it. */
+const PAGE_ICON = 18;
+
+/* How many rows a page holds. Twenty is about a screen of a list somebody
+ * scans rather than reads, and it is the browser's number alone: the API's is
+ * the thirty days, and the two are deliberately not the same knob. */
+const PAGE_SIZE = 20;
+
+/* What one row stands at when it carries a sentence and nothing under it. The
+ * box below is twenty of these, so this is the number that makes the table's
+ * height fixed; a row with a device and a place under the sentence is taller,
+ * and the box scrolls rather than growing. */
+const ROW_HEIGHT = "4rem";
 
 const TEMPLATE = {
   xs: "1fr",
@@ -72,43 +105,180 @@ export function ActivityList({
   busyId: string | null;
   onOpen: (event: SecurityEvent) => void;
 }) {
+  /* Which page is being read. Held here rather than on the page above: it is
+   * one list either way, and nothing outside this table has an opinion about
+   * where somebody is in it. */
+  const [page, setPage] = useState(0);
+
+  const pages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
+  /* Clamped rather than reset, because answering a row replaces the whole list
+   * and saying no makes it one row longer. Somebody on page three stays on
+   * page three while page three still has rows in it, and is walked back one
+   * when it does not, instead of being thrown to the top of the log for
+   * having answered a question. */
+  const current = Math.min(page, pages - 1);
+  const shown = events.slice(
+    current * PAGE_SIZE,
+    current * PAGE_SIZE + PAGE_SIZE,
+  );
+
   return (
     <Box>
       <HeadRow />
 
-      {loading ? (
-        <Stack sx={{ gap: 1, paddingBlock: 1 }}>
-          {[0, 1, 2].map((row) => (
-            <Skeleton key={row} height={56} sx={{ transform: "none" }} />
-          ))}
-        </Stack>
-      ) : events.length === 0 && !failed ? (
-        /* An empty log is a good state rather than a missing one, so it says
-         * what it means rather than leaving the reader to wonder whether the
-         * table is broken. It is the sentence a brand new account sees, and it
-         * is not said over a log that could not be read at all: that table is
-         * empty for a reason the page has already given above it. */
-        <Typography
+      {/* Twenty rows tall whatever is in it: an empty log, one row, a full
+       * page, or the skeletons. See the note at the top of this file for why
+       * the height is the point rather than a side effect. */}
+      <Box
+        sx={{
+          height: `calc(${PAGE_SIZE} * ${ROW_HEIGHT})`,
+          overflowY: "auto",
+        }}
+      >
+        {loading ? (
+          <Stack sx={{ gap: 1, paddingBlock: 1 }}>
+            {[0, 1, 2].map((row) => (
+              <Skeleton key={row} height={56} sx={{ transform: "none" }} />
+            ))}
+          </Stack>
+        ) : events.length === 0 && !failed ? (
+          /* An empty log is a good state rather than a missing one, so it says
+           * what it means rather than leaving the reader to wonder whether the
+           * table is broken. It says **in the last 30 days** rather than
+           * "yet", because that is all this table was handed: an account that
+           * has been quiet for a month is not a new one, and telling somebody
+           * nothing has ever happened to an account they have had for a year
+           * would be the page's only lie. It is not said over a log that could
+           * not be read at all: that table is empty for a reason the page has
+           * already given above it. */
+          <Typography
+            sx={{
+              paddingBlock: 3,
+              textAlign: "center",
+              fontSize: "0.9rem",
+              color: (theme) => theme.palette.brand.cardInkMuted,
+            }}
+          >
+            Nothing has happened to this account in the last 30 days.
+          </Typography>
+        ) : (
+          shown.map((event) => (
+            <ActivityRow
+              key={event.SecurityEventUUID}
+              event={event}
+              busy={busyId === event.SecurityEventUUID}
+              onOpen={() => onOpen(event)}
+            />
+          ))
+        )}
+      </Box>
+
+      <Pager page={current} pages={pages} onChange={setPage} />
+    </Box>
+  );
+}
+
+/*
+ * The way between the pages: where you are, and an arrow either side of it.
+ *
+ * **Always drawn, even over a log that fits on one page**, with both arrows
+ * disabled. A pager that appeared when the twenty-first event was recorded
+ * would move the card's foot on the day somebody least wants the page to move
+ * under them, and the table above it is a fixed height for the same reason.
+ *
+ * Left is newer and right is older, because the list is newest first: the
+ * arrows walk down the log in the direction it is written. They say that in
+ * words as well, since an arrow alone leaves somebody to work out which end of
+ * the log it is pointing at.
+ *
+ * A disabled arrow stays where it is rather than being taken away. It is the
+ * edge of the log, which is worth showing: an arrow that vanished at the last
+ * page would read as a control that had broken. It goes quiet instead, in the
+ * card's muted ink at less than full strength, so the one that still works is
+ * the one the eye lands on.
+ */
+function Pager({
+  page,
+  pages,
+  onChange,
+}: {
+  page: number;
+  pages: number;
+  onChange: (page: number) => void;
+}) {
+  return (
+    <Stack
+      direction="row"
+      sx={{
+        gap: 1,
+        alignItems: "center",
+        justifyContent: "flex-end",
+        paddingTop: 1,
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.78rem",
+          color: (theme) => theme.palette.brand.cardInkMuted,
+        }}
+      >
+        {`Page ${page + 1} of ${pages}`}
+      </Typography>
+
+      <PageButton
+        label="Newer activity"
+        disabled={page === 0}
+        onClick={() => onChange(page - 1)}
+      >
+        <ArrowLeftIcon color="currentColor" size={PAGE_ICON} />
+      </PageButton>
+
+      <PageButton
+        label="Older activity"
+        disabled={page + 1 >= pages}
+        onClick={() => onChange(page + 1)}
+      >
+        <ArrowRightIcon color="currentColor" size={PAGE_ICON} />
+      </PageButton>
+    </Stack>
+  );
+}
+
+/* One of the two arrows. The span is what lets the tooltip still answer over a
+ * disabled button, which is the same wrapper the eye in the Action column
+ * wears; the ink is the card's muted one at less than full strength, so a
+ * quiet arrow reads as an edge of the log rather than as something broken. */
+function PageButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip title={label}>
+      <Box component="span" sx={{ display: "inline-flex" }}>
+        <IconButton
+          aria-label={label}
+          disabled={disabled}
+          onClick={onClick}
+          size="small"
           sx={{
-            paddingBlock: 3,
-            textAlign: "center",
-            fontSize: "0.9rem",
-            color: (theme) => theme.palette.brand.cardInkMuted,
+            color: "primary.main",
+            "&.Mui-disabled": {
+              color: (theme) => theme.palette.brand.cardInkMuted,
+              opacity: 0.45,
+            },
           }}
         >
-          Nothing has happened to this account yet.
-        </Typography>
-      ) : (
-        events.map((event) => (
-          <ActivityRow
-            key={event.SecurityEventUUID}
-            event={event}
-            busy={busyId === event.SecurityEventUUID}
-            onOpen={() => onOpen(event)}
-          />
-        ))
-      )}
-    </Box>
+          {children}
+        </IconButton>
+      </Box>
+    </Tooltip>
   );
 }
 
