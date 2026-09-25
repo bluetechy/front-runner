@@ -47,6 +47,24 @@ describe("what a kind of event is called", () => {
     expect(kindOf("LoggedOut").heading).toBe("Logged out");
   });
 
+  /* Connecting a provider is a way in that did not exist before, so it carries
+   * the warning an added address carries: a way in somebody else put there is
+   * how an account is quietly kept after a password is changed back.
+   * Disconnecting one closes a door rather than opening one. */
+  it("heads a connected provider as one, and warns about it", () => {
+    expect(kindOf("SignInMethodConnected").heading).toBe(
+      "Login provider connected",
+    );
+    expect(kindOf("SignInMethodConnected").warning).not.toBe("");
+  });
+
+  it("heads a disconnected provider as one, quietly", () => {
+    expect(kindOf("SignInMethodDisconnected").heading).toBe(
+      "Login provider disconnected",
+    );
+    expect(kindOf("SignInMethodDisconnected").warning).toBe("");
+  });
+
   /* A sentence about risk on every row is a sentence nobody reads by the
    * third one. A logout is the only login-shaped row that earns none: somebody
    * else ending your session locks a door rather than opening one. */

@@ -14,6 +14,11 @@ interface ImportMetaEnv {
   /* Which query parameter names a login provider to go straight on to.
    * Keycloak calls it kc_idp_hint; empty sends no hint at all. */
   readonly VITE_IDP_HINT_PARAMETER: string;
+  /* Where the provider runs account linking, with {provider} standing in for
+   * the alias. The one address here that discovery does not publish, because
+   * linking is nobody's standard; empty means the provider has none and the
+   * security page's SSO card offers no Connect. */
+  readonly VITE_IDP_LINK_PATH: string;
   readonly VITE_GRAPHQL_URL: string;
 }
 

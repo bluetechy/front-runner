@@ -26,7 +26,9 @@ export { logoutDescription } from "./device-name.js";
 export type {
   Account,
   EndedSession,
+  LinkedLogin,
   LoginFailure,
+  LoginProvider,
   NewAccount,
 } from "./identity-admin.service.js";
 export type { VerifiedIdentity } from "./token-verifier.service.js";

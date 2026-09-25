@@ -103,7 +103,8 @@ Policies.
 
 `eventsEnabled` is on, and `enabledEventTypes` holds exactly three types:
 `LOGIN_ERROR`, `LOGOUT` and `REFRESH_TOKEN_ERROR`. `view-events` is on the
-`main-api` service account beside `manage-users` and `view-users`.
+`main-api` service account beside `manage-users`, `view-users` and
+`view-identity-providers`.
 
 Those three are there for one feature, and they are the things the security page
 needs that **main-api cannot see from the request path**:
@@ -180,6 +181,52 @@ or in `front-runner-realm.json` before a first import.
 The GUI's buttons are wired either way. They send `kc_idp_hint=<alias>`, and
 Keycloak ignores a hint naming a provider that is not enabled, so an
 unconfigured button lands on Keycloak's own login page rather than an error.
+
+## Connecting one to an account that already exists
+
+The security page's SINGLE SIGN-ON (SSO) card reads these providers, connects
+one, and disconnects one. Three of those four verbs are main-api's, through the
+admin API: the instances on this realm, an account's federated identities, and
+deleting one. **Connecting is not**, and cannot be: proving somebody holds a
+Google account means sending a browser to Google, so it is Keycloak's own
+client-initiated account linking that does it, at
+
+```
+/realms/front-runner/broker/<alias>/link?client_id=&redirect_uri=&nonce=&hash=
+```
+
+where the hash is the nonce, the token's `session_state`, the client id and the
+alias, hashed and base64url-encoded. The browser builds it — see
+`identity-provider.ts` in the GUI, which is the only file there that knows a
+provider exists, and `VITE_IDP_LINK_PATH`, which is where the path itself comes
+from.
+
+Two conditions have to hold, and both are this realm's business rather than the
+browser's:
+
+- **The account needs `manage-account-links`**, which comes with the `account`
+  client's `manage-account` role and so with the realm's default role. An
+  account that has had the default role taken away is refused at the endpoint.
+- **The browser needs a session cookie on this realm**, and the hash has to
+  match the session it is for. This is the direct access grant's bill coming
+  due: a login through the GUI's own card mints a token without the browser
+  ever meeting Keycloak, so there is no cookie and the endpoint would answer
+  "session not active". The GUI answers that by sending the browser round the
+  ordinary authorization-code flow first and carrying on with the token that
+  comes back — two legs, written up in
+  [the security page's notes](../main-gui/docs/security-page.md).
+
+Keycloak sends the browser back to `redirect_uri` when it is done, and the GUI
+treats what lands there as a claim rather than an outcome: main-api asks this
+realm whether the provider really is connected before anything is recorded.
+
+**Reading the provider list needs `view-identity-providers`** on the `main-api`
+service account, which is a fourth role beside the three above. This is one of
+the settings a running installation will not have, for the reason at the top of
+the event-log section: the realm file is imported once. On an existing Keycloak
+database it is `make dc3-clean`, or the role added by hand in the admin console
+under Clients, main-api, Service accounts roles. Until then the SSO card says it
+could not read the list, rather than drawing a site that offers nothing.
 
 ## Mail
 

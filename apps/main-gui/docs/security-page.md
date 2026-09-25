@@ -2,7 +2,8 @@
 
 Lives in `src/security` and renders at `/security-and-access`, which is
 Security & Access in the rail. What it holds today is the account's **user
-name**, its **email addresses**, its **password** and its **recent activity**:
+name**, its **email addresses**, its **password**, the **other providers it
+can login from** and its **recent activity**:
 what the account is called, which addresses are on file, which one is the
 login, which of them anybody has proved they can read, when the password was
 last changed and how to change it, and what has lately happened to the account.
@@ -190,7 +191,8 @@ provider's. The database goes first because it is the one that refuses.
 Two consequences worth knowing:
 
 - The realm's `main-api` client has a **service account** holding
-  `manage-users` and `view-users` and nothing else. `--import-realm` only
+  `manage-users`, `view-users`, `view-events` and `view-identity-providers`
+  and nothing else. `--import-realm` only
   applies to an empty Keycloak database, so a stack that predates this needs
   the client configured once by hand.
 - A token is minted once and used until it expires, so the token in the browser
@@ -444,6 +446,141 @@ It exports nothing. The reset vertical exports its service because the security
 page has to be able to send somebody a link; nothing anywhere has a reason to
 change a password on an account's behalf, and an exported service that could
 would be a way to do it without the current password.
+
+## Single sign-on
+
+`sso-list.tsx` and `connection-dialog.tsx`, in a card headed **SINGLE SIGN-ON
+(SSO)** under the password. One row per provider the realm has: the provider's
+mark, what it is called, where this account stands with it, and the one thing
+that can be done about it.
+
+It sits under CHANGE PASSWORD because it is the same subject one step further
+out. A password is the credential this account holds for itself; a connected
+provider is a credential somebody else holds on its behalf. Both are ways in,
+so they sit together, and the one this application can actually change goes
+first.
+
+**The list comes from the realm, not from this bundle.** main-api reads
+Keycloak's identity provider instances and answers every one of them, so a
+realm given a fourth provider grows a fourth row without anything being
+rebuilt. What the browser supplies is the mark: `sso-kinds.ts` knows the three
+the login card offers and falls back to a chain link for anything else, the
+same arrangement `activity-kinds.ts` has for an event type it has not met.
+
+A provider the realm has **switched off is still a row**, saying so and
+offering nothing. An account that connected Google before Google was switched
+off still has it connected, and a card that quietly dropped the row would be
+hiding a credential from the page whose whole job is showing them. Every
+provider in this realm ships switched off, with placeholder credentials, so a
+fresh installation draws three rows and no Connect button at all.
+
+### Connect is a round trip, and the dialog says so first
+
+Pressing **Connect** connects nothing. It hands the browser to the identity
+provider, which hands it to Google, and the page it was pressed on is gone
+until all of that is over. So it opens a dialog first, which says the three
+things somebody would otherwise find out the hard way: this page is about to
+go, there may be a login on the route, and **everything else they login with
+still works afterwards**. That last one is what this card is most often misread
+about: connecting a provider is widely taken to mean replacing the password,
+and it does not.
+
+It is worded as "nothing else you login with" rather than as "your password",
+which is the sentence that is true of every account rather than of most of
+them. An account that arrived through a provider may never have had a
+password, and telling somebody theirs still works is no comfort when they do
+not have one. The same wording is on the toast after a disconnection.
+
+The trip itself is **two legs**, and the reason is worth writing down.
+
+Keycloak runs account linking at `/broker/{alias}/link`, and it will only do it
+for a browser it can see its own session cookie for, checking that cookie
+against the session the token in hand was minted for. **Our login card
+produces neither.** The password grant it runs mints a token without the
+browser ever meeting Keycloak, so there is no cookie and no matching session,
+and somebody who logged in that way would land on Keycloak's own "session not
+active" error page.
+
+So Connect goes the long way round:
+
+| Leg                                                   | What happens                                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `beginAccountLink` → the authorize endpoint           | The alias goes into session storage and the browser takes the ordinary redirect. Silent for anybody who already has a session with Keycloak, one login page for anybody who does not |
+| `/auth/callback` → `resumeAccountLink`                | The code is exchanged as usual, the tokens are adopted, and the browser carries on to the linking endpoint with the new token                                                        |
+| the provider → `/security-and-access?connected=alias` | Keycloak sends the browser to Google, writes the federated identity, and drops it back here                                                                                          |
+
+No hint is sent on the first leg, deliberately. A `kc_idp_hint` would send the
+browser straight on to Google to login as somebody, which is the login card's
+feature; this leg is about the account that is already logged in here.
+
+The linking path is **configuration rather than discovery**:
+`VITE_IDP_LINK_PATH`, with `{provider}` standing in for the alias. OpenID
+Connect has nothing to say about account linking, so there is no entry in the
+discovery document to read, and the nonce-and-hash shape around it is
+Keycloak's own. An empty value means the provider has no such flow, and the
+card then reads without offering to connect anything. It is the same trade
+`VITE_IDP_HINT_PARAMETER` makes for the same reason.
+
+### What comes back on the URL is a claim, not a fact
+
+The provider drops the browser at `/security-and-access?connected=google`.
+Anybody can type that. So the page does not believe it: it takes the alias off
+the address bar, hands it to `confirmSignInMethod`, and **main-api asks
+Keycloak** whether that provider is actually connected to this account before
+it records anything. A trip somebody abandoned at Google comes back looking
+exactly like a finished one, and the only thing that can tell them apart is the
+provider.
+
+The parameter is stripped before the call is made, so a refresh cannot ask
+again, and a ref covers StrictMode's second pass in development. What the page
+says afterwards comes from the answer rather than from the URL: connected, or
+"that connection was not finished, so nothing has changed".
+
+### Disconnecting, and the last way in
+
+**Disconnect** is server-side and immediate, and it asks first for a different
+reason: reconnecting means the whole trip above rather than an undo.
+
+The rule underneath it is the one this card is arranged around. An account
+whose only way in is Google, with no password behind it, is **locked out of
+itself** by that button. So `CanDisconnect` is false on the only connected
+provider of an account with no password credential, the row draws no button at
+all and says why instead, and `disconnectSignInMethod` refuses it as well: the
+card is a moment old by the time somebody presses anything, and the password
+could be the thing that changed. The sentence it refuses with says what to do
+about it, because a no with no way forward is a dead end on somebody's own
+account.
+
+A row with no button rather than a disabled one, which is the rule the address
+table keeps for the primary row's missing bin: a control that refuses when it
+is pressed makes somebody ask the question twice to get an answer the row could
+have given first.
+
+`hasPassword` answering false for a provider that would not say is the safe
+direction, and is deliberate: the page then offers no Disconnect at all, and
+nobody is disconnected from the last way into their own account on the strength
+of an outage.
+
+### What it writes down
+
+Two event types, both recorded only once the provider has confirmed them:
+`SignInMethodConnected` and `SignInMethodDisconnected`. They show up in RECENT
+ACTIVITY under the card, headed "Login provider connected" and "Login provider
+disconnected", and the first carries a warning for the reason `EmailAdded`
+does: a way into your account that you did not add is how an account is quietly
+kept.
+
+### Where it lives
+
+`apps/main-api/src/single-sign-on`, a vertical of its own beside
+`password-change`, and for the same reason that one is separate: the subject is
+different. A password is a credential this application asks for and hands over.
+A connected provider is a credential somebody else holds, which this
+application can only read, confirm and take away.
+
+It has no `connectSignInMethod`, and the absence is the design rather than an
+omission. Connecting ends at Google with a browser, so a mutation named connect
+would be a mutation that could not connect anything.
 
 ## Recent activity
 

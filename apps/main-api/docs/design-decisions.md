@@ -114,7 +114,8 @@ thing its caller does not have. `verifyEmail` is followed from a mailbox;
 `register` is how somebody without an account makes one; `requestPasswordReset`
 and `resetPassword` are for somebody who cannot login at all. All four go
 through the realm's admin API using the service account on the `main-api`
-client, which holds `manage-users` and `view-users` and nothing else. Every
+client, which holds `manage-users`, `view-users`, `view-events` and
+`view-identity-providers` and nothing else. Every
 other operation in the schema is refused without a token, and
 `app.module.test.ts` asserts exactly that, one operation at a time.
 

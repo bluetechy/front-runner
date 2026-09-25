@@ -285,7 +285,12 @@
       "enabled": true,
       "serviceAccountClientId": "main-api",
       "clientRoles": {
-        "realm-management": ["manage-users", "view-users", "view-events"]
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "view-events",
+          "view-identity-providers"
+        ]
       }
     }
   ],

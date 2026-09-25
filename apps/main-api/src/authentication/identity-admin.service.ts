@@ -1,13 +1,14 @@
 // What this API needs from whoever holds the accounts.
 //
-// Ten operations and no more. This application's own truth -- profiles,
+// Fourteen operations and no more. This application's own truth -- profiles,
 // organizations, the email addresses somebody has proved they read -- lives in
 // dbo, so the identity provider is only ever asked about the credential half:
 // which account somebody named, what address it logs in with, what its
 // password is, when that password was last set, whether somebody typing one
-// has it right, which attempts to use it were refused, and which sessions are
-// open or have ended. That is what keeps this list short, and a short list is
-// what keeps the provider replaceable.
+// has it right, which other providers it can be logged in from and which of
+// those it has already been, which attempts to use it were refused, and which
+// sessions are open or have ended. That is what keeps this list short, and a
+// short list is what keeps the provider replaceable.
 //
 // Every one of them is an intent rather than an errand. `endOtherSessions`
 // takes the session to keep instead of answering with a list for somebody else
@@ -81,6 +82,36 @@ export interface EndedSession {
   // somebody revoked all look like from outside. It picks which sentence the
   // page shows and nothing else.
   deliberate: boolean;
+}
+
+// Somewhere else an account can be logged in from: Google, an employer's SAML,
+// whatever the realm has been given.
+//
+// `name` is what the provider was told to call it on a button, which is not
+// the alias: aliases are slugs and "apple" is displayed as "Apple ID". The
+// security page shows the name and addresses everything by the alias.
+//
+// `enabled` is the honest half. Every provider this realm knows about is
+// answered, switched on or not, because "we do not offer Google" and "Google
+// is configured but turned off this week" are the same row to somebody reading
+// the page and a different thing to whoever has to fix it. The card draws the
+// switched-off ones and does not offer to connect them.
+export interface LoginProvider {
+  alias: string;
+  name: string;
+  enabled: boolean;
+}
+
+// One of those providers, already connected to an account.
+//
+// The alias says which, and `userName` is what the account is called over
+// there: the Google address, the Apple relay address. It is shown under the
+// provider's name on the security page so that somebody with two Google
+// accounts can see which of them they connected, and it is null where the
+// provider handed back nothing to show.
+export interface LinkedLogin {
+  alias: string;
+  userName: string | null;
 }
 
 export abstract class IdentityAdminService {
@@ -206,4 +237,50 @@ export abstract class IdentityAdminService {
   // Implementations throw ServiceUnavailableException on the same terms as
   // loginFailures. An empty list means it answered and there were none.
   abstract endedSessions(limit: number): Promise<EndedSession[]>;
+
+  // Every other provider this realm will let an account login from.
+  //
+  // The realm's list rather than ours: the three buttons on the login card are
+  // aliases the browser sends as a hint, and which aliases actually exist is
+  // the provider's answer to give. A realm with a fourth provider gets a
+  // fourth row on the security page without this application being rebuilt.
+  //
+  // Implementations throw ServiceUnavailableException when the provider cannot
+  // be reached. An empty list means it answered and there are none, which is
+  // what an installation that has not been given any Google credentials says.
+  abstract loginProviders(): Promise<LoginProvider[]>;
+
+  // Which of them this account has already connected.
+  //
+  // A subset of the above by alias, and never more than one row per provider:
+  // an account is one account at Google. The security page joins the two lists
+  // rather than asking for a joined one, because what a provider can tell you
+  // about a realm and what it can tell you about an account are two different
+  // reads wherever they are made.
+  abstract linkedLogins(subjectId: string): Promise<LinkedLogin[]>;
+
+  // Disconnect one of them.
+  //
+  // It does not decide whether disconnecting is safe. That is a question about
+  // the account's other ways in -- a password, another provider -- and the
+  // caller is what knows the answer, because it has just read both lists to
+  // draw the page. A port that refused on its own would be answering a product
+  // question in provider vocabulary.
+  //
+  // Disconnecting a provider that is not connected is not an error. The page
+  // it is asked from is a moment old by the time somebody presses the button,
+  // and the end state is the one that was asked for either way.
+  abstract unlinkLogin(subjectId: string, alias: string): Promise<void>;
+
+  // Whether the account can still login with a password.
+  //
+  // Here for one caller and one decision: whether disconnecting the last
+  // connected provider would lock somebody out of their own account. An
+  // account made through our sign-up form always has one; an account that
+  // arrived through Google may never have had one at all.
+  //
+  // False is also what an implementation answers when the provider will not
+  // say, which is the safe direction: the page offers no Disconnect, and
+  // somebody is inconvenienced rather than locked out.
+  abstract hasPassword(subjectId: string): Promise<boolean>;
 }

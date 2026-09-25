@@ -9,16 +9,18 @@ import {
   IdentityAdminService,
   type Account,
   type EndedSession,
+  type LinkedLogin,
   type LoginFailure,
+  type LoginProvider,
   type NewAccount,
 } from "./identity-admin.service.js";
 
 // IdentityAdminService against Keycloak's admin API. The only file in this
 // API that knows Keycloak has realms, and the only one that would be replaced
 // wholesale by a move to another provider -- see identity-admin.service.ts for
-// the seven operations it answers and why there are only seven.
+// the operations it answers and why there are only fourteen.
 //
-// Four things, in the language of that port.
+// Five things, in the language of that port.
 //
 // Changing the address an account logs in with: Keycloak holds one address per
 // user and it is the credential, so making an address primary on the security
@@ -38,6 +40,14 @@ import {
 // token belongs to. Keycloak will mail its own reset link, but only its own,
 // pointing at its own page -- so the link is ours and the password is set here
 // once somebody has followed it. See apps/main-api/src/password-reset.
+//
+// And the other providers an account can login from: which ones the realm has,
+// which of them an account has already connected, and disconnecting one. The
+// connecting itself is not here and cannot be -- it needs a browser, because
+// only a browser can be sent to Google and asked. Keycloak runs that flow at
+// its own /broker/{alias}/link endpoint and the security page hands the
+// browser to it; what this service does is the reading either side of it and
+// the taking away. See apps/main-api/src/single-sign-on.
 //
 // And reading back which logins the realm refused, which is the one thing here
 // that is not about an account somebody named. A refused password mints no
@@ -379,6 +389,114 @@ export class KeycloakAdminService extends IdentityAdminService {
     return ended;
   }
 
+  // Every identity provider the realm has been given, in the order it holds
+  // them, which is the order the security page draws them in.
+  //
+  // This is the one read here that is about the realm rather than about an
+  // account, and it needs view-identity-providers on the service account
+  // beside the three roles the rest of this file needs. A realm that answers
+  // 403 to it is one whose role mapping predates this feature: see
+  // apps/keycloak-idp/README.md.
+  //
+  // Nothing is filtered out. A provider switched off is still a row on the
+  // page, which is what tells somebody their Google connection is still there
+  // and cannot be used this week.
+  async loginProviders(): Promise<LoginProvider[]> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/identity-provider/instances`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not say what login providers it has",
+      );
+    }
+
+    const instances: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(instances)) return [];
+    return instances
+      .map(readLoginProvider)
+      .filter((provider): provider is LoginProvider => provider !== null);
+  }
+
+  // What Keycloak calls an account's federated identities.
+  //
+  // The name it hands back is `userName`, which for Google is the address the
+  // account is known by over there and for Apple is whatever relay address was
+  // issued. Empty is read as null: a blank line under a provider's name is
+  // worse than no line.
+  async linkedLogins(subjectId: string): Promise<LinkedLogin[]> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/federated-identity`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not say which logins this account has connected",
+      );
+    }
+
+    const links: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(links)) return [];
+    return links
+      .map(readLinkedLogin)
+      .filter((link): link is LinkedLogin => link !== null);
+  }
+
+  // Take one away.
+  //
+  // 404 is success here rather than a failure, which is the port's rule: it
+  // means the account has no such connection, which is the state that was
+  // asked for. Keycloak answers it for an alias the realm does not have at all
+  // as well, and that is the same answer for the same reason -- there is
+  // nothing connected and nothing to take away.
+  async unlinkLogin(subjectId: string, alias: string): Promise<void> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/federated-identity/${encodeURIComponent(alias)}`,
+      { method: "DELETE" },
+    );
+
+    if (response.ok || response.status === 404) return;
+    if (response.status === 401 || response.status === 403) this.token = null;
+    throw new ServiceUnavailableException(
+      "The identity provider would not disconnect that login",
+    );
+  }
+
+  // Whether a password credential is on the account.
+  //
+  // The same list passwordChangedAt reads, asked a coarser question, and the
+  // two are deliberately not one call: this one is asked while drawing a page
+  // about connected logins, and a shared "credentials" reader would be a
+  // second place for a Keycloak shape to be known.
+  //
+  // A provider that will not answer reads as false, which is the direction the
+  // port names: the page then offers no Disconnect at all, and nobody is
+  // disconnected from the last way into their own account on the strength of
+  // an outage.
+  async hasPassword(subjectId: string): Promise<boolean> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      return false;
+    }
+
+    const credentials: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(credentials)) return false;
+    return credentials.some(
+      (credential: unknown) =>
+        (credential as { type?: unknown } | null)?.type === "password",
+    );
+  }
+
   // Keycloak's user event log, filtered to the logins it refused.
   async loginFailures(limit: number): Promise<LoginFailure[]> {
     const events = await this.events(["LOGIN_ERROR"], limit);
@@ -627,6 +745,53 @@ function readAccount(body: unknown): Account | null {
     username: account.username,
     email: account.email,
     firstName: typeof account.firstName === "string" ? account.firstName : "",
+  };
+}
+
+// One identity provider instance, read down to the three things a page shows.
+//
+// The display name is what the realm was told to call it and is frequently
+// empty, because Keycloak only asks for one when the alias is not the whole
+// answer. An empty one falls back to the alias rather than drawing a blank
+// row, and the browser is what knows "google" should read as Google: see
+// apps/main-gui/src/security/sso-kinds.ts.
+//
+// `enabled` missing reads as enabled, because that is Keycloak's own default
+// for a provider it has been given credentials for.
+function readLoginProvider(body: unknown): LoginProvider | null {
+  const instance = body as {
+    alias?: unknown;
+    displayName?: unknown;
+    enabled?: unknown;
+  } | null;
+  if (!instance || typeof instance.alias !== "string" || !instance.alias)
+    return null;
+  const name =
+    typeof instance.displayName === "string" && instance.displayName
+      ? instance.displayName
+      : instance.alias;
+  return { alias: instance.alias, name, enabled: instance.enabled !== false };
+}
+
+// One federated identity, which is Keycloak's name for a provider an account
+// has connected. The alias is on it as "identityProvider"; the id it holds
+// over there is on it too and is deliberately not read, because nothing shows
+// it and it is the one part of this that is somebody else's identifier.
+function readLinkedLogin(body: unknown): LinkedLogin | null {
+  const link = body as {
+    identityProvider?: unknown;
+    userName?: unknown;
+  } | null;
+  if (
+    !link ||
+    typeof link.identityProvider !== "string" ||
+    !link.identityProvider
+  )
+    return null;
+  return {
+    alias: link.identityProvider,
+    userName:
+      typeof link.userName === "string" && link.userName ? link.userName : null,
   };
 }
 

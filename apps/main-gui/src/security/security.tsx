@@ -1,9 +1,9 @@
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { useSession } from "../authentication";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { beginAccountLink, useSession } from "../authentication";
 import { CardSurface } from "../card-surface";
 import { Toast, type Notice } from "../toast";
 import { ActivityDialog } from "./activity-dialog";
@@ -13,6 +13,9 @@ import { EmailList } from "./email-list";
 import { PasswordCard } from "./password-card";
 import { usePassword } from "./password-api";
 import type { ChangePasswordForm } from "./password-schema";
+import { ConnectionDialog, type ConnectionRequest } from "./connection-dialog";
+import { SsoList } from "./sso-list";
+import { useSignInMethods, type SignInMethod } from "./sso-api";
 import { UserNameCard } from "./user-name-card";
 import { PrivacyCard } from "./privacy-card";
 import { useEmails, type UserEmail } from "./email-api";
@@ -35,8 +38,14 @@ import { useEmails, type UserEmail } from "./email-api";
  * `notice` is how the page says something back: that an address was added,
  * that a link is on its way, or that the API refused. One at a time, which is
  * what `Toast` is for.
+ *
+ * `connected` is the one thing this page is told from outside, and it arrives
+ * on the URL: the provider drops the browser back here after a connection with
+ * the alias it was asked to connect. It is a hint about what to go and check,
+ * never a fact -- anybody can type one -- so the page hands it to the API,
+ * which asks the provider before it believes a word of it.
  */
-export function Security() {
+export function Security({ connected }: { connected?: string }) {
   const {
     addresses,
     isPrivate,
@@ -60,6 +69,14 @@ export function Security() {
     loading: loadingPassword,
     change: changePassword,
   } = usePassword();
+  const {
+    methods,
+    loading: loadingMethods,
+    error: methodsError,
+    disconnect,
+    confirm: confirmConnection,
+  } = useSignInMethods();
+  const navigate = useNavigate();
 
   /* Which row has a save in flight. One at a time is enough: every write
    * rewrites the whole list, so a second one started underneath the first
@@ -69,6 +86,12 @@ export function Security() {
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+
+  /* Which provider is being asked about, and whether its answer is in flight.
+   * The request is held rather than an alias, so the dialog keeps drawing the
+   * row it was opened on through its own closing transition. */
+  const [connection, setConnection] = useState<ConnectionRequest | null>(null);
+  const [busyAlias, setBusyAlias] = useState<string | null>(null);
 
   /* Which event the dialog is looking at, and whether its answer is in flight.
    * The event is held rather than an id, so the dialog keeps drawing the row it
@@ -121,6 +144,97 @@ export function Security() {
       report(failure, "Your password was not changed.");
     } finally {
       setChangingPassword(false);
+    }
+  }
+
+  /*
+   * The browser is back from a provider, and the URL says which one.
+   *
+   * It runs once. The alias is taken off the URL before the call is made, so a
+   * reload cannot ask the question twice, and the ref covers StrictMode's
+   * second pass in development, which would otherwise record one connection as
+   * two.
+   *
+   * What it says back comes from the API's answer rather than from the URL: a
+   * trip somebody abandoned at Google comes back here the same way a finished
+   * one does, and the only difference between them is what the provider says
+   * when it is asked.
+   */
+  const confirmed = useRef<string | null>(null);
+  useEffect(() => {
+    if (!connected || confirmed.current === connected) return;
+    confirmed.current = connected;
+
+    /* Off the URL first: what is on the address bar is a claim, and leaving it
+     * there would have a refresh make it again. */
+    void navigate({ to: "/security-and-access", replace: true });
+
+    confirmConnection(connected)
+      .then((method) =>
+        setNotice(
+          method?.Connected
+            ? {
+                message: `${method.Name} is now connected to your account. You can login with it from now on.`,
+                tone: "success",
+              }
+            : {
+                message:
+                  "That connection was not finished, so nothing has changed. You can try it again from the Single Sign-On card.",
+                tone: "error",
+              },
+        ),
+      )
+      /* Said here rather than through `report`, which is rebuilt on every
+       * render and would have this effect run again every time it did. The
+       * sentence is the same one `report` would have chosen. */
+      .catch((failure: unknown) =>
+        setNotice({
+          message:
+            failure instanceof Error
+              ? failure.message
+              : "That connection could not be checked.",
+          tone: "error",
+        }),
+      );
+  }, [connected, confirmConnection, navigate]);
+
+  /* Connecting leaves the page: the browser goes to the identity provider,
+   * then to the provider itself, and comes back to this route with the alias
+   * on the URL. Nothing here waits for it, because there is nothing to wait
+   * for -- the page is gone the moment it starts. The row is only left busy so
+   * that a second press cannot start a second trip. */
+  async function connecting(request: ConnectionRequest) {
+    setBusyAlias(request.method.Alias);
+    try {
+      await beginAccountLink(request.method.Alias);
+    } catch (failure: unknown) {
+      report(failure, `We could not reach ${request.method.Name}.`);
+      setConnection(null);
+      setBusyAlias(null);
+    }
+  }
+
+  async function disconnecting(request: ConnectionRequest) {
+    setBusyAlias(request.method.Alias);
+    try {
+      await disconnect(request.method.Alias);
+      setConnection(null);
+      setNotice({
+        /* Two things happened and the sentence says both, the way the
+         * primary-address one does: what stopped working, and what did not.
+         * Somebody who is not told the rest still works will assume they have
+         * just locked themselves out.
+         *
+         * "Everything else you login with" rather than "your password",
+         * because an account that arrived through a provider may never have
+         * had one and would read the reassurance as a lie. */
+        message: `${request.method.Name} was disconnected. Everything else you login with still works.`,
+        tone: "success",
+      });
+    } catch (failure: unknown) {
+      report(failure, `${request.method.Name} was not disconnected.`);
+    } finally {
+      setBusyAlias(null);
     }
   }
 
@@ -309,6 +423,49 @@ export function Security() {
         onChange={(form, done) => void changing(form, done)}
       />
 
+      {/* Under the password, because it is the same subject one step further
+       * out: the password is the way in this account holds itself, and these
+       * are the ways in somebody else holds for it. Both are credentials, so
+       * they sit together, and the one this application can actually change
+       * comes first. */}
+      <CardSurface
+        title="Single Sign-On (SSO)"
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+      >
+        {/* The list could not be read at all, which is a different thing from
+         * a site that offers nothing and must not look like one. */}
+        {methodsError ? (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            {methodsError}
+          </Alert>
+        ) : null}
+
+        <Typography
+          sx={{
+            mb: 1,
+            fontSize: "0.82rem",
+            lineHeight: 1.7,
+            color: (theme) => theme.palette.brand.cardInkMuted,
+          }}
+        >
+          Connect an account you already have somewhere else and you can login
+          with it instead of typing a password. Connecting one replaces nothing:
+          it is another way in, and you can take it away again here.
+        </Typography>
+
+        <SsoList
+          methods={methods}
+          loading={loadingMethods}
+          busyAlias={busyAlias}
+          onConnect={(method: SignInMethod) =>
+            setConnection({ method, action: "connect" })
+          }
+          onDisconnect={(method: SignInMethod) =>
+            setConnection({ method, action: "disconnect" })
+          }
+        />
+      </CardSurface>
+
       {/* Last, because it is the record of what has been done to the addresses
        * and to everything else about getting in: the page says what the
        * account is, then what can be changed about it, then what has changed.
@@ -349,6 +506,17 @@ export function Security() {
           onOpen={(event) => setViewing(event)}
         />
       </CardSurface>
+
+      <ConnectionDialog
+        request={connection}
+        busy={busyAlias !== null}
+        onClose={() => setConnection(null)}
+        onConfirm={(request) =>
+          void (request.action === "connect"
+            ? connecting(request)
+            : disconnecting(request))
+        }
+      />
 
       <ActivityDialog
         event={viewing}

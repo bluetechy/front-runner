@@ -37,6 +37,18 @@ const changePassword = vi.fn();
 
 vi.mock("./password-api", () => ({ usePassword: () => password() }));
 
+const signInMethods = vi.fn();
+const disconnect = vi.fn();
+const confirmConnection = vi.fn();
+
+vi.mock("./sso-api", () => ({ useSignInMethods: () => signInMethods() }));
+
+/* Connecting a provider leaves the page: the real one hands the browser to the
+ * identity provider, which jsdom has nowhere to go with. What is under test
+ * here is that it is called for the right provider and only after the dialog
+ * has said what is about to happen. */
+const beginAccountLink = vi.fn();
+
 /* The user name is read off the token rather than fetched, so the page asks
  * the session for it directly.
  *
@@ -49,7 +61,10 @@ vi.mock("../authentication", async (importOriginal) => ({
   useSession: () => ({
     identity: { name: "Marcus Member", loginName: "member", email: "m@e.test" },
   }),
+  beginAccountLink: (alias: string) => beginAccountLink(alias),
 }));
+
+const navigate = vi.fn();
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -64,6 +79,7 @@ vi.mock("@tanstack/react-router", () => ({
       {children}
     </a>
   ),
+  useNavigate: () => navigate,
 }));
 
 const { Security } = await import("./security");
@@ -134,10 +150,38 @@ const holding = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   });
 
-const renderPage = () =>
+const google = {
+  Alias: "google",
+  Name: "Google",
+  Available: true,
+  Connected: false,
+  ConnectedAs: null,
+  CanDisconnect: false,
+};
+
+const apple = {
+  Alias: "apple",
+  Name: "Apple ID",
+  Available: false,
+  Connected: false,
+  ConnectedAs: null,
+  CanDisconnect: false,
+};
+
+const offering = (overrides: Record<string, unknown> = {}) =>
+  signInMethods.mockReturnValue({
+    methods: [google, apple],
+    loading: false,
+    error: null,
+    disconnect,
+    confirm: confirmConnection,
+    ...overrides,
+  });
+
+const renderPage = (connected?: string) =>
   render(
     <ThemeProvider theme={theme}>
-      <Security />
+      <Security connected={connected} />
     </ThemeProvider>,
   );
 
@@ -145,14 +189,29 @@ beforeEach(() => {
   emails.mockReset();
   activity.mockReset();
   password.mockReset();
-  for (const call of [add, remove, setPrimary, resend, setPrivacy, review])
+  signInMethods.mockReset();
+  navigate.mockReset();
+  for (const call of [
+    add,
+    remove,
+    setPrimary,
+    resend,
+    setPrivacy,
+    review,
+    disconnect,
+    beginAccountLink,
+  ])
     call.mockReset().mockResolvedValue(undefined);
   changePassword
     .mockReset()
     .mockResolvedValue({ ChangedAt: null, OtherSessionsEnded: 0 });
+  confirmConnection
+    .mockReset()
+    .mockResolvedValue({ ...google, Connected: true });
   answering();
   logging();
   holding();
+  offering();
 });
 
 describe("the page itself", () => {
@@ -164,11 +223,12 @@ describe("the page itself", () => {
     ).toBeInTheDocument();
   });
 
-  // Five cards, headed the same way, and the order is the argument: what the
+  // Six cards, headed the same way, and the order is the argument: what the
   // account is called and cannot change, then the addresses that can, then who
-  // else is shown them, then the password all of that rests on, then what has
-  // lately been done to any of it.
-  it("holds the user name, the addresses, the switch, the password and the activity, in that order", () => {
+  // else is shown them, then the password all of that rests on, then the other
+  // credentials somebody else holds for this account, then what has lately
+  // been done to any of it.
+  it("holds the user name, the addresses, the switch, the password, the providers and the activity, in that order", () => {
     renderPage();
 
     /* The tables' own column headings are drawn with the same label, so the
@@ -178,6 +238,7 @@ describe("the page itself", () => {
       "Email Addresses",
       "Email Privacy",
       "Change Password",
+      "Single Sign-On (SSO)",
       "Recent Activity",
     ];
 
@@ -648,5 +709,224 @@ describe("the change-password card", () => {
       await screen.findByText("A password needs at least 12 characters"),
     ).toBeInTheDocument();
     expect(changePassword).not.toHaveBeenCalled();
+  });
+});
+
+describe("the single sign-on card", () => {
+  it("offers what the realm has, and says what each one is for", () => {
+    renderPage();
+
+    expect(screen.getByText("Google")).toBeInTheDocument();
+    expect(
+      screen.getByText("Login with your Google account."),
+    ).toBeInTheDocument();
+  });
+
+  // A provider the realm has switched off is still a row: an account that
+  // connected it before it was switched off still has it connected.
+  it("draws a provider that is switched off, and offers nothing on it", () => {
+    renderPage();
+
+    expect(
+      screen.getByText("Apple ID is not switched on here yet."),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(1);
+  });
+
+  // Pressing Connect does not connect anything: it hands the browser to the
+  // identity provider and the page goes away. Saying so first is the whole
+  // reason the dialog exists.
+  it("says what is about to happen before it leaves the page", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Connect Google" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/This page will go to Google/)).toBeInTheDocument();
+    expect(beginAccountLink).not.toHaveBeenCalled();
+  });
+
+  // The question this card is asked most: connecting a provider is widely read
+  // as replacing the password, and it does not. Said as "nothing else you
+  // login with", because an account that arrived through a provider may never
+  // have had a password.
+  it("says everything else keeps working", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(
+      screen.getByText(
+        "Nothing else you login with changes, and it all keeps working.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("starts the trip for the provider that was asked about", async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to Google" }));
+
+    await waitFor(() =>
+      expect(beginAccountLink).toHaveBeenCalledWith("google"),
+    );
+  });
+
+  it("says so rather than leaving a dead button when the trip cannot start", async () => {
+    beginAccountLink.mockRejectedValue(
+      new Error("Could not reach the identity provider."),
+    );
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to Google" }));
+
+    expect(
+      await screen.findByText("Could not reach the identity provider."),
+    ).toBeInTheDocument();
+  });
+
+  it("does not ask twice", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Connect Google" }),
+    ).not.toBeInTheDocument();
+    expect(beginAccountLink).not.toHaveBeenCalled();
+  });
+});
+
+describe("disconnecting a provider", () => {
+  const connected = {
+    ...google,
+    Connected: true,
+    ConnectedAs: "marcus@gmail.test",
+    CanDisconnect: true,
+  };
+
+  it("says what the account is called at the provider", () => {
+    offering({ methods: [connected] });
+    renderPage();
+
+    expect(
+      screen.getByText("Connected as marcus@gmail.test."),
+    ).toBeInTheDocument();
+  });
+
+  it("asks before taking it away, and says what keeps working", () => {
+    offering({ methods: [connected] });
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Disconnect Google" }),
+    ).toBeInTheDocument();
+    expect(disconnect).not.toHaveBeenCalled();
+  });
+
+  it("disconnects it and says both halves of what happened", async () => {
+    offering({ methods: [connected] });
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect Google" }));
+
+    await waitFor(() => expect(disconnect).toHaveBeenCalledWith("google"));
+    expect(
+      await screen.findByText(
+        "Google was disconnected. Everything else you login with still works.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("reports a refusal rather than saying it worked", async () => {
+    offering({ methods: [connected] });
+    disconnect.mockRejectedValue(new Error("Action cannot be performed."));
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect Google" }));
+
+    expect(
+      await screen.findByText("Action cannot be performed."),
+    ).toBeInTheDocument();
+  });
+
+  // The account whose only way in is this provider. The button is not drawn at
+  // all, and the row says why instead of leaving a control that refuses.
+  it("offers nothing on the account's only way in, and says why", () => {
+    offering({ methods: [{ ...connected, CanDisconnect: false }] });
+    renderPage();
+
+    expect(
+      screen.getByText(/It is your only way to login/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Disconnect" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("coming back from a provider", () => {
+  it("checks the claim on the URL with the API rather than believing it", async () => {
+    renderPage("google");
+
+    await waitFor(() =>
+      expect(confirmConnection).toHaveBeenCalledWith("google"),
+    );
+    expect(
+      await screen.findByText(
+        "Google is now connected to your account. You can login with it from now on.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  // A trip somebody abandoned at the provider comes back the same way a
+  // finished one does. The only difference is what the provider says when the
+  // API asks it.
+  it("says nothing changed when the provider did not connect it", async () => {
+    confirmConnection.mockResolvedValue({ ...google, Connected: false });
+    renderPage("google");
+
+    expect(
+      await screen.findByText(
+        "That connection was not finished, so nothing has changed. You can try it again from the Single Sign-On card.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing at all when there is no claim on the URL", () => {
+    renderPage();
+
+    expect(confirmConnection).not.toHaveBeenCalled();
+  });
+
+  /* Off the address bar before the call is made, so that a refresh cannot ask
+   * the question a second time. */
+  it("takes the claim off the URL", async () => {
+    renderPage("google");
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/security-and-access",
+        replace: true,
+      }),
+    );
+  });
+
+  it("reports a check that could not be made", async () => {
+    confirmConnection.mockRejectedValue(new Error("Your session has expired."));
+    renderPage("google");
+
+    expect(
+      await screen.findByText("Your session has expired."),
+    ).toBeInTheDocument();
   });
 });

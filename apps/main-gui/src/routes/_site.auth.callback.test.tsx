@@ -5,7 +5,8 @@ import { theme } from "../design-system";
 
 /*
  * Where every redirect flow comes back to: the three social providers, the
- * registration form, and the password reset.
+ * registration form, the password reset, and the first leg of connecting a
+ * provider from the security page.
  *
  * Two things here are easy to get wrong and expensive when they are. The
  * first is the state check -- a code arriving with a state we did not send is
@@ -13,6 +14,11 @@ import { theme } from "../design-system";
  * them. The second is that the code and the verifier are each good for
  * exactly one exchange, so StrictMode's second pass in development must not
  * spend them again and then report a sign-in that worked as unverifiable.
+ *
+ * The third is the link leg, which is the one flow that does not end here: it
+ * carries on to the provider with the token this exchange just produced. What
+ * matters is that a link that cannot be carried on is still a login, because
+ * the account is signed in either way.
  */
 
 const exchangeAuthorizationCode = vi.fn();
@@ -20,10 +26,14 @@ const takeRedirectVerifier = vi.fn();
 const adoptTokens = vi.fn();
 const navigate = vi.fn();
 const search = vi.fn();
+const takePendingAccountLink = vi.fn();
+const resumeAccountLink = vi.fn();
 
 vi.mock("../authentication", () => ({
   exchangeAuthorizationCode,
   takeRedirectVerifier,
+  takePendingAccountLink,
+  resumeAccountLink,
   useSession: () => ({ adoptTokens }),
 }));
 
@@ -64,6 +74,8 @@ beforeEach(() => {
   takeRedirectVerifier.mockReset().mockReturnValue("a-verifier");
   adoptTokens.mockReset();
   navigate.mockReset().mockResolvedValue(undefined);
+  takePendingAccountLink.mockReset().mockReturnValue(null);
+  resumeAccountLink.mockReset().mockResolvedValue(true);
 });
 
 describe("what the page says", () => {
@@ -155,5 +167,61 @@ describe("rendered twice, the way development renders everything twice", () => {
     await waitFor(() => expect(adoptTokens).toHaveBeenCalled());
     expect(exchangeAuthorizationCode).toHaveBeenCalledTimes(1);
     expect(takeRedirectVerifier).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The one flow that does not end here.
+ *
+ * Connecting a provider from the security page takes this trip first, because
+ * the token our own login card mints names a session the browser holds no
+ * cookie for and the provider's linking endpoint would refuse it. So the card
+ * sends the browser round the ordinary way and carries on from here with the
+ * token that comes back.
+ */
+describe("the first leg of connecting a provider", () => {
+  it("carries on to the provider instead of landing on the dashboard", async () => {
+    takePendingAccountLink.mockReturnValue("google");
+    renderCallback({ code: "a-code", state: "a-state" });
+
+    await waitFor(() =>
+      expect(resumeAccountLink).toHaveBeenCalledWith("google", tokens),
+    );
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // The account is signed in either way, and that is the half that must not be
+  // lost: a provider with no linking endpoint, or a token naming no session,
+  // is an ordinary login rather than a failure.
+  it("lands on the dashboard when the connection cannot be carried on", async () => {
+    takePendingAccountLink.mockReturnValue("google");
+    resumeAccountLink.mockResolvedValue(false);
+    renderCallback({ code: "a-code", state: "a-state" });
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/dashboard",
+        replace: true,
+      }),
+    );
+  });
+
+  it("adopts the tokens before it goes anywhere", async () => {
+    takePendingAccountLink.mockReturnValue("google");
+    renderCallback({ code: "a-code", state: "a-state" });
+
+    await waitFor(() => expect(adoptTokens).toHaveBeenCalledWith(tokens, true));
+  });
+
+  it("leaves an ordinary login alone", async () => {
+    renderCallback({ code: "a-code", state: "a-state" });
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/dashboard",
+        replace: true,
+      }),
+    );
+    expect(resumeAccountLink).not.toHaveBeenCalled();
   });
 });

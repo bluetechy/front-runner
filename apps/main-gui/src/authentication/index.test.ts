@@ -10,6 +10,11 @@ import {
   exchangeAuthorizationCode,
   takeRedirectVerifier,
 } from "./identity-provider";
+import {
+  beginAccountLink,
+  resumeAccountLink,
+  takePendingAccountLink,
+} from "./account-link";
 
 /*
  * What the rest of the app may reach for.
@@ -24,10 +29,16 @@ import {
  * dialog's business, and a page that could call one of them could sign
  * somebody in without the provider knowing. The two that are here are the
  * callback route's, which finishes a redirect this vertical started.
+ *
+ * The three account-link functions are here for the same reason and are split
+ * the same way: the security page starts a connection, the callback route
+ * finishes it, and neither of them may build a provider URL of its own. That
+ * stays in `identity-provider.ts`, which is the one file that knows a provider
+ * exists.
  */
 
 describe("what authentication offers the rest of the app", () => {
-  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, and the password rules", () => {
+  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, the password rules, and account linking", () => {
     expect(Object.keys(authentication).toSorted()).toEqual([
       "ForgotPasswordDialog",
       "LoginDialog",
@@ -37,10 +48,13 @@ describe("what authentication offers the rest of the app", () => {
       "ResetPassword",
       "SessionProvider",
       "SignUpDialog",
+      "beginAccountLink",
       "checkPassword",
       "exchangeAuthorizationCode",
       "passwordProgress",
       "passwordSchema",
+      "resumeAccountLink",
+      "takePendingAccountLink",
       "takeRedirectVerifier",
       "useLoginPrompt",
       "useSession",
@@ -69,6 +83,9 @@ describe("what authentication offers the rest of the app", () => {
       exchangeAuthorizationCode,
     );
     expect(authentication.takeRedirectVerifier).toBe(takeRedirectVerifier);
+    expect(authentication.beginAccountLink).toBe(beginAccountLink);
+    expect(authentication.takePendingAccountLink).toBe(takePendingAccountLink);
+    expect(authentication.resumeAccountLink).toBe(resumeAccountLink);
   });
 
   it.each([
@@ -77,6 +94,10 @@ describe("what authentication offers the rest of the app", () => {
     "endSession",
     "startRedirect",
     "readIdentity",
+    /* The provider's linking URL, which is built from a token's session and
+     * hashed the way that provider wants. A page that could build one could
+     * send somebody to a provider with a hash of its own choosing. */
+    "accountLinkUrl",
   ])("keeps %s to itself", (name) => {
     expect(Object.keys(authentication)).not.toContain(name);
   });

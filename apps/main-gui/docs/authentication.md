@@ -201,6 +201,23 @@ button goes to the hosted page. Filling in the credentials and
 flipping `enabled` is the whole activation — see
 [`apps/keycloak-idp/README.md`](../../keycloak-idp/README.md).
 
+The same three providers are on the security page, where the question is the
+other way round: connecting one to an account that already exists. That is
+Keycloak's own account-linking endpoint rather than a login, and the browser
+reaches it through `accountLinkUrl` in `identity-provider.ts` — the one address
+in that file discovery does not publish, since OpenID Connect has nothing to
+say about linking. `VITE_IDP_LINK_PATH` is where the path comes from, with
+`{provider}` standing in for the alias, and an empty value turns the Connect
+buttons off the way an empty hint parameter turns the social buttons into
+trips to the hosted page.
+
+**Connecting takes two legs**, and the reason is the password grant below: a
+token minted without the browser ever meeting Keycloak names a session the
+browser holds no cookie for, and the linking endpoint refuses it. So Connect
+takes the ordinary redirect first and carries on with the token that comes
+back. The whole flow is written up in
+[the security page's notes](./security-page.md).
+
 ## Changing identity provider
 
 Keycloak is a choice, not an assumption, and the code is arranged so that the
@@ -210,6 +227,7 @@ choice is small. What a swap actually costs:
 | ------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | `VITE_IDP_ISSUER_URL`, `VITE_IDP_CLIENT_ID`      | Point at the new issuer. Every endpoint follows from discovery                       |
 | `VITE_IDP_HINT_PARAMETER`                        | The new provider's name for the social hint, or empty                                |
+| `VITE_IDP_LINK_PATH`                             | Where the new provider links an account, or empty if it has no such flow             |
 | `IDP_ISSUER_URL`, `IDP_JWKS_URL`, `IDP_AUDIENCE` | `main-api`'s half of the same three facts                                            |
 | `IDP_ACCESS_TOKEN_TYPE`                          | What the provider stamps `typ` with. Keycloak writes `Bearer`                        |
 | `apps/main-api/src/authentication/`              | A new file beside `keycloak-admin.service.ts`, and one `useClass` line in the module |

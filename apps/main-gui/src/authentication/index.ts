@@ -23,3 +23,12 @@ export {
 // And the drawing of them, because all three cards that set a password show
 // the same list ticking as it is met.
 export { PasswordChecklist } from "./password-checklist";
+// Connecting a provider to an account that is already logged in, which is the
+// security page's SSO card asking and the auth callback finishing. The two
+// halves are here because the trip goes through the provider and this is the
+// vertical that knows one exists.
+export {
+  beginAccountLink,
+  resumeAccountLink,
+  takePendingAccountLink,
+} from "./account-link";

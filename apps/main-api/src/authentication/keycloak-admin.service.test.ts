@@ -918,3 +918,233 @@ describe("reading back the sessions the realm says have finished", () => {
     expect(await service.endedSessions(50)).toEqual([]);
   });
 });
+
+describe("which providers the realm will let an account login from", () => {
+  it("reads the realm's identity provider instances", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(
+      ok([
+        { alias: "google", displayName: "Google", enabled: true },
+        { alias: "apple", displayName: "Apple ID", enabled: false },
+      ]),
+    );
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginProviders()).resolves.toEqual([
+      { alias: "google", name: "Google", enabled: true },
+      { alias: "apple", name: "Apple ID", enabled: false },
+    ]);
+
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/identity-provider/instances",
+    );
+  });
+
+  // Nothing is filtered out here. A provider switched off is still a row on
+  // the page: an account that connected it before it was switched off still
+  // has it connected, and a card that hid it would be hiding a credential.
+  it("keeps the ones that are switched off", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ alias: "apple", enabled: false }]));
+    const service = new KeycloakAdminService(config);
+
+    const providers = await service.loginProviders();
+
+    expect(providers).toHaveLength(1);
+    expect(providers[0]?.enabled).toBe(false);
+  });
+
+  // Keycloak only asks for a display name when the alias is not the whole
+  // answer, so most realms leave it empty. The alias is a better fallback than
+  // a blank row, and the browser is what turns "google" into Google.
+  it("falls back to the alias where the realm named nothing", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ alias: "google", displayName: "" }]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginProviders()).resolves.toEqual([
+      { alias: "google", name: "google", enabled: true },
+    ]);
+  });
+
+  it("drops an instance with no alias, which is nothing we could address", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ displayName: "Nameless" }]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginProviders()).resolves.toEqual([]);
+  });
+
+  // The read needs view-identity-providers, which is a fourth role on the
+  // service account. A realm whose mapping predates this feature answers 403,
+  // and that is an outage rather than "there are no providers": a card drawn
+  // from an empty list would tell somebody their connected Google is gone.
+  it("reads a refusal as an outage rather than as an empty realm", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(403));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginProviders()).rejects.toThrow(
+      "would not say what login providers it has",
+    );
+  });
+
+  it("drops the cached token when the realm refuses it", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(failed(401))
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.loginProviders()).rejects.toThrow();
+    await service.loginProviders();
+
+    /* Four calls rather than three: the second attempt asked for a token
+     * again instead of presenting the one that was just refused. */
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("which of them an account has connected", () => {
+  it("reads the account's federated identities", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(
+      ok([
+        {
+          identityProvider: "google",
+          userId: "116100000000000000000",
+          userName: "marcus@gmail.test",
+        },
+      ]),
+    );
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.linkedLogins("subject-marcus")).resolves.toEqual([
+      { alias: "google", userName: "marcus@gmail.test" },
+    ]);
+
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/federated-identity",
+    );
+  });
+
+  // The id the account holds at Google is on the same row and is deliberately
+  // not read: nothing shows it, and it is the one part of this that is
+  // somebody else's identifier.
+  it("keeps the name and leaves the provider's own id where it is", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(
+      ok([
+        {
+          identityProvider: "google",
+          userId: "116100000000000000000",
+          userName: "marcus@gmail.test",
+        },
+      ]),
+    );
+    const service = new KeycloakAdminService(config);
+
+    const [link] = await service.linkedLogins("subject-marcus");
+
+    expect(Object.keys(link ?? {}).toSorted()).toEqual(["alias", "userName"]);
+  });
+
+  it("reads a name the provider left empty as no name at all", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ identityProvider: "apple", userName: "" }]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.linkedLogins("subject-marcus")).resolves.toEqual([
+      { alias: "apple", userName: null },
+    ]);
+  });
+
+  it("reads a refusal as an outage", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.linkedLogins("subject-marcus")).rejects.toThrow(
+      "would not say which logins this account has connected",
+    );
+  });
+});
+
+describe("disconnecting one of them", () => {
+  it("deletes the federated identity by alias", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.unlinkLogin("subject-marcus", "google");
+
+    const [url, init] = fetchMock.mock.calls[1]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/federated-identity/google",
+    );
+    expect(init?.method).toBe("DELETE");
+  });
+
+  // The page it was pressed on is a moment old, and the end state is the one
+  // that was asked for either way: nothing connected.
+  it("reads a provider that was not connected as done rather than as a failure", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(404));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.unlinkLogin("subject-marcus", "google"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("reads anything else as an outage", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.unlinkLogin("subject-marcus", "google"),
+    ).rejects.toThrow("would not disconnect that login");
+  });
+
+  // The alias reaches a URL path, so it is quoted on the way in. The schema in
+  // front of this refuses the shapes that would matter; this is the belt.
+  it("quotes the alias it is given", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.unlinkLogin("subject-marcus", "a b");
+
+    expect(String(fetchMock.mock.calls[1]![0])).toContain(
+      "/federated-identity/a%20b",
+    );
+  });
+});
+
+describe("whether the account still has a password", () => {
+  it("is true when the credential list holds one", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ type: "password", createdDate: 1 }]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.hasPassword("subject-marcus")).resolves.toBe(true);
+  });
+
+  // An account that arrived through Google may never have had one.
+  it("is false when it holds none", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ type: "otp" }]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.hasPassword("subject-marcus")).resolves.toBe(false);
+  });
+
+  // The safe direction, and the reason this one does not throw: the card then
+  // offers no Disconnect at all, and nobody is disconnected from the last way
+  // into their own account on the strength of an outage.
+  it("is false when the provider will not say", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.hasPassword("subject-marcus")).resolves.toBe(false);
+  });
+});

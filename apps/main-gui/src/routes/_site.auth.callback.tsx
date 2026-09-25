@@ -4,6 +4,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   exchangeAuthorizationCode,
+  resumeAccountLink,
+  takePendingAccountLink,
   takeRedirectVerifier,
   useSession,
   type TokenSet,
@@ -11,8 +13,15 @@ import {
 
 /*
  * Where every redirect flow comes back to: the three social providers, the
- * registration form, and the password reset. The provider puts an authorization
- * code on the URL; this trades it for tokens and gets out of the way.
+ * registration form, the password reset, and the first leg of connecting a
+ * provider from the security page. The provider puts an authorization code on
+ * the URL; this trades it for tokens and gets out of the way.
+ *
+ * The link leg is the one that does not end here. A token minted by the login
+ * card's password grant is no good to the provider's linking endpoint -- the
+ * browser holds no cookie for its session -- so Connect sends the browser
+ * through this ordinary trip first and carries on to the provider with the
+ * token that comes back. See `account-link.ts` for why that is two trips.
  */
 export const Route = createFileRoute("/_site/auth/callback")({
   component: AuthCallback,
@@ -71,6 +80,13 @@ function AuthCallback() {
         /* A redirect flow crossed a page load to get here, so it only makes
          * sense as a remembered session. */
         adoptTokens(tokens, true);
+        /* Still in the middle of connecting a provider: the browser goes on
+         * to it rather than landing anywhere. A trip that cannot be resumed
+         * -- no linking endpoint configured, or a token naming no session --
+         * is a login like any other, which is the half of it that must not be
+         * lost. */
+        const linking = takePendingAccountLink();
+        if (linking && (await resumeAccountLink(linking, tokens))) return;
         await navigate({ to: "/dashboard", replace: true });
       } catch (reason: unknown) {
         if (!canceled)

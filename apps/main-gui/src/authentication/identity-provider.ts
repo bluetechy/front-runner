@@ -229,18 +229,8 @@ export function exchangeAuthorizationCode(
  * browser reading a name to put on the screen, so it does not check it.
  */
 export function readIdentity(accessToken: string): Identity | null {
-  const segment = accessToken.split(".")[1];
-  if (!segment) return null;
-  try {
-    const json = atob(segment.replace(/-/g, "+").replace(/_/g, "/"));
-    const claims = JSON.parse(
-      decodeURIComponent(
-        json
-          .split("")
-          .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
-          .join(""),
-      ),
-    ) as Record<string, unknown>;
+  const claims = readClaims(accessToken);
+  if (claims) {
     const subject = typeof claims.sub === "string" ? claims.sub : null;
     const loginName =
       typeof claims.preferred_username === "string"
@@ -253,6 +243,26 @@ export function readIdentity(accessToken: string): Identity | null {
       name: typeof claims.name === "string" ? claims.name : loginName,
       email: typeof claims.email === "string" ? claims.email : "",
     };
+  }
+  return null;
+}
+
+/* A token's claims, or null for anything that is not a token we can read. The
+ * signature is nobody's business here: main-api verifies it on every call, and
+ * this is the browser reading a name to put on a screen. */
+function readClaims(accessToken: string): Record<string, unknown> | null {
+  const segment = accessToken.split(".")[1];
+  if (!segment) return null;
+  try {
+    const json = atob(segment.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(
+      decodeURIComponent(
+        json
+          .split("")
+          .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, "0")}`)
+          .join(""),
+      ),
+    ) as Record<string, unknown>;
   } catch {
     return null;
   }
@@ -344,6 +354,62 @@ export function takeRedirectVerifier(state: string | null): string | null {
   remove("session", VERIFIER_KEY);
   if (!expected || !verifier || expected !== state) return null;
   return verifier;
+}
+
+/* ----------------------------------------------------------- account linking */
+
+/*
+ * Where to send the browser to connect a provider to the account it is already
+ * logged in as.
+ *
+ * **The one address in this file that is not discovered**, because linking an
+ * account is nobody's standard: OpenID Connect has nothing to say about it, so
+ * there is no entry in the discovery document to read. The path is
+ * configuration for the same reason the social hint's parameter name is --
+ * `VITE_IDP_LINK_PATH`, with {provider} standing in for the alias -- and an
+ * empty one means this provider has no such flow, which the security page
+ * draws as a card it cannot connect anything from.
+ *
+ * The rest of it is Keycloak's shape, and the only piece of this application
+ * that is: a nonce, and a hash of that nonce with the session the token was
+ * minted for, the client, and the provider. Keycloak checks the hash against
+ * the session its own cookie says the browser is in, which is what stops one
+ * page starting a link that another page finishes. A different provider means
+ * a different function here, and nowhere else.
+ *
+ * Null when the token names no session, which is the case worth knowing about:
+ * a token from the password grant on the login card has one at the provider,
+ * but the browser holds no cookie for it, so the endpoint would refuse. The
+ * security page answers that by sending the browser through the ordinary
+ * redirect first and using the token that comes back.
+ */
+export async function accountLinkUrl(
+  alias: string,
+  accessToken: string,
+  returnTo: string,
+): Promise<string | null> {
+  const path = import.meta.env.VITE_IDP_LINK_PATH;
+  if (!path) return null;
+
+  const claims = readClaims(accessToken);
+  /* Keycloak writes both; session_state is the older spelling and sid the one
+   * the specification settled on, and they are the same value. */
+  const session =
+    typeof claims?.session_state === "string"
+      ? claims.session_state
+      : typeof claims?.sid === "string"
+        ? claims.sid
+        : null;
+  if (!session) return null;
+
+  const nonce = randomString();
+  const parameters = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: returnTo,
+    nonce,
+    hash: await challenge(nonce + session + clientId + alias),
+  });
+  return `${issuer}${path.replace("{provider}", encodeURIComponent(alias))}?${parameters}`;
 }
 
 /*

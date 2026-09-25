@@ -54,6 +54,21 @@ const KINDS: Record<string, ActivityKind> = {
     heading: "Password changed",
     warning: "Your account is at risk if this was not you.",
   },
+  /* A provider connected to the account, which is a way in that did not exist
+   * before. The warning is the one EmailAdded carries, for the reason it
+   * carries it: a way in somebody else added is how an account is quietly
+   * kept after the password has been changed back. */
+  SignInMethodConnected: {
+    heading: "Login provider connected",
+    warning:
+      "A way into your account that you did not connect is a way back into it.",
+  },
+  /* Quiet, the way EmailRemoved is. Disconnecting a provider closes a door
+   * rather than opening one, and the dialog still asks the question. */
+  SignInMethodDisconnected: {
+    heading: "Login provider disconnected",
+    warning: "",
+  },
   EmailAdded: {
     heading: "Email address added",
     warning:

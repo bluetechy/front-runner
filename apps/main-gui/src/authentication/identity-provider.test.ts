@@ -21,6 +21,7 @@ vi.stubEnv(
 );
 vi.stubEnv("VITE_IDP_CLIENT_ID", "main-gui");
 vi.stubEnv("VITE_IDP_HINT_PARAMETER", "kc_idp_hint");
+vi.stubEnv("VITE_IDP_LINK_PATH", "/broker/{provider}/link");
 
 const ISSUER = "https://identity.example.test/realms/front-runner";
 const DISCOVERY = `${ISSUER}/.well-known/openid-configuration`;
@@ -38,6 +39,7 @@ const published = {
 };
 
 const {
+  accountLinkUrl,
   endSession,
   exchangeAuthorizationCode,
   readIdentity,
@@ -580,5 +582,127 @@ describe("the storage it uses", () => {
     write("session", "front-runner.probe", "value");
 
     expect(read("session", "front-runner.probe")).toBe("value");
+  });
+});
+
+/*
+ * Where to send the browser to connect a provider to the account it is already
+ * logged in as.
+ *
+ * **The one address in this module that is not discovered.** OpenID Connect
+ * has nothing to say about account linking, so there is no entry to read and
+ * the path is configuration, the way the social hint's parameter name is. The
+ * rest of it is the provider's own shape: a nonce, and a hash of that nonce
+ * with the session the token was minted for, the client, and the provider.
+ *
+ * The null answers are what the security page is built around. A token with no
+ * session in it is the ordinary state after a login on our own card -- the
+ * password grant mints one without the browser ever meeting the provider --
+ * and the page answers that by sending the browser the long way round rather
+ * than to an endpoint that would refuse it.
+ */
+describe("connecting a provider to an account", () => {
+  const session = "a3c2f1e0-1111-4222-8333-444455556666";
+  const linked = () =>
+    accountLinkUrl(
+      "google",
+      token({ sub: "subject-id", session_state: session }),
+      "https://app.example.test/security-and-access?connected=google",
+    );
+
+  it("goes to the provider's linking endpoint for the alias it was given", async () => {
+    const url = new URL((await linked())!);
+
+    expect(`${url.origin}${url.pathname}`).toBe(`${ISSUER}/broker/google/link`);
+  });
+
+  it("names this client and where to come back to", async () => {
+    const url = new URL((await linked())!);
+
+    expect(url.searchParams.get("client_id")).toBe("main-gui");
+    expect(url.searchParams.get("redirect_uri")).toBe(
+      "https://app.example.test/security-and-access?connected=google",
+    );
+  });
+
+  // The provider checks the hash against the session its own cookie says the
+  // browser is in, which is what stops one page starting a link that another
+  // page finishes. Asserted as a hash rather than as a literal: what matters
+  // is that it is derived from all four and is not the nonce itself.
+  it("hashes the nonce with the session, the client and the provider", async () => {
+    const url = new URL((await linked())!);
+    const nonce = url.searchParams.get("nonce")!;
+    const hash = url.searchParams.get("hash")!;
+
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(`${nonce}${session}main-guigoogle`),
+    );
+    const expected = btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    expect(hash).toBe(expected);
+    expect(hash).not.toBe(nonce);
+  });
+
+  it("is a different nonce every time, so a URL cannot be replayed", async () => {
+    const first = new URL((await linked())!).searchParams.get("nonce");
+    const second = new URL((await linked())!).searchParams.get("nonce");
+
+    expect(first).not.toBe(second);
+  });
+
+  /* Keycloak writes session_state and sid to the same value, and sid is the
+   * spelling the specification settled on. */
+  it("reads the session under either of the two names for it", async () => {
+    const url = await accountLinkUrl(
+      "google",
+      token({ sub: "subject-id", sid: session }),
+      "https://app.example.test/security-and-access",
+    );
+
+    expect(url).not.toBeNull();
+  });
+
+  // The ordinary state after a login on our own card. The page answers it by
+  // sending the browser through the redirect flow first rather than to an
+  // endpoint that would refuse it.
+  it("answers nothing for a token that names no session", async () => {
+    await expect(
+      accountLinkUrl(
+        "google",
+        token({ sub: "subject-id", preferred_username: "member" }),
+        "https://app.example.test/security-and-access",
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it("answers nothing for anything that is not a token", async () => {
+    await expect(
+      accountLinkUrl("google", "not-a-token", "https://app.example.test/"),
+    ).resolves.toBeNull();
+  });
+
+  // A provider with no linking flow at all, which is what an empty path
+  // configures. The card then offers nothing to connect rather than sending
+  // somebody to an address that does not exist.
+  it("answers nothing where no linking endpoint is configured", async () => {
+    vi.stubEnv("VITE_IDP_LINK_PATH", "");
+
+    await expect(linked()).resolves.toBeNull();
+
+    vi.stubEnv("VITE_IDP_LINK_PATH", "/broker/{provider}/link");
+  });
+
+  it("quotes the alias it puts in the path", async () => {
+    const url = await accountLinkUrl(
+      "a b",
+      token({ sub: "subject-id", session_state: session }),
+      "https://app.example.test/security-and-access",
+    );
+
+    expect(url).toContain("/broker/a%20b/link");
   });
 });
