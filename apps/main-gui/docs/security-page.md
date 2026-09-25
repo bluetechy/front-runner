@@ -468,9 +468,10 @@ as two different kinds of thing. Four columns:
 | **When**     | the day, and the hour under it in the card's quieter ink               |
 | **Activity** | the sentence the event was recorded with, and the device and the place |
 | **Status**   | **New**, **Recognized** or **Reported**                                |
-| **Action**   | a chevron that opens the dialog                                        |
+| **Action**   | an eye that opens the dialog                                           |
 
-Two departures from the mock-up. It groups rows under a **heading per day**,
+Three departures from the mock-up, and the third is the Action column below.
+It groups rows under a **heading per day**,
 which is what the When column does here instead: a date heading buys a day's
 rows one shared line, which is worth it in a list with one thing on each row
 and not worth it in a table whose first column is already the date. And it
@@ -482,6 +483,16 @@ line.
 The Action heading is **singular**, where the addresses' is Action(s). A row
 here offers exactly one thing, and a heading promising more would be counting
 wrong on all of it.
+
+The one thing is drawn as an **eye**, which is the third departure from the
+mock-up: that gives each row a chevron. A chevron says there is more this way,
+which is what it says in the rail and in every accordion, and what this control
+does is show you a row you are already looking at, in a dialog that opens over
+the page and closes back onto it. An eye says that, and it says the same thing
+as the word in the tooltip and the label under it. `EyeIcon` is the wrapper,
+over MUI's `VisibilityRounded`, drawn at the size the bin and the link in the
+address table above are drawn at so the two action columns line up down the
+page.
 
 The column shows the **sentence**, not the type. "New login" over a row loses
 which address was added and which device logged in, and the sentence is written

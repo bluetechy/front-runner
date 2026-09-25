@@ -4,7 +4,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import ArrowRightIcon from "@/shared/icons/ArrowRightIcon";
+import EyeIcon from "@/shared/icons/EyeIcon";
 import { CardLabel } from "../card-surface";
 import { useLanguage } from "../language";
 import type { SecurityEvent } from "./activity-api";
@@ -24,8 +24,15 @@ import { occurredAt } from "./activity-time";
  * chevron. The grouping is what the When column does here instead: a date
  * heading buys a day's rows one shared line, which is worth it in a list with
  * one thing on each row and not worth it in a table whose first column is
- * already the date. The chevron stays, because unlike the notification row's it
- * has somewhere to go -- the dialog.
+ * already the date.
+ *
+ * The control the chevron stood for stays, because unlike the notification
+ * row's it has somewhere to go, but it is drawn as an **eye**. A chevron says
+ * there is more this way, which is what it says in the rail and in every
+ * accordion; what this one does is show you a row you are already looking at,
+ * in a dialog that opens over the page and closes back onto it. An eye says
+ * that, and it says the same thing as the word in the tooltip and the label
+ * under it, which a right arrow did not.
  *
  * **Every row opens the dialog**, including ones that have already been
  * answered. An answer can be changed, and somebody who pressed the wrong one is
@@ -235,7 +242,7 @@ function ActivityRow({
               onClick={onOpen}
               sx={{ color: "primary.main" }}
             >
-              <ArrowRightIcon color="currentColor" size={ACTION_ICON} />
+              <EyeIcon color="currentColor" size={ACTION_ICON} />
             </IconButton>
           </Box>
         </Tooltip>
