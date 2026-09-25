@@ -332,6 +332,13 @@ const brand = {
   /* A hollow in card paper, the way `inputField` is one in the panel: a
    * read-only field, which on white would otherwise be white. */
   cardField: "rgba(31, 5, 56, 0.05)",
+  /* The paper a field takes while what is typed in it disagrees with another
+   * box -- the second password on the change-password card, until it is the
+   * same as the first. It is `cardFeatured`, the accent breathed onto white,
+   * for the same reason that card is: a tint this faint is a surface saying
+   * something about itself rather than an error being raised, and the words
+   * under the box are still what says what is wrong. */
+  cardFieldUnsettled: cardFeatured,
   /* The tint a stat tile's icon sits in. */
   cardTint,
   /* What a row wears to say what is known about it. */

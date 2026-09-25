@@ -104,6 +104,19 @@ export function PasswordCard({
 
   const when = changedAt ? occurredAt(changedAt, language.tag) : null;
 
+  /* The confirmation box while the two passwords are not the same yet. It is
+   * asked as they type rather than on submit, because the box's whole job is
+   * catching a typo and a typo is worth catching before the button is pressed.
+   *
+   * An empty box is not a disagreement: nobody has said anything to disagree
+   * with yet, and tinting it the moment the field above is filled would be the
+   * card objecting to a box that has not been typed in.
+   *
+   * The paper is all it is. There is no sentence under the box until the form
+   * is submitted -- `checkChangePassword` writes that one -- because the tint
+   * is a thing somebody is halfway through fixing and a sentence is a refusal. */
+  const unsettled = form.Confirm !== "" && form.Confirm !== form.Password;
+
   return (
     <CardSurface
       title="Change Password"
@@ -198,6 +211,7 @@ export function PasswordCard({
             value={form.Confirm}
             onChange={set("Confirm")}
             error={problems.Confirm}
+            unsettled={unsettled}
             hint="Type it a second time, so a typo cannot lock you out."
           />
         </FieldRow>

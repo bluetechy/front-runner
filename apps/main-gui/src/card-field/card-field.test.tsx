@@ -107,6 +107,31 @@ describe("a field with something wrong in it", () => {
   });
 });
 
+describe("a field that disagrees with another box", () => {
+  // The paper says it, not a sentence: a box somebody is halfway through
+  // typing is not wrong yet, so it is tinted rather than marked invalid.
+  it("takes the tint, and is not called wrong for it", () => {
+    renderIn(
+      <CardField id="confirm" value="Trombone" onChange={vi.fn()} unsettled />,
+    );
+    const field = screen.getByRole("textbox");
+
+    expect(
+      getComputedStyle(field.parentElement as Element).backgroundColor,
+    ).toBe("rgb(252, 237, 246)");
+    expect(field).toHaveAttribute("aria-invalid", "false");
+  });
+
+  it("is card paper again once the boxes agree", () => {
+    renderIn(<CardField id="confirm" value="Trombone" onChange={vi.fn()} />);
+
+    expect(
+      getComputedStyle(screen.getByRole("textbox").parentElement as Element)
+        .backgroundColor,
+    ).toBe("rgb(255, 255, 255)");
+  });
+});
+
 describe("a field the page cannot change", () => {
   it("shows the value without letting it be edited", () => {
     renderIn(

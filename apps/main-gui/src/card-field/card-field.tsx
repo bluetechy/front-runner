@@ -76,6 +76,7 @@ export function CardField({
   placeholder,
   error,
   hint,
+  unsettled = false,
   readOnly = false,
   loading = false,
 }: {
@@ -110,6 +111,13 @@ export function CardField({
   /* Said under the field when nothing is wrong: what it is for, or who owns
    * it. An error replaces it, because the error is the more urgent of the two. */
   hint?: string;
+  /* What is in it does not agree with another box yet, and the field says so
+   * by the paper it is on rather than by a sentence: the second password on
+   * the change-password card, while it is being typed. It is not an error --
+   * a box somebody is halfway through filling is not wrong yet -- so it wears
+   * a tint rather than the error's red edge, and `error` still overrules it
+   * when the form is finally submitted. */
+  unsettled?: boolean;
   /* Shown, but not editable here: a value this application does not own, or
    * one it owns and never changes. */
   readOnly?: boolean;
@@ -136,7 +144,11 @@ export function CardField({
         "& .MuiOutlinedInput-root": {
           borderRadius: "0.7rem",
           backgroundColor: (theme) =>
-            readOnly ? theme.palette.brand.cardField : theme.palette.brand.card,
+            readOnly
+              ? theme.palette.brand.cardField
+              : unsettled
+                ? theme.palette.brand.cardFieldUnsettled
+                : theme.palette.brand.card,
           color: (theme) =>
             readOnly
               ? theme.palette.brand.cardInkMuted

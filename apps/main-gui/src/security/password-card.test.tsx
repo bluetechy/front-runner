@@ -185,6 +185,49 @@ describe("sending it", () => {
   });
 });
 
+describe("the second new password, while it is being typed", () => {
+  const paper = (label: string) =>
+    getComputedStyle(box(label).parentElement as Element).backgroundColor;
+
+  // The box's whole job is catching a typo, and a typo is worth catching
+  // before the button is pressed rather than after it.
+  it("is tinted while the two do not match", () => {
+    renderCard();
+    fill("letmein", "Trombone-42-Fig", "Trombone-42-Fog");
+
+    expect(paper("New password again")).toBe("rgb(252, 237, 246)");
+  });
+
+  it("is card paper once they do", () => {
+    renderCard();
+    fill("letmein", "Trombone-42-Fig", "Trombone-42-Fog");
+    fireEvent.change(box("New password again"), {
+      target: { value: "Trombone-42-Fig" },
+    });
+
+    expect(paper("New password again")).toBe("rgb(255, 255, 255)");
+  });
+
+  // Nobody has said anything to disagree with yet.
+  it("is card paper while it is still empty", () => {
+    renderCard();
+    fireEvent.change(box("New password"), {
+      target: { value: "Trombone-42-Fig" },
+    });
+
+    expect(paper("New password again")).toBe("rgb(255, 255, 255)");
+  });
+
+  // The tint is a thing somebody is halfway through fixing; the sentence is
+  // the form being refused, and that waits for the button.
+  it("says nothing under the box until the form is submitted", () => {
+    renderCard();
+    fill("letmein", "Trombone-42-Fig", "Trombone-42-Fog");
+
+    expect(screen.queryByText("The two passwords do not match")).toBeNull();
+  });
+});
+
 describe("what it refuses to send", () => {
   it.each([
     [
