@@ -30,8 +30,10 @@ export class SingleSignOnService {
     private readonly events: SecurityEventsService,
   ) {}
 
-  // Every provider the realm has, in its order, marked up with what this
-  // account has done about each.
+  // Every provider the realm has, marked up with what this account has done
+  // about each, in the order the realm holds them. Nothing here sorts: the
+  // card that draws these puts them in alphabetical order, which is a decision
+  // about reading rather than about accounts.
   async methods(principal: Principal): Promise<SignInMethod[]> {
     const subjectId = await this.subject(principal);
     const [providers, linked] = await Promise.all([

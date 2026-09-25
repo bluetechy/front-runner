@@ -390,7 +390,9 @@ export class KeycloakAdminService extends IdentityAdminService {
   }
 
   // Every identity provider the realm has been given, in the order it holds
-  // them, which is the order the security page draws them in.
+  // them. That order is passed on rather than chosen here: what order a page
+  // reads in is the page's own business, and the security page sorts them
+  // alphabetically for a reason of its own.
   //
   // This is the one read here that is about the realm rather than about an
   // account, and it needs view-identity-providers on the service account

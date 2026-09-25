@@ -4,6 +4,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useLanguage } from "../language";
 import type { SignInMethod } from "./sso-api";
 import { kindOf } from "./sso-kinds";
 
@@ -30,6 +31,22 @@ import { kindOf } from "./sso-kinds";
  * prop: nothing has been read yet, the realm has no providers, or the read
  * failed. The first waits, the second says so, and the third says nothing at
  * all, because the card above has already said what happened.
+ *
+ * **Alphabetical, which is the opposite of the login card's order**, and the
+ * difference is what each list is for. The buttons on the login and sign-up
+ * cards are a call to action: somebody is being asked to press one, so the one
+ * most of them can press goes first and the three are ranked by how likely an
+ * account is to exist. Nobody is being asked to press anything here. This is a
+ * list of what an account already has and what can be done about it, read by
+ * somebody looking for one row in it, and a list to look something up in is
+ * ordered the way a list is looked something up in. Ranking it by likelihood
+ * would be this application guessing at somebody's own credentials, on the one
+ * page that knows the answer.
+ *
+ * Sorted here rather than taken as it arrives. Keycloak happens to answer
+ * alphabetically today; that is its own business and not a promise, and the
+ * order a page is read in is the page's to decide. The comparison is the
+ * reader's language, the way every date on this page is: see `useLanguage`.
  */
 
 /* The mark a provider is drawn at. Bigger than the glyphs in the two tables
@@ -57,6 +74,8 @@ export function SsoList({
   onConnect: (method: SignInMethod) => void;
   onDisconnect: (method: SignInMethod) => void;
 }) {
+  const { language } = useLanguage();
+
   if (loading)
     return (
       <Stack sx={{ gap: 1, paddingBlock: 1 }}>
@@ -90,15 +109,19 @@ export function SsoList({
 
   return (
     <Box>
-      {methods.map((method) => (
-        <MethodRow
-          key={method.Alias}
-          method={method}
-          busy={busyAlias === method.Alias}
-          onConnect={() => onConnect(method)}
-          onDisconnect={() => onDisconnect(method)}
-        />
-      ))}
+      {methods
+        .toSorted((one, other) =>
+          one.Name.localeCompare(other.Name, language.tag),
+        )
+        .map((method) => (
+          <MethodRow
+            key={method.Alias}
+            method={method}
+            busy={busyAlias === method.Alias}
+            onConnect={() => onConnect(method)}
+            onDisconnect={() => onDisconnect(method)}
+          />
+        ))}
     </Box>
   );
 }

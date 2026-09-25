@@ -467,6 +467,28 @@ rebuilt. What the browser supplies is the mark: `sso-kinds.ts` knows the three
 the login card offers and falls back to a chain link for anything else, the
 same arrangement `activity-kinds.ts` has for an event type it has not met.
 
+**The rows are alphabetical, and the login card's buttons are not.** That
+looks like a disagreement and is the same rule applied to two different jobs.
+
+The buttons on the login and sign-up cards are a **call to action**: somebody
+is being asked to press one, so the three are ranked by how likely an account
+is to exist, and the one most people can press is where the eye lands first.
+Google, then Facebook, then Apple.
+
+Nobody is being asked to press anything here. This card is a **list of what an
+account already has** and what can be done about it, read by somebody looking
+for one row in it, and a list to look something up in is ordered the way a list
+is looked something up in. Ranking it by likelihood would also be this
+application guessing at somebody's credentials on the one page that knows the
+answer: a row saying "Connected as marcus@gmail.test" is not a guess about
+whether they have a Google account, so putting it above Apple because most
+people have Google would be the card arguing with itself.
+
+`sso-list.tsx` sorts, rather than drawing what arrives. Keycloak happens to
+answer alphabetically today, but that is its own business rather than a
+promise, and what order a page reads in is the page's decision. The comparison
+is the reader's language, the way every date on this page is.
+
 A provider the realm has **switched off is still a row**, saying so and
 offering nothing. An account that connected Google before Google was switched
 off still has it connected, and a card that quietly dropped the row would be

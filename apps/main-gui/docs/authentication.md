@@ -201,6 +201,14 @@ button goes to the hosted page. Filling in the credentials and
 flipping `enabled` is the whole activation — see
 [`apps/keycloak-idp/README.md`](../../keycloak-idp/README.md).
 
+The buttons are ordered by **how likely somebody is to hold an account**
+rather than alphabetically: they are a call to action, and the one most people
+can press belongs where the eye lands first. The same three are listed
+alphabetically on the security page, which is the same rule rather than a
+different one -- that card is a list to look a row up in rather than a button
+to press, so it is ordered the way a list is read. See
+[the security page's notes](./security-page.md).
+
 The same three providers are on the security page, where the question is the
 other way round: connecting one to an account that already exists. That is
 Keycloak's own account-linking endpoint rather than a login, and the browser

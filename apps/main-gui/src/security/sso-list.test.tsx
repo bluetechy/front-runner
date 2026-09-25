@@ -135,12 +135,25 @@ describe("a provider this account has connected", () => {
 });
 
 describe("while something is in flight", () => {
+  /* The two rows are told apart by what their buttons say rather than by where
+   * they sit, because where they sit is the card's own decision and one the
+   * tests below are about. */
   it("holds the row it is happening to, and leaves the rest alone", () => {
-    draw([method(), method({ Alias: "facebook", Name: "Facebook" })], "google");
+    draw(
+      [
+        method(),
+        method({
+          Alias: "facebook",
+          Name: "Facebook",
+          Connected: true,
+          CanDisconnect: true,
+        }),
+      ],
+      "google",
+    );
 
-    const [google, facebook] = screen.getAllByRole("button");
-    expect(google).toBeDisabled();
-    expect(facebook).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Connect" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Disconnect" })).toBeEnabled();
   });
 });
 
@@ -189,5 +202,64 @@ describe("before anything has been read", () => {
         "This site does not offer any other way to login yet.",
       ),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * The order the rows read in, which is the opposite of the login card's and
+ * deliberately so.
+ *
+ * Those buttons are a call to action: somebody is being asked to press one, so
+ * the three are ranked by how likely an account is to exist. Nobody is being
+ * asked to press anything here. This is a list of what an account already has,
+ * read by somebody looking for one row in it, and ranking it by likelihood
+ * would be this application guessing at somebody's own credentials on the one
+ * page that knows the answer.
+ */
+const named = (alias: string, name: string) =>
+  method({ Alias: alias, Name: name });
+
+describe("the order they are read in", () => {
+  it("is alphabetical, whatever order they arrived in", () => {
+    draw([
+      named("google", "Google"),
+      named("facebook", "Facebook"),
+      named("apple", "Apple ID"),
+    ]);
+
+    expect(
+      screen
+        .getAllByText(/^(Apple ID|Facebook|Google)$/)
+        .map((n) => n.textContent),
+    ).toEqual(["Apple ID", "Facebook", "Google"]);
+  });
+
+  // Not the login card's order, which is the assertion worth having: the two
+  // lists disagree on purpose.
+  it("is not the order the login card offers them in", () => {
+    draw([
+      named("google", "Google"),
+      named("facebook", "Facebook"),
+      named("apple", "Apple ID"),
+    ]);
+
+    expect(
+      screen
+        .getAllByText(/^(Apple ID|Facebook|Google)$/)
+        .map((n) => n.textContent),
+    ).not.toEqual(["Google", "Facebook", "Apple ID"]);
+  });
+
+  /* By what a provider is called rather than by its alias, because the name is
+   * what somebody is reading down: "Apple ID" is on the row and "apple" is
+   * not. */
+  it("sorts on the name, not the alias", () => {
+    draw([named("zoho", "Aardvark SSO"), named("apple", "Zebra ID")]);
+
+    expect(
+      screen
+        .getAllByText(/^(Aardvark SSO|Zebra ID)$/)
+        .map((n) => n.textContent),
+    ).toEqual(["Aardvark SSO", "Zebra ID"]);
   });
 });

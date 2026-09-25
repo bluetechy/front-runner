@@ -90,6 +90,8 @@ function setup(
 }
 
 describe("what the card is drawn from", () => {
+  /* Passed through in the order the realm holds them, neither sorted nor
+   * filtered. The card is what decides the order it reads in. */
   it("is every provider the realm has, in the realm's order", async () => {
     const { service } = setup();
 

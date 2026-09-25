@@ -45,6 +45,19 @@ import { useSession } from "./session";
  * and the login card will take it.
  */
 
+/*
+ * The three social providers, in the order somebody is most likely to hold an
+ * account with rather than in alphabetical order.
+ *
+ * These are buttons somebody is being asked to press, and the one most of them
+ * can press belongs where the eye lands first. The same three are listed
+ * alphabetically on the security page's SSO card, which is not a contradiction
+ * but the other half of the same rule: that card is a list of what an account
+ * has and can do about it, nobody is being asked to press anything, and a list
+ * to be looked something up in is ordered the way a list is looked something up
+ * in. Ranking by likelihood there would be this application guessing at
+ * somebody's own credentials.
+ */
 const providers = [
   { alias: "google", label: "Sign Up With Google", Icon: GoogleIcon },
   { alias: "facebook", label: "Sign Up With Facebook", Icon: FacebookIcon },
