@@ -299,6 +299,15 @@ being right, so a wrong code costs a fresh message. Six digits is a fifth of a
 million, which is nothing against a form that allows retries and a great deal
 against one that does not.
 
+**Nothing limits how often a login code can be asked for.** The browser form
+carries a Send it again button and the direct-grant step sends a fresh message
+on every refusal, so both are a way to spend money on messages. The enrollment
+message is limited, in `dbo.StartPhoneVerification` — one a minute and five an
+hour to an account, three an hour to a number — but that function is never on
+this path: a login code is minted and held by `SmsCode`, in Keycloak's
+single-use store, and main-api only carries it. The limit belongs there, beside
+the code, and is not written yet.
+
 #### The number, and where it lives
 
 On the account at Keycloak, as the `phoneNumber` attribute, with

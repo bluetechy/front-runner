@@ -5,6 +5,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
+import Link from "@mui/material/Link";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -182,26 +183,33 @@ export function SmsDialog({
 
         {/* The way out for somebody who read the last four digits back and
          * did not recognize them. Shutting the dialog would work too, and it
-         * is the wrong shape: the thing they want is this step again. */}
+         * is the wrong shape: the thing they want is this step again.
+         *
+         * A link in a sentence rather than a third button, which is what the
+         * login card's "Use a recovery code" is and for the same reason: a
+         * plain text button on this panel draws as a line of prose, so the
+         * one way out of the step nobody expected to be stuck on is the one
+         * control that does not look like one. */}
         {asking ? (
-          <Button
-            type="button"
-            variant="text"
-            disabled={busy}
-            onClick={() => {
-              setCode("");
-              onBack();
-            }}
-            sx={{
-              mt: 1,
-              px: 0,
-              fontFamily: "inherit",
-              fontStyle: "normal",
-              textTransform: "none",
-            }}
+          <Typography
+            variant="body2"
+            sx={{ mt: 1.25, fontSize: "0.8rem", color: "text.secondary" }}
           >
-            Use a different number
-          </Button>
+            Not the last four digits you expected?{" "}
+            <Link
+              component="button"
+              type="button"
+              underline="hover"
+              disabled={busy}
+              onClick={() => {
+                setCode("");
+                onBack();
+              }}
+              sx={{ color: "primary.light", fontSize: "inherit" }}
+            >
+              Use a different number
+            </Link>
+          </Typography>
         ) : null}
 
         <Stack

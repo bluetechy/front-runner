@@ -721,8 +721,38 @@ million and the entropy is not doing the work:
 
 The number is read back masked -- the last four digits -- before the code box,
 which is how somebody who mistyped a digit finds out from the dialog rather
-than from a message that never arrives. "Use a different number" goes back a
+than from a message that never arrives. "Use a different number" is a link in
+a sentence rather than a third button, for the reason the login card's "Use a
+recovery code" is: a plain text button on that violet panel draws as prose.
+It goes back a
 step rather than shutting the dialog, because that is what they want next.
+
+### How often the code can be asked for
+
+Three limits, and all three are `dbo.StartPhoneVerification`'s rather than
+main-api's:
+
+| Limit                                           | What it stops                                            |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| One message a minute, per account               | A double press of **Send the code** costing two messages |
+| Five an hour, per account                       | An account holding the button down                       |
+| Three an hour, per number, across every account | The form being used to ring a stranger's phone           |
+
+They are in the database because that is where the timestamps are. main-api
+keeps nothing between requests, so a count read there and acted on there is
+two overlapping requests away from being wrong; here it is one statement, and
+the refusal happens before the outstanding code is retired, so a message that
+is refused leaves the code somebody is already holding working.
+
+The function raises rather than returning nothing, which is how the sentence
+reaches the dialog: `DatabaseService` turns a `raise_exception` into a
+`BadRequestException` carrying its message, so **Wait 41 seconds before asking
+for another code** is drawn in the dialog's error panel unchanged. The two
+caps answer the same sentence on purpose, so that the form cannot be used to
+ask whether some other account has been texting a given number.
+
+A row is written before the message goes, so a send that fails at the gateway
+still counts. That is the safe direction to be wrong in.
 
 ### The SMS row is still the one that argues
 
@@ -1267,12 +1297,17 @@ typing the address it was sent to.
 The feature is finished either way: see
 [The SMS row is still the one that argues](#the-sms-row-is-still-the-one-that-argues).
 
-**Any rate limit on the enrollment message.** Nothing stops somebody pressing
-"Send the code" repeatedly, and every press is a message somebody pays for.
-The database writes `SentAt` and enforces nothing with it, which is the same
-place address verification is in, and the same place it should stop being in.
-It needs a Keycloak authenticator written in Java, which is a build this
-repository does not have yet, and Twilio behind it in main-api.
+**Any rate limit on the login code.** The enrollment message has three, in
+`dbo.StartPhoneVerification`: see
+[how often the code can be asked for](#how-often-the-code-can-be-asked-for).
+The code Keycloak sends during a login has none, and its browser form carries
+a Send it again button. That limit belongs in the plugin, beside the code
+itself in `SmsCode`, rather than here.
+
+**Any rate limit on the verification mail.** `dbo.ResendUserEmailVerification`
+writes `VerificationSentAt` and enforces nothing with it. Mail costs nothing
+to send, which is why this has waited, and it is still a way to point this
+site's mail at somebody who did not ask for it.
 
 **A second authenticator app on one account.** Keycloak will hold several OTP
 credentials and this card draws one row, so a second one set up from

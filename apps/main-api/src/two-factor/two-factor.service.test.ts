@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from "@jest/globals";
+import { BadRequestException } from "@nestjs/common";
 import type {
   Account,
   IdentityAdminService,
@@ -640,6 +641,25 @@ describe("starting an SMS enrollment", () => {
       service.startSmsEnrollment(principal, "+15555550123"),
     ).rejects.toThrow("not available");
     expect(db.query).not.toHaveBeenCalled();
+  });
+
+  /* How often a code can be asked for is decided in dbo.StartPhoneVerification
+   * and nowhere else, so what this owes is that a refusal from there stops the
+   * message rather than being logged and stepped over. The sentence reaching
+   * the dialog is the one the database raised, which is what lets it say how
+   * long to wait. */
+  it("sends nothing when the database refuses the message", async () => {
+    const { db, sms, service } = setup([], [{ SentAt: new Date() }]);
+    db.query.mockRejectedValue(
+      new BadRequestException(
+        "Wait 41 seconds before asking for another code.",
+      ),
+    );
+
+    await expect(
+      service.startSmsEnrollment(principal, "+15555550123"),
+    ).rejects.toThrow("Wait 41 seconds");
+    expect(sms.send).not.toHaveBeenCalled();
   });
 
   /* Reported, because the dialog is about to sit there waiting for digits

@@ -469,7 +469,11 @@ INSERT INTO "dbo"."RecoveryCodes" ("RecoveryCodeUUID", "SubjectId", "CodeHash", 
 -- what proves dbo.SpendPhoneVerification looks inside the account rather than
 -- across the table.
 INSERT INTO "dbo"."PhoneVerifications" ("PhoneVerificationUUID", "SubjectId", "PhoneNumber", "CodeHash", "SentAt", "SpentAt", "CreatedBy") VALUES
-    ("test"."Fixture"('PhoneVerification.MemberLive'),    'subject-member', '+15555550111', 'hash-phone-member', CURRENT_TIMESTAMP,                       NULL,                                 'fixtures'),
+    -- Two minutes old rather than brand new: live, well inside the ten
+    -- minutes dbo.SpendPhoneVerification allows, and past the sixty seconds
+    -- dbo.StartPhoneVerification makes an account wait between messages, so
+    -- that a second code can be asked for in a test at all.
+    ("test"."Fixture"('PhoneVerification.MemberLive'),    'subject-member', '+15555550111', 'hash-phone-member', CURRENT_TIMESTAMP - interval '2 minutes', NULL,                                 'fixtures'),
     ("test"."Fixture"('PhoneVerification.MemberSpent'),   'subject-member', '+15555550112', 'hash-phone-spent',  CURRENT_TIMESTAMP - interval '1 day',    CURRENT_TIMESTAMP - interval '1 day', 'fixtures'),
     -- Its own account rather than a second row on subject-member's: the
     -- function reads one outstanding row per account, so an expired one

@@ -144,8 +144,18 @@ export class TwoFactorService {
   // six digits safe is not their entropy but the ten minutes and the five
   // guesses dbo.SpendPhoneVerification allows.
   //
-  // A message that did not go out is said so, and the row is left behind. It
-  // costs nothing: the next attempt retires it.
+  // **How often this can be asked for is the database's answer, not this
+  // one.** dbo.StartPhoneVerification refuses a second message to an account
+  // inside a minute, a sixth inside an hour, and a fourth to one number inside
+  // an hour whoever is asking, and it raises rather than returning, so the
+  // sentence it raises arrives here as a BadRequestException and reaches the
+  // dialog unchanged. The check has to be where the timestamps are: this
+  // process keeps nothing between requests, so a count read here and acted on
+  // here is two requests away from being wrong.
+  //
+  // A message that did not go out is said so, and the row is left behind,
+  // which now counts against those limits. That is the safe direction: the
+  // other one is a gateway failing in a way that can be retried forever.
   async startSmsEnrollment(
     principal: Principal,
     phoneNumber: string,

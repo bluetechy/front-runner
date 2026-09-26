@@ -162,6 +162,19 @@ describe("the second step: the code", () => {
     expect(onBack).toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  /* It is a link inside a sentence rather than a third button, because a
+   * plain text button on this panel draws as a line of prose: rendered, the
+   * only way out of a step nobody expected to be stuck on did not look like
+   * a control at all. The question in front of it is what makes it findable
+   * by somebody reading rather than scanning. */
+  it("asks the question the way back is the answer to", () => {
+    draw(sent);
+
+    expect(
+      screen.getByText(/Not the last four digits you expected\?/),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("when something goes wrong", () => {
