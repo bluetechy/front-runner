@@ -193,6 +193,104 @@ hand-authored style — tabs, spaces around colons. A test written in that
 folder follows the folder, not this page. See
 [icons](../apps/main-gui/docs/shared/icons.md).
 
+## Looking at it
+
+Neither suite can tell you a page looks right. jsdom draws no pixels, so a
+control can pass every assertion about what it does and still render as
+something nobody would take for a control. That is not a gap in the rule
+above; it is a different question, and it is answered by opening the page.
+
+The way it is done here is Playwright, driven from a scratch directory
+**outside the repository**, against the running Compose stack:
+
+```sh
+mkdir -p /tmp/look && cd /tmp/look
+npm init -y && npm install playwright && npx playwright install chromium
+```
+
+A script logs in through the card the way a person does, goes to the page and
+takes the picture:
+
+```js
+import { chromium } from "playwright";
+
+const page = await (
+  await chromium.launch()
+).newPage({
+  viewport: { width: 1280, height: 1000 },
+  deviceScaleFactor: 2,
+});
+page.on("pageerror", (e) => console.log("pageerror:", e.message));
+
+await page.goto("http://localhost/", { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /accept all/i }).click();
+await page
+  .getByRole("button", { name: /^login$/i })
+  .first()
+  .click();
+await page.locator('[role=dialog] input[type="text"]').first().fill("testuser");
+await page.locator('[role=dialog] input[type="password"]').fill("testuser");
+await page.locator('[role=dialog] button[type="submit"]').click();
+await page.goto("http://localhost/security-and-access");
+await page.locator(".MuiDialog-paper").screenshot({ path: "dialog.png" });
+```
+
+Two details cost time to find. `[role=dialog]` also matches the app's drawer,
+so a dialog is `.MuiDialog-paper`. And a heading styled `text-transform:
+uppercase` still has its original case in the DOM, so a selector matching the
+words on the screen finds nothing.
+
+**It is not a workspace, and should not become one until something asserts.**
+There is nothing here to keep green: the output is a picture, and the reader
+is a person. A browser binary in the lockfile would be a cost every install
+pays for a thing CI never runs. If a real visual-regression suite is ever
+wanted, that is a workspace with its own baselines, and this page will say so.
+
+### Reaching a state the stack cannot produce
+
+Some states need a third party this repository has no credentials for. The
+SMS dialog's second step needs Twilio, so the row draws switched off and the
+step is unreachable. Rather than skip it, intercept the response in the
+browser:
+
+```js
+await page.route("http://localhost:30000/graphql", async (route) => {
+  const { query } = JSON.parse(route.request().postData() || "{}");
+  if (query.includes("StartSmsEnrollment"))
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          startSmsEnrollment: {
+            PhoneNumber: "\u2022\u2022\u2022\u2022 0123",
+            SentAt: new Date().toISOString(),
+          },
+        },
+      }),
+    });
+  return route.continue();
+});
+```
+
+**What that checks is the drawing, not the answer.** A stubbed response proves
+the page renders a shape; it proves nothing about the API producing that
+shape, which is what the API's own tests are for. Keep the stub to the one
+field that is out of reach and let everything else come from the real stack,
+or the picture stops being of this product.
+
+### What it is for
+
+One example, because it is the kind of thing only this finds. On the SMS
+dialog's code step, "Use a different number" was a text button on a dark
+panel. Every test about it passed: it was a button, it had that name, and
+clicking it went back a step. Rendered, it was a line of white prose with
+nothing marking it as anything, and it was the only way out of a step
+somebody had not meant to be on. It is a link in a sentence now.
+
+So: a new card, dialog or state gets looked at once before it is called
+finished, and the states that need stubbing get looked at too.
+
 ## Adding a file
 
 1. Write the file.

@@ -106,4 +106,8 @@ npm exec --offline --package=node@24.21.0 -- npm run test --workspace main-api
 - `GetUsers` authorizes on the literal login `'admin'` rather than on
   `Users."IsAdmin"`, so whoever registers that username gets the full user list.
 - Deployment rate limiting and third-party credential policy remain deployment/
-  product work, not unfinished pieces of this framework refactor.
+  product work, not unfinished pieces of this framework refactor. The
+  exception is the one operation that spends money per call:
+  `startSmsEnrollment` is limited in `dbo.StartPhoneVerification`. The login
+  code Keycloak sends is not limited yet, and that limit belongs in the
+  plugin rather than here: see `apps/keycloak-idp/README.md`.

@@ -723,9 +723,11 @@ The number is read back masked -- the last four digits -- before the code box,
 which is how somebody who mistyped a digit finds out from the dialog rather
 than from a message that never arrives. "Use a different number" is a link in
 a sentence rather than a third button, for the reason the login card's "Use a
-recovery code" is: a plain text button on that violet panel draws as prose.
-It goes back a
-step rather than shutting the dialog, because that is what they want next.
+recovery code" is: a plain text button on that violet panel draws as prose,
+and the one way out of a step nobody meant to be on must not be the one
+control that does not look like one. It goes back a step rather than shutting
+the dialog, because that is what somebody who read the wrong last four digits
+wants next.
 
 ### How often the code can be asked for
 

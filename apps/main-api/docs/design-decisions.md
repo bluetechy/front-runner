@@ -99,6 +99,9 @@ fragment expansion. Standard introspection selections are exempt from those
 application limits and available only outside production. HTTP batching is off,
 request bodies are capped at 64 KiB, and PostgreSQL has connection/statement
 timeouts. These are bounds, not a full cost model or deployment rate limiter.
+The one exception is `startSmsEnrollment`, which is limited per account and
+per phone number in `dbo.StartPhoneVerification`: it spends money on somebody
+else's handset, which is a cost this API can name and an ingress cannot.
 
 ## 5. Authentication and error handling
 

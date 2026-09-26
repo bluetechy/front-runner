@@ -41,6 +41,9 @@
 -- Rows are kept after they are spent rather than deleted: what they hold is
 -- that somebody attached a phone number to an account and when, which is worth
 -- having when the question is later "who has been getting into this account".
+-- Keeping them is also what the limits in dbo.StartPhoneVerification count, so
+-- a sweep that deleted the last hour of rows would hand the form back to
+-- whoever was holding the button down.
 --
 CREATE TABLE "dbo"."PhoneVerifications" (
     "PhoneVerificationUUID" uuid PRIMARY KEY DEFAULT public.uuid_generate_v4(),
@@ -51,7 +54,11 @@ CREATE TABLE "dbo"."PhoneVerifications" (
     "PhoneNumber" varchar(20) NOT NULL,
     -- SHA-256 of the six digits, hex, from main-api. Never the code itself.
     "CodeHash" varchar(64) NOT NULL,
-    -- When the message went out, which is what the ten minutes is counted from.
+    -- When the message went out. The ten minutes is counted from it, and so
+    -- are the three limits in dbo.StartPhoneVerification: a minute between
+    -- messages to an account, five an hour to an account, three an hour to a
+    -- number. A row is written before the message goes, so one the gateway
+    -- refused still counts, which is the safe direction to be wrong in.
     "SentAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- How many wrong codes have been typed against this row. See above: this
     -- is what stands in for the entropy six digits do not have.

@@ -136,6 +136,11 @@ Keycloak's signatures and mints nothing. Production requires an HTTPS issuer.
 
 Production introspection is disabled. Configure TLS termination and rate limiting
 at the deployment ingress before public exposure; sign-in throttling belongs to
-Keycloak now, not to this service.
+Keycloak now, not to this service. One operation carries its own limit rather
+than waiting for the ingress: `startSmsEnrollment` sends a text message, and a
+message costs money and arrives on a handset belonging to whoever was typed
+into the form. `dbo.StartPhoneVerification` refuses a second one to an account
+inside a minute, a sixth inside an hour, and a fourth to one number inside an
+hour whoever is asking.
 Subscriptions, durable events, embedded-widget credentials and agent tools are
 future features, not implemented by this refactor.
