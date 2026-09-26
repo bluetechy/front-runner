@@ -507,32 +507,38 @@ What that list looks like matters to `readPasskey`, so here is a real row,
 {
   "id": "e86456c9-9f0a-451f-89ea-6e7cc84ac734",
   "type": "webauthn-passwordless",
-  "userLabel": "MacBook Touch ID",
-  "createdDate": 1758880000000,
-  "credentialData": "{\"aaguid\":\"adce0002-...\",\"credentialId\":\"...\",\"counter\":0,\"credentialPublicKey\":\"...\",\"attestationStatementFormat\":\"none\",\"transports\":[\"internal\"],\"authenticatorProvider\":\"Chrome on Mac\",\"iconLight\":\"chrome-light.svg\",\"iconDark\":\"chrome-light.svg\"}"
+  "userLabel": "Passkey (Default Label)",
+  "createdDate": 1790421486798,
+  "credentialData": "{\"aaguid\":\"01020304-0506-0708-0102-030405060708\",\"credentialId\":\"...\",\"counter\":0,\"credentialPublicKey\":\"...\",\"attestationStatementFormat\":\"none\",\"transports\":[\"internal\"]}"
 }
 ```
 
-Three things in it that a reader would otherwise have to guess at, all of them
-checked rather than assumed:
+That row is a passkey registered the ordinary way, through the registration
+page, which is why it is named what it is: the page keeps its label field
+hidden and fills it in. Three things in it that a reader would otherwise have
+to guess at, all of them checked rather than assumed:
 
-- `userLabel` is **absent** on an unnamed credential rather than `null`. Not
-  every authenticator asks for a name, so this is a real case and not an edge
-  one, and it is why `readPasskey` treats anything that is not a string as no
-  label at all rather than reading the key and finding nothing.
+- `userLabel` is `"Passkey (Default Label)"` on the trip somebody actually
+  takes, and **absent** rather than `null` where a credential arrives with no
+  label at all. Both are a passkey nobody named, which is why `readPasskey`
+  reads both as no label: anything that is not a string, and that one string.
 - `createdDate` is epoch milliseconds, as a number.
 - `secretData` is never in the answer. The public key is, in
   `credentialData`; the private half never leaves the authenticator, which is
   the whole point of the thing.
 
-And one that is not used but would be worth using. Keycloak resolves the
-AAGUID into `authenticatorProvider`, which is where "Chrome on Mac" and
-"YubiKey 5 Series" in the rows above came from, and it names an unnamed
-credential far better than the page's own "Unnamed passkey" does. It costs
-parsing `credentialData`, which is a JSON string inside a JSON field, and it
-is a label rather than a fact about the account, so it was left out of the
-port for now. If the Passkeys card ever reads thin, this is the first thing to
-put on it.
+And one that is not used but would be worth using. `credentialData` carries
+the `aaguid`, the authenticator model's own identifier, and that is what the
+admin console turns into the make and model it shows beside a credential. A
+passkey named that way would read "iCloud Keychain" or "YubiKey 5 Series"
+rather than the page's own "Unnamed passkey", which is a better card for
+somebody deciding which of two passkeys to remove. What the row does **not**
+carry is a resolved name: there is no `authenticatorProvider` in it, so the
+resolving would be ours to do, against a published AAGUID list. That, plus
+parsing `credentialData`, a JSON string inside a JSON field, is the cost. It
+is also a label rather than a fact about the account, so it was left out of
+the port for now. If the Passkeys card ever reads thin, this is the first
+thing to put on it.
 
 The required action itself is not listed in `front-runner-realm.json`.
 Keycloak registers its full set of built-in required actions on import when
