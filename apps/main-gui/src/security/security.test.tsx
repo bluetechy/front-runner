@@ -1054,9 +1054,9 @@ describe("coming back from the provider's registration page", () => {
     ).toBeInTheDocument();
   });
 
-  /* The assertion this block exists for: somebody who dismissed their
-   * browser's dialog comes back looking exactly like somebody who did not,
-   * and must not be congratulated for a passkey that does not exist. */
+  /* The assertion this block exists for: somebody must not be congratulated
+   * for a passkey that does not exist. This is the case where the provider
+   * said nothing useful and the API's answer is the only thing that knows. */
   it("says nothing changed when the ceremony was not finished", async () => {
     confirmPasskey.mockResolvedValue(false);
     renderPage(undefined, "registered");
@@ -1064,6 +1064,38 @@ describe("coming back from the provider's registration page", () => {
     expect(
       await screen.findByText(/That passkey was not added/),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * And the case where the provider said it outright. `cancelled` is
+   * Keycloak's own `kc_action_status`, carried here by `passkeyReturnPath`,
+   * and it means the browser's dialog was dismissed. There is nothing to go
+   * and read: the same message, without the round trip.
+   *
+   * It is the one claim on this page's URL that is taken at its word, and the
+   * asymmetry is deliberate. A wrong `registered` would leave somebody
+   * believing they can login with their face; a wrong `cancelled` puts a
+   * sentence saying nothing changed above a list that plainly shows the
+   * passkey sitting there.
+   */
+  it("says nothing changed without asking, when the provider said so", async () => {
+    renderPage(undefined, "cancelled");
+
+    expect(
+      await screen.findByText(/That passkey was not added/),
+    ).toBeInTheDocument();
+    expect(confirmPasskey).not.toHaveBeenCalled();
+  });
+
+  it("still takes a cancelled claim off the URL", async () => {
+    renderPage(undefined, "cancelled");
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/security-and-access",
+        replace: true,
+      }),
+    );
   });
 
   it("asks nothing at all when the browser did not come back from one", () => {

@@ -347,10 +347,16 @@ export function Security({
    * ask twice, and the ref covers StrictMode's second pass in development.
    *
    * The claim on the URL is thinner than the other two carry -- it names
-   * nothing, because there is nothing to name -- and it is believed no more
-   * than they are. Somebody who dismissed their browser's own dialog comes
-   * back here exactly like somebody who touched the reader, and the only
-   * difference between them is what the provider says when it is asked.
+   * nothing, because there is nothing to name -- and a claim that a passkey
+   * *was* registered is believed no more than theirs are: the API is asked
+   * what the account actually holds.
+   *
+   * `cancelled` is the exception, and it is not a claim worth checking. It is
+   * the provider's own `kc_action_status`, carried here by `passkeyReturnPath`,
+   * and it means the browser's dialog was dismissed: there is nothing to go
+   * and read, nothing to record, and a round trip would answer with the list
+   * the page already has. The worst a forged one can do is say nothing
+   * changed above a list that shows otherwise.
    */
   const asked = useRef<string | null>(null);
   useEffect(() => {
@@ -359,7 +365,10 @@ export function Security({
 
     void navigate({ to: "/security-and-access", replace: true });
 
-    confirmPasskey()
+    /* `cancelled` is an answer already, so it stands in for one rather than
+     * branching around the rest of this: it lands on the same sentence the
+     * API's own no lands on, which is the sentence to say either way. */
+    (passkey === "cancelled" ? Promise.resolve(false) : confirmPasskey())
       .then((registered) =>
         setNotice(
           registered

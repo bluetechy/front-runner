@@ -1592,6 +1592,50 @@ describe("the passkeys an account holds", () => {
     ]);
   });
 
+  /* The shape a real 26.7.4 answers with for a credential nobody named: the
+   * key is not there at all, rather than there holding null. Not every
+   * authenticator asks for a name, so this is the ordinary case and not an
+   * edge of one, and it is asserted separately from the blank string above
+   * because a reader of `readPasskey` would reasonably expect `null` and be
+   * wrong. Verified against the admin API, not reasoned about: see the
+   * Passkeys section of apps/keycloak-idp/README.md. */
+  it("carries no label where Keycloak leaves the key out entirely", async () => {
+    answering([
+      {
+        id: "credential-passkey",
+        type: "webauthn-passwordless",
+        createdDate: 1790400064804,
+      },
+    ]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([
+      {
+        id: "credential-passkey",
+        label: null,
+        createdAt: new Date(1790400064804),
+      },
+    ]);
+  });
+
+  /* Keycloak's registration page keeps the label in a hidden field, so the
+   * ordinary trip through it never asks for one and this is what almost every
+   * real passkey arrives called. Drawn verbatim it reads like a name this
+   * product chose. It is the provider's word for "no label", so it is
+   * translated into one here, where the provider is already known about. */
+  it("reads Keycloak's own default label as no label at all", async () => {
+    answering([passkey({ userLabel: "Passkey (Default Label)" })]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([
+      {
+        id: "credential-passkey",
+        label: null,
+        createdAt: new Date(1790400064804),
+      },
+    ]);
+  });
+
   it("throws rather than answering an empty list when the provider will not say", async () => {
     fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
     const service = new KeycloakAdminService(config);

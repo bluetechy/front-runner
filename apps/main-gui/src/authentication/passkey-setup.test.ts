@@ -107,6 +107,37 @@ describe("coming back", () => {
   /* A hint about what to go and check, never a fact: the page hands it to
    * the API, which asks the provider. */
   it("comes back to the security page with the claim on the URL", () => {
-    expect(passkeyReturnPath).toBe("/security-and-access?passkey=registered");
+    expect(passkeyReturnPath("success")).toBe(
+      "/security-and-access?passkey=registered",
+    );
   });
+
+  /*
+   * The other direction, and the reason this takes an argument at all.
+   * Keycloak says `cancelled` when the browser's own dialog was dismissed and
+   * `error` when the ceremony failed, and both mean the same thing to a
+   * person: no passkey. Believing that needs no round trip, because the worst
+   * a wrong `cancelled` can do is say nothing changed above a list that shows
+   * otherwise -- unlike a wrong `registered`, which would have somebody walk
+   * away believing they can login with their face.
+   */
+  it.each([["cancelled"], ["error"]])(
+    "carries %s through as a trip that added nothing",
+    (status) => {
+      expect(passkeyReturnPath(status)).toBe(
+        "/security-and-access?passkey=cancelled",
+      );
+    },
+  );
+
+  /* An older Keycloak, a proxy that ate the parameter, or a hand-typed URL.
+   * The safe answer is the one that goes and asks. */
+  it.each([[null], [""], ["something else"]])(
+    "goes and asks when the provider said %p",
+    (status) => {
+      expect(passkeyReturnPath(status)).toBe(
+        "/security-and-access?passkey=registered",
+      );
+    },
+  );
 });

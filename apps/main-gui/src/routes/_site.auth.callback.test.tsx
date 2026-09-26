@@ -46,7 +46,10 @@ vi.mock("../authentication", () => ({
   takePendingSecondFactor,
   takePendingPasskey,
   setupReturnPath: (kind: string) => `/security-and-access?configured=${kind}`,
-  passkeyReturnPath: "/security-and-access?passkey=registered",
+  passkeyReturnPath: (status: string | null) =>
+    status === "cancelled" || status === "error"
+      ? "/security-and-access?passkey=cancelled"
+      : "/security-and-access?passkey=registered",
   useSession: () => ({ adoptTokens }),
 }));
 
@@ -69,7 +72,12 @@ const tokens = {
 };
 
 const renderCallback = (
-  params: { code?: string; state?: string; error?: string } = {},
+  params: {
+    code?: string;
+    state?: string;
+    error?: string;
+    kc_action_status?: string;
+  } = {},
   { strict = false }: { strict?: boolean } = {},
 ) => {
   search.mockReturnValue(params);
@@ -286,13 +294,54 @@ describe("coming back from setting up an authenticator app", () => {
  * And back from registering a passkey, which is the same trip with a
  * different action on it.
  *
- * What is different is what comes back: nothing but "a trip was made". There
- * is no kind, because an account holds a list of passkeys rather than one row
- * per kind, and there is no status, because the provider's own word for
- * whether it worked is a claim like any other. The security page asks the API.
+ * What is different is what comes back. There is no kind, because an account
+ * holds a list of passkeys rather than one row per kind. There *is* a status,
+ * `kc_action_status`, and it is carried onto the security page for one job
+ * only: telling an abandoned trip from a finished one. Whether a passkey was
+ * really registered is still the API's answer rather than this URL's, which is
+ * why a success and a missing status lead to the same place.
  */
 describe("coming back from registering a passkey", () => {
   it("lands on the security page with the claim on the URL", async () => {
+    takePendingPasskey.mockReturnValue(true);
+    renderCallback({
+      code: "a-code",
+      state: "the-state",
+      kc_action_status: "success",
+    });
+
+    await waitFor(() => expect(adoptTokens).toHaveBeenCalled());
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/security-and-access?passkey=registered",
+      replace: true,
+    });
+  });
+
+  /* The assertion this block gained when the status started being read. A trip
+   * somebody abandoned at their browser's own dialog used to come back
+   * indistinguishable from a finished one, and the page had to work out which
+   * it was from how recently the newest credential had been registered.
+   * Keycloak says so outright, and the word it says it with reaches the
+   * page. */
+  it("carries a dismissed dialog through as a trip that added nothing", async () => {
+    takePendingPasskey.mockReturnValue(true);
+    renderCallback({
+      code: "a-code",
+      state: "the-state",
+      kc_action_status: "cancelled",
+    });
+
+    await waitFor(() => expect(adoptTokens).toHaveBeenCalled());
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/security-and-access?passkey=cancelled",
+      replace: true,
+    });
+  });
+
+  /* Nothing in this application puts that parameter there, so a trip coming
+   * back without one is a provider that did not send it rather than a trip
+   * that failed. The safe answer is the one that goes and asks. */
+  it("goes and asks when the provider said nothing at all", async () => {
     takePendingPasskey.mockReturnValue(true);
     renderCallback({ code: "a-code", state: "the-state" });
 

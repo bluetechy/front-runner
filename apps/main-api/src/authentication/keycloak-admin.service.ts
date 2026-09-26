@@ -1181,6 +1181,17 @@ function readSecondFactor(body: unknown): SecondFactor | null {
   };
 }
 
+// The name Keycloak gives a passkey nobody named.
+//
+// Its registration page carries the label in a *hidden* field, so the ordinary
+// path through it never asks, and every passkey registered the ordinary way
+// arrives here called this. Drawn verbatim it reads like something this
+// product chose, parenthesis and all. It is Keycloak's word for "no label",
+// and it is translated into one here rather than on the page: the page has no
+// business knowing which provider is behind the port, and this file is the
+// only one that does.
+const KEYCLOAK_DEFAULT_LABEL = "Passkey (Default Label)";
+
 // One credential, as a passkey, or null if it is not one.
 //
 // The type is the whole test. There is no credentialData to unpick the way an
@@ -1188,6 +1199,11 @@ function readSecondFactor(body: unknown): SecondFactor | null {
 // authenticator's aaguid in there, and none of it is a fact this product
 // draws. What the card shows is the name the person gave it and the day it
 // was registered, and both of those are on the credential itself.
+//
+// One thing worth knowing about the label, because it decides the shape of the
+// check below: an unnamed credential comes back with no `userLabel` key at all
+// rather than with a null one, which is why anything that is not a string is
+// no label rather than being read and found empty.
 function readPasskey(body: unknown): Passkey | null {
   const credential = body as {
     id?: unknown;
@@ -1204,12 +1220,11 @@ function readPasskey(body: unknown): Passkey | null {
     return null;
 
   const created = credential.createdDate;
+  const label =
+    typeof credential.userLabel === "string" ? credential.userLabel.trim() : "";
   return {
     id: credential.id,
-    label:
-      typeof credential.userLabel === "string" && credential.userLabel.trim()
-        ? credential.userLabel.trim()
-        : null,
+    label: label && label !== KEYCLOAK_DEFAULT_LABEL ? label : null,
     createdAt:
       typeof created === "number" && Number.isFinite(created)
         ? new Date(created)
