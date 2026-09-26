@@ -396,6 +396,70 @@ credential through the admin API, after which the ordinary password login
 works. See
 [the security page](../main-gui/docs/security-page.md#recovery-codes).
 
+## Passkeys
+
+A passkey is not a second factor and is not in the section above it: a second
+factor is asked for after a password is right, and a passkey replaces the
+password. Keycloak keeps the two apart as well, and keeps two flavors of
+WebAuthn apart on top of that:
+
+| Credential type         | What it is                  | Used here |
+| ----------------------- | --------------------------- | --------- |
+| `webauthn`              | WebAuthn as a second factor | No        |
+| `webauthn-passwordless` | A passkey                   | Yes       |
+
+Only the passwordless one is read, registered or removed. main-api's
+`readPasskey` drops the other on sight, because this realm's browser flow has
+no step that would ever ask for it and a row drawn for one would promise a
+login the account cannot perform.
+
+The realm writes out its passwordless policy for the reason it writes out the
+OTP policy: the defaults are Keycloak's and the product is built against these
+values.
+
+```
+webAuthnPolicyPasswordlessRpEntityName          Front Runner
+webAuthnPolicyPasswordlessRequireResidentKey    Yes
+webAuthnPolicyPasswordlessUserVerificationRequirement  required
+webAuthnPolicyPasswordlessSignatureAlgorithms   ES256, RS256
+webAuthnPolicyPasswordlessRpId                  (empty: the host Keycloak is served from)
+```
+
+`RpEntityName` is the one somebody actually sees: it is the name in the
+browser's own dialog ("Front Runner wants to..."), and Keycloak's default for
+it is the word "keycloak". `RequireResidentKey` and `required` verification
+together are what make it a passkey rather than a hardware token: the
+credential is discoverable, so the login page can offer it without being told
+a username first, and it is unlocked by a face, a fingerprint or a screen
+lock rather than by possession alone.
+
+**Registering one cannot be done through the admin API**, for a sharper
+version of the reason an authenticator app cannot. There is nothing for a
+server to create: the credential is made by the authenticator in somebody's
+hands, in a ceremony the browser runs **against the origin Keycloak is served
+from**. A passkey made on `localhost:30001` is one Keycloak would never be
+offered. So the security page sends the browser here with
+`kc_action=webauthn-register-passwordless` — lower case, unlike the built-in
+`CONFIGURE_TOTP` — Keycloak runs its own registration page, and the browser
+comes back to `/auth/callback`. main-api then reads the credential list to
+find out what really happened; the status on the URL is a claim and is not
+believed.
+
+Removing one **is** an admin call: `DELETE /users/{id}/credentials/{id}`,
+where 404 is success, exactly as for an OTP credential.
+
+The required action itself is not listed in `front-runner-realm.json`.
+Keycloak registers its full set of built-in required actions on import when
+the file names none, and `webauthn-register-passwordless` is in that set and
+enabled. Listing one would mean listing all of them.
+
+**Logging in with a passkey does not work yet, and the realm is only half the
+reason.** The browser flow here has no WebAuthn step in it, which is a line of
+configuration; the other half is that this product's own login card uses the
+password grant, and a grant has no browser in it to run a ceremony with. A
+passkey registered today is a credential the account holds and cannot yet
+spend at our own login box. See `docs/TODO.md`.
+
 ## Identity providers
 
 `google`, `facebook` and `apple` are defined but **disabled**, with placeholder

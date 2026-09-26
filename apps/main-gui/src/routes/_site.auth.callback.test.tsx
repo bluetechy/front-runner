@@ -22,7 +22,10 @@ import { theme } from "../design-system";
  *
  * The fourth is the trip back from setting up an authenticator app, which
  * lands on the security page rather than the dashboard so that the card that
- * asked for it can ask the API what really happened.
+ * asked for it can ask the API what really happened. Registering a passkey
+ * is the fifth and is the same trip, with one difference worth asserting:
+ * there is no kind to carry back, because an account has a list of passkeys
+ * rather than one row per kind.
  */
 
 const exchangeAuthorizationCode = vi.fn();
@@ -33,6 +36,7 @@ const search = vi.fn();
 const takePendingAccountLink = vi.fn();
 const resumeAccountLink = vi.fn();
 const takePendingSecondFactor = vi.fn();
+const takePendingPasskey = vi.fn();
 
 vi.mock("../authentication", () => ({
   exchangeAuthorizationCode,
@@ -40,7 +44,9 @@ vi.mock("../authentication", () => ({
   takePendingAccountLink,
   resumeAccountLink,
   takePendingSecondFactor,
+  takePendingPasskey,
   setupReturnPath: (kind: string) => `/security-and-access?configured=${kind}`,
+  passkeyReturnPath: "/security-and-access?passkey=registered",
   useSession: () => ({ adoptTokens }),
 }));
 
@@ -83,6 +89,7 @@ beforeEach(() => {
   navigate.mockReset().mockResolvedValue(undefined);
   takePendingAccountLink.mockReset().mockReturnValue(null);
   takePendingSecondFactor.mockReset().mockReturnValue(null);
+  takePendingPasskey.mockReset().mockReturnValue(false);
   resumeAccountLink.mockReset().mockResolvedValue(true);
 });
 
@@ -272,5 +279,51 @@ describe("coming back from setting up an authenticator app", () => {
 
     await waitFor(() => expect(resumeAccountLink).toHaveBeenCalled());
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * And back from registering a passkey, which is the same trip with a
+ * different action on it.
+ *
+ * What is different is what comes back: nothing but "a trip was made". There
+ * is no kind, because an account holds a list of passkeys rather than one row
+ * per kind, and there is no status, because the provider's own word for
+ * whether it worked is a claim like any other. The security page asks the API.
+ */
+describe("coming back from registering a passkey", () => {
+  it("lands on the security page with the claim on the URL", async () => {
+    takePendingPasskey.mockReturnValue(true);
+    renderCallback({ code: "a-code", state: "the-state" });
+
+    await waitFor(() => expect(adoptTokens).toHaveBeenCalled());
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/security-and-access?passkey=registered",
+      replace: true,
+    });
+  });
+
+  // Taken rather than read, so the next ordinary login is not sent to the
+  // security page claiming a passkey has just been added.
+  it("takes the marker so a later login is unaffected", async () => {
+    takePendingPasskey.mockReturnValue(true);
+    renderCallback({ code: "a-code", state: "the-state" });
+
+    await waitFor(() => expect(takePendingPasskey).toHaveBeenCalled());
+  });
+
+  /* Setting up a second factor comes first, because the two markers cannot
+   * both be set by anything this application does and the older flow keeps
+   * its place. A login with neither marker lands on the dashboard. */
+  it("leaves the second-factor leg ahead of it", async () => {
+    takePendingSecondFactor.mockReturnValue("authenticator-app");
+    takePendingPasskey.mockReturnValue(true);
+    renderCallback({ code: "a-code", state: "the-state" });
+
+    await waitFor(() => expect(adoptTokens).toHaveBeenCalled());
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/security-and-access?configured=authenticator-app",
+      replace: true,
+    });
   });
 });

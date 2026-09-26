@@ -39,12 +39,13 @@ import {
  * The four second-factor functions are the same shape again: the security
  * page asks for a setup trip and says whether one is possible at all, the
  * callback route lands it, and what the provider calls the action stays
- * behind them. And `useRecoveryCode`, which the login card spends one with
- * when there is no session to speak of.
+ * behind them. The four passkey functions are that shape a third time, for
+ * the trip that registers one. And `useRecoveryCode`, which the login card
+ * spends one with when there is no session to speak of.
  */
 
 describe("what authentication offers the rest of the app", () => {
-  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, the password rules, account linking and the second factor", () => {
+  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, the password rules, account linking, the second factor and passkeys", () => {
     expect(Object.keys(authentication).toSorted()).toEqual([
       "ForgotPasswordDialog",
       "LoginDialog",
@@ -56,15 +57,19 @@ describe("what authentication offers the rest of the app", () => {
       "SessionProvider",
       "SignUpDialog",
       "beginAccountLink",
+      "beginPasskeyRegistration",
       "beginSecondFactorSetup",
       "canConfigureSecondFactor",
+      "canRegisterPasskey",
       "checkPassword",
       "exchangeAuthorizationCode",
+      "passkeyReturnPath",
       "passwordProgress",
       "passwordSchema",
       "resumeAccountLink",
       "setupReturnPath",
       "takePendingAccountLink",
+      "takePendingPasskey",
       "takePendingSecondFactor",
       "takeRedirectVerifier",
       "useLoginPrompt",

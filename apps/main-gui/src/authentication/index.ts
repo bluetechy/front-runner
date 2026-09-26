@@ -43,6 +43,17 @@ export {
   setupReturnPath,
   takePendingSecondFactor,
 } from "./second-factor-setup";
+// Registering a passkey, which is the same trip again and for a sharper
+// reason: the browser's WebAuthn call is bound to the origin it is made
+// from, so a passkey made on this origin is one the provider would never be
+// shown. The security page asks, the auth callback lands it, and neither of
+// them knows what the provider calls the action.
+export {
+  beginPasskeyRegistration,
+  canRegisterPasskey,
+  passkeyReturnPath,
+  takePendingPasskey,
+} from "./passkey-setup";
 // Spending a recovery code, which the login card does when somebody cannot
 // produce a second factor. It goes to main-api without a session, like the
 // two password-reset calls beside it.

@@ -4,9 +4,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   exchangeAuthorizationCode,
+  passkeyReturnPath,
   resumeAccountLink,
   setupReturnPath,
   takePendingAccountLink,
+  takePendingPasskey,
   takePendingSecondFactor,
   takeRedirectVerifier,
   useSession,
@@ -19,10 +21,11 @@ import {
  * provider from the security page. The provider puts an authorization code on
  * the URL; this trades it for tokens and gets out of the way.
  *
- * Two flows land here in the middle of something rather than at the end of
- * it. Setting up an authenticator app comes back with a session and a job
- * half done, so the browser goes on to the security page to have the provider
- * asked what really happened. Connecting a provider goes further still.
+ * Three flows land here in the middle of something rather than at the end of
+ * it. Setting up an authenticator app and registering a passkey each come
+ * back with a session and a job half done, so the browser goes on to the
+ * security page to have the provider asked what really happened. Connecting a
+ * provider goes further still.
  *
  * The link leg is the one that does not end here. A token minted by the login
  * card's password grant is no good to the provider's linking endpoint -- the
@@ -102,6 +105,17 @@ function AuthCallback() {
         const configured = takePendingSecondFactor();
         if (configured) {
           await navigate({ to: setupReturnPath(configured), replace: true });
+          return;
+        }
+        /* And back from the provider's passkey registration page, which is
+         * the same trip with a different action on it. There is no kind to
+         * carry: an account has a list of passkeys rather than one row per
+         * kind, so what goes on the URL is only that a trip was made. What
+         * came of it is the API's answer, and somebody who dismissed the
+         * browser's own dialog comes back here exactly like somebody who
+         * touched the reader. */
+        if (takePendingPasskey()) {
+          await navigate({ to: passkeyReturnPath, replace: true });
           return;
         }
         await navigate({ to: "/dashboard", replace: true });
