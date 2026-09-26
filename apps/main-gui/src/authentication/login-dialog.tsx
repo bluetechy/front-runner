@@ -26,6 +26,7 @@ import {
   startRedirect,
   type RedirectIntent,
 } from "./identity-provider";
+import { RecoveryCodeError, useRecoveryCode } from "./recovery-code";
 import { useSession } from "./session";
 
 /*
@@ -37,7 +38,49 @@ import { useSession } from "./session";
  * providers are flows the identity provider hosts, so those leave the page and come back
  * to /auth/callback. "Sign Up" and "Forgot Password" are neither: they are
  * the other two cards, which the prompt owning all three swaps in.
+ *
+ * **The second factor is asked for here, after a refusal, and it has to be
+ * that way round.** Keycloak answers a wrong password and a missing code
+ * identically -- 400, `invalid_grant`, "Invalid user credentials" -- and it
+ * does that deliberately, so that a login form cannot be asked which accounts
+ * have two-factor authentication on. So this card cannot know which of the
+ * two just happened, and it does not pretend to: a refusal keeps what was
+ * typed, adds a code box under it, and says both things in one sentence.
+ * Somebody without a second factor reads it as "check your password" and
+ * types again; somebody with one fills in the box.
+ *
+ * A code is good once. The realm sets `otpPolicyCodeReusable` false, so
+ * pressing Login twice with the same six digits is refused the second time
+ * even though the app is still showing them, which is why a refusal with a
+ * code in the box says to wait for the next one.
  */
+
+/*
+ * What to say about a refusal.
+ *
+ * The provider says the same thing whatever went wrong, so the first refusal
+ * says both of the things it can mean and the card shows a code box under it.
+ * After that there is more to go on: a refusal with a code filled in is
+ * either a wrong code or one that has already been spent, and the advice for
+ * both is the same -- wait for the next one, because the digits on the screen
+ * are not new digits.
+ */
+function refusal(failure: unknown, asked: boolean, code: string): string {
+  if (!(failure instanceof SignInError))
+    return "Login failed. Please try again.";
+  /* Something the provider named for itself: a disabled account, a client
+   * that may not run this grant. Those sentences are worth more than
+   * anything composed here. */
+  if (failure.code !== "invalid_grant") return failure.message;
+  if (asked && code)
+    return "That code was not accepted. Codes work once, so wait for your app to show the next one and try again.";
+  return "That did not work. Check your email address and password, and if your account uses two-factor authentication, add the code from your authenticator app.";
+}
+
+/* "1 code" or "4 codes", written out rather than left as "4 code(s)". */
+function remaining(count: number): string {
+  return count === 1 ? "1 recovery code left" : `${count} recovery codes left`;
+}
 
 /*
  * The three social providers, in the order somebody is most likely to hold an
@@ -79,27 +122,82 @@ export function LoginDialog({
   const emailId = useId();
   const passwordId = useId();
 
+  const codeId = useId();
+  const recoveryId = useId();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  /* The code box, and whether it is showing. It appears after a refusal
+   * rather than before one, because until then there is nothing to suggest
+   * this account has a second factor at all -- and nothing this card could
+   * ask that would find out. */
+  const [code, setCode] = useState("");
+  const [asksForCode, setAsksForCode] = useState(false);
+
+  /* The way through for somebody whose authenticator app is gone. It takes
+   * the same email address and password as the form above it, plus one code
+   * off the sheet, and it does not login: it takes the second factor off the
+   * account so that the ordinary form does. */
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
+    if (recovering) return recover();
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
-      await login(email.trim(), password, remember);
+      await login(email.trim(), password, remember, code.trim() || undefined);
       onClose();
       await navigate({ to: "/dashboard" });
     } catch (failure) {
-      setError(
-        failure instanceof SignInError
-          ? failure.message
-          : "Sign-in failed. Please try again.",
+      setError(refusal(failure, asksForCode, code));
+      /* Whatever it was, a code is the thing this card has not asked for yet.
+       * Offering it costs somebody with a wrong password one box they can
+       * ignore; not offering it leaves somebody with a second factor unable
+       * to login at all. */
+      setAsksForCode(true);
+      setBusy(false);
+    }
+  }
+
+  async function recover() {
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    try {
+      const used = await useRecoveryCode(
+        email.trim(),
+        password,
+        recoveryCode.trim(),
       );
+      /* Back to the ordinary form, which is where the person now has to
+       * login: a recovery code is not a session and never will be. Both
+       * halves are said, because somebody who is not told their second factor
+       * is gone will believe they are still protected by it. */
+      setRecovering(false);
+      setAsksForCode(false);
+      setCode("");
+      setRecoveryCode("");
+      setNotice(
+        used.TwoFactorRemoved
+          ? `Two-factor authentication is now off, and you have ${remaining(used.Remaining)}. Login with your password, then turn it back on from Security & Access.`
+          : "That code was accepted. Login with your password.",
+      );
+    } catch (failure) {
+      setError(
+        failure instanceof RecoveryCodeError
+          ? failure.message
+          : "That recovery code was not accepted. Please try again.",
+      );
+    } finally {
       setBusy(false);
     }
   }
@@ -173,6 +271,14 @@ export function LoginDialog({
           </Alert>
         ) : null}
 
+        {/* Said after a recovery code is spent, which is the one moment this
+         * card has good news that is not a completed login. */}
+        {notice ? (
+          <Alert severity="success" sx={{ mt: 2.5, borderRadius: 2 }}>
+            {notice}
+          </Alert>
+        ) : null}
+
         <FormControl fullWidth variant="outlined" sx={{ mt: 3 }}>
           <InputLabel htmlFor={emailId}>Email</InputLabel>
           <OutlinedInput
@@ -213,6 +319,74 @@ export function LoginDialog({
             }
           />
         </FormControl>
+
+        {/* The second step, in the same card: the password and the code are
+         * one submission, because Keycloak's direct grant takes them together
+         * and a page that asked for them in turn would be pretending it knew
+         * the password was right. */}
+        {asksForCode && !recovering ? (
+          <FormControl fullWidth variant="outlined" sx={{ mt: 2.25 }}>
+            <InputLabel htmlFor={codeId}>Verification code</InputLabel>
+            <OutlinedInput
+              id={codeId}
+              /* Text rather than number: a code has leading zeros, and a
+               * number box would eat them and offer spinners for digits
+               * nobody is counting. */
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="6-digit code from your authenticator app"
+              label={null}
+              value={code}
+              onChange={(event) =>
+                setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6))
+              }
+            />
+          </FormControl>
+        ) : null}
+
+        {recovering ? (
+          <FormControl fullWidth variant="outlined" sx={{ mt: 2.25 }}>
+            <InputLabel htmlFor={recoveryId}>Recovery code</InputLabel>
+            <OutlinedInput
+              id={recoveryId}
+              type="text"
+              autoComplete="one-time-code"
+              placeholder="One code from your saved list"
+              label={null}
+              value={recoveryCode}
+              onChange={(event) => setRecoveryCode(event.target.value)}
+              required
+            />
+          </FormControl>
+        ) : null}
+
+        {/* Only once the card has admitted it may be asking for a code. Shown
+         * before then, it would be telling everybody who mistypes a password
+         * about a feature they have not turned on. */}
+        {asksForCode ? (
+          <Typography
+            variant="body2"
+            sx={{ mt: 1.25, fontSize: "0.8rem", color: "text.secondary" }}
+          >
+            {recovering
+              ? "Spending a code turns two-factor authentication off, and each code works once. "
+              : "Lost the phone with your authenticator app? "}
+            <Link
+              component="button"
+              type="button"
+              underline="hover"
+              onClick={() => {
+                setRecovering(!recovering);
+                setError(null);
+                setNotice(null);
+              }}
+              sx={{ color: "primary.light", fontSize: "inherit" }}
+            >
+              {recovering ? "Back to the code" : "Use a recovery code"}
+            </Link>
+          </Typography>
+        ) : null}
 
         <Stack
           direction="row"
@@ -257,7 +431,13 @@ export function LoginDialog({
             busy ? <CircularProgress size={16} color="inherit" /> : undefined
           }
         >
-          {busy ? "Signing in" : "Login"}
+          {recovering
+            ? busy
+              ? "Checking"
+              : "Use recovery code"
+            : busy
+              ? "Signing in"
+              : "Login"}
         </Button>
 
         <Divider sx={{ my: 2.75, color: "text.secondary", fontSize: "0.8rem" }}>

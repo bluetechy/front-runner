@@ -19,6 +19,15 @@ interface ImportMetaEnv {
    * linking is nobody's standard; empty means the provider has none and the
    * security page's SSO card offers no Connect. */
   readonly VITE_IDP_LINK_PATH: string;
+  /* Which query parameter asks the provider to run something while the
+   * browser is there, rather than only signing somebody in. Keycloak calls it
+   * kc_action; empty means this app cannot ask, and the security page's
+   * two-factor card offers no Enable. */
+  readonly VITE_IDP_ACTION_PARAMETER: string;
+  /* What that provider calls the action that sets up an authenticator app.
+   * Keycloak calls it CONFIGURE_TOTP. Empty turns the Enable button off the
+   * same way an empty parameter does. */
+  readonly VITE_IDP_TOTP_ACTION: string;
   readonly VITE_GRAPHQL_URL: string;
 }
 

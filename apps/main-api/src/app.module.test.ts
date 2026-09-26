@@ -787,7 +787,7 @@ describe("GraphQL application", () => {
       if (isEnumType(declared)) return declared.getValues()[0]!.name;
       return name === "Boolean" ? "false" : name === "Int" ? "1" : `"${orgId}"`;
     };
-    // The four operations in this schema that a token is not the
+    // The five operations in this schema that a token is not the
     // authorization for, and none of them could be anything else.
     //
     // A verification link is followed by whoever opens the mailbox it was
@@ -808,11 +808,19 @@ describe("GraphQL application", () => {
     // authorized by a one-time token that only ever existed in a message sent
     // to the account's own address. Each one's own resolver test asserts that
     // it is @Public and which operations in its vertical are.
+    //
+    // useRecoveryCode is the fifth and the same argument again, one turn
+    // further on: somebody whose authenticator app is gone cannot get a token
+    // at all, because the provider will not mint one without a code from it.
+    // What authorizes that one is the account's own password beside a code
+    // that was shown once and is spent on use, it hands back no session, and
+    // it answers one sentence however it fails.
     const publicOperations = new Set([
       "verifyEmail",
       "register",
       "requestPasswordReset",
       "resetPassword",
+      "useRecoveryCode",
     ]);
     const operations = roots.flatMap((root) =>
       Object.values(root.getFields())

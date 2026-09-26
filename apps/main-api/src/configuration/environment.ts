@@ -96,14 +96,6 @@ export function validateEnvironment(env: Record<string, unknown>) {
     KEYCLOAK_REALM: required("KEYCLOAK_REALM"),
     KEYCLOAK_CLIENT_ID: String(env.KEYCLOAK_CLIENT_ID ?? "main-api"),
     KEYCLOAK_CLIENT_SECRET: secret("KEYCLOAK_CLIENT_SECRET", 16),
-    // The browser's client, which this process borrows for exactly one thing:
-    // asking the provider whether a password somebody typed is the one the
-    // account has. That is a direct access grant, "main-api" has every flow
-    // disabled, and "main-gui" already runs the sign-in dialog on one. No
-    // secret goes with it, because it is a public client and has none.
-    KEYCLOAK_BROWSER_CLIENT_ID: String(
-      env.KEYCLOAK_BROWSER_CLIENT_ID ?? "main-gui",
-    ),
     // Separate from the issuer for the same reason the key set is: in Compose
     // the browser reaches Keycloak on its published port and this process
     // reaches it inside the network. Admin calls are this process's, so they

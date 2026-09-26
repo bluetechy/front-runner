@@ -32,3 +32,18 @@ export {
   resumeAccountLink,
   takePendingAccountLink,
 } from "./account-link";
+// Turning on an authenticator app, which is the same shape as connecting a
+// provider and for a sharper reason: the secret is minted at the provider and
+// shown once, so no API can hand it over. The security page asks, the auth
+// callback lands it, and neither of them knows what the provider calls the
+// action.
+export {
+  beginSecondFactorSetup,
+  canConfigureSecondFactor,
+  setupReturnPath,
+  takePendingSecondFactor,
+} from "./second-factor-setup";
+// Spending a recovery code, which the login card does when somebody cannot
+// produce a second factor. It goes to main-api without a session, like the
+// two password-reset calls beside it.
+export { useRecoveryCode, RecoveryCodeError } from "./recovery-code";

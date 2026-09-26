@@ -12,7 +12,7 @@ import { KeycloakAdminService } from "./keycloak-admin.service.js";
  *
  * The list below is written out rather than derived, because abstract members
  * leave nothing behind to derive it from, and because that is the point:
- * fourteen operations, and adding a fifteenth is a decision, not a drift.
+ * sixteen operations, and adding a seventeenth is a decision, not a drift.
  * Every one of them costs a rewrite when the provider changes.
  */
 
@@ -31,6 +31,8 @@ const operations = [
   "linkedLogins",
   "unlinkLogin",
   "hasPassword",
+  "secondFactors",
+  "removeSecondFactor",
 ] as const;
 
 const config = {
@@ -45,8 +47,8 @@ describe("what a vertical may ask of whoever holds the accounts", () => {
     expect(typeof IdentityAdminService).toBe("function");
   });
 
-  it("is fourteen operations, and no more", () => {
-    expect(operations).toHaveLength(14);
+  it("is sixteen operations, and no more", () => {
+    expect(operations).toHaveLength(16);
   });
 
   it.each(operations)(

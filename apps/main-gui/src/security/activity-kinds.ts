@@ -80,6 +80,28 @@ const KINDS: Record<string, ActivityKind> = {
     warning: "Your account is at risk if this was not you.",
   },
   ActivityReported: { heading: "You reported activity", warning: "" },
+  /* Quiet: turning a second factor on makes an account harder to get into,
+   * and the dialog still asks the question. */
+  TwoFactorEnabled: { heading: "Two-factor authentication on", warning: "" },
+  /* The loudest row on this page after a changed password, and for the same
+   * reason: this is the step somebody else has to get out of the way before
+   * a stolen password is worth anything. */
+  TwoFactorDisabled: {
+    heading: "Two-factor authentication off",
+    warning:
+      "Your account is protected by its password alone until you turn it back on.",
+  },
+  /* Quiet in itself -- making new codes is housekeeping -- but it is worth a
+   * row, because it is also what somebody else would do to keep a way in
+   * after being locked out of one. */
+  RecoveryCodesGenerated: { heading: "Recovery codes made", warning: "" },
+  /* Spending one takes two-factor authentication off the account, so it
+   * carries the same warning as turning it off by hand. */
+  RecoveryCodeUsed: {
+    heading: "Recovery code used",
+    warning:
+      "A recovery code turns two-factor authentication off, so your account is at risk if this was not you.",
+  },
 };
 
 export function kindOf(eventType: string): ActivityKind {

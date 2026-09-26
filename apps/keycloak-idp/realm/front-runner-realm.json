@@ -17,6 +17,37 @@
   "eventsEnabled": true,
   "eventsExpiration": 2592000,
   "enabledEventTypes": ["LOGIN_ERROR", "LOGOUT", "REFRESH_TOKEN_ERROR"],
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "otpPolicyCodeReusable": false,
+  "authenticationFlows": [
+    {
+      "id": "9f3e7a10-0000-4000-8000-000000000001",
+      "alias": "direct grant password only",
+      "description": "Username and password, and no second factor. main-api checks a current password by authenticating with it, and an account with two-factor authentication on would refuse that check on the built-in flow.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "direct-grant-validate-username",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "direct-grant-validate-password",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
   "clients": [
     {
       "clientId": "main-gui",
@@ -64,7 +95,10 @@
       "publicClient": false,
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "authenticationFlowBindingOverrides": {
+        "direct_grant": "9f3e7a10-0000-4000-8000-000000000001"
+      },
       "serviceAccountsEnabled": true,
       "secret": "dev-main-api-client-secret"
     }
@@ -80,8 +114,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "admin",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"OesFK4V12Ihnd+pYQ15xgpnpqUQQxWqX+a7Nx5eOvD+Jiou39hYnGALXrLbdtnDt5Hk1GaVbUd9Nz89f0J1lXg==\",\"salt\":\"+yjk4DZC09ErfzMv+R0e2g==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -95,8 +130,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "matthewm",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"Ur3kMWlHvlzwd9aLiBYGhwOVIxHaeZtVoIhijR9Qww0KHJYHGB/feyMKNo6BNvxuQgiSACwVDYLGetPylwsUPA==\",\"salt\":\"4j8ZMiVj4jX2HF05k8s9Lw==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -110,8 +146,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "jdoe",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"sCZPS3MfKIWYe5FDmAbD1AEBJAqslcVfdPNQeKl7P07M6VvcxFEhrkdqb+Kuz+ZT1X7W/IuAQDLunLeAEnDFYg==\",\"salt\":\"EP0267LyiG2EHCh+624Emg==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -125,8 +162,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "rsingh",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"aCc52kjNNCWgQtMldrKPcYIr2xGES+7MVVw6EwVl6d1e71ixLyVXzEeIuHDHeDCjnO6ruV6Huxh9oChws4MHYA==\",\"salt\":\"mlypBgE0rmjuQV2lWJ1GGQ==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -140,8 +178,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "lchen",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"6a1OXxieA5gPuWP9vCSXDr7cAx/3FcxdzNSFZ0+TnsHAiXBh+PXrhZpP4X88fsjJbAFXpbc+3iT6TTQ9TiZs2g==\",\"salt\":\"zyAYt/aA/HQkoCKpJRZ6oQ==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -155,8 +194,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "mgarcia",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"ElFu5qP75C9/TXLNVa97QYpuXTvhTic1QkfvOhOzo69K+2CemxuAb94Y6fBNLaWvjGiuXB+HzYul8YJCq+suwg==\",\"salt\":\"jMU8oU/iwkdr8hEBYQF20A==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -170,8 +210,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "tnguyen",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"A5Rug2Pdbx8fg8nFQSJvWSy8IcIbupiItSGBv33V4GtJDlafvj39KeDOobR3Blj+QRHK8J/I06Yb4RO5hUcS2A==\",\"salt\":\"3GnpOe+p+94JhxGOpTew1w==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -185,8 +226,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "kowusu",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"y6IRiKyQluqIH2j7V8+Rf9/T9lPIId34/foy+SADxdVsYD4wG4Z3FMAhGQLHGCEeapcdaxkkrEHpXQ4OeM9iXA==\",\"salt\":\"L5sr0O9Ox+HkefIg9+UPww==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -200,8 +242,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "sjohnson",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"pp/gxL8BkoFk9VvRX8xQ3qf+034eeMnq1NCVNkPZfYPDNuw3yXC8aqmvjqrOhqv0aE9+VryZE9PMhaNaqSU1Xg==\",\"salt\":\"cQlZ0yk8u9Eme/t+QTDolw==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -215,8 +258,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "ahassan",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"2jlq0/X7fnNkUWBU6USR/zeUADskZL+UsjUHfFEPLSblQ3jBffjfADSN0ezHhdIxHv7NLHBefFSwdaJB7JbOrA==\",\"salt\":\"IhfDL6KX7EVBzyL0E4u5AA==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -230,8 +274,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "pkowalski",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"7BvBGYM3DW2kjXRrBQNCdQ3VANkJwVq3KefK5Ec2YO6UHo5dZ1TNdgVaFiqVCphDebLkIhDWedw3SNVL/GwliQ==\",\"salt\":\"PAAZn+G6riVlgBMWYimGMg==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -245,8 +290,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "dretired",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"p3NXqlU6vxJi+pZ4HWflPNvFG8aea5sFT+ioKUj757qgjrvEYmwUXQfdyfsh64+Ua/iCKg1nO61A9tSCIAO4ug==\",\"salt\":\"85OmEZkacDT+MF/43JzloQ==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -260,8 +306,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "newhire",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"9tG42E4+lDR0TtBpmLUqPvXuaqHN7841Q0F+CkYihwJwdKgEa5/NX2Su1JnoyZo7JxiwmPA46kW+hT4ZdC8/aA==\",\"salt\":\"0ZK3XjdJCtNV6vvJNrRhNQ==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },
@@ -275,8 +322,9 @@
       "credentials": [
         {
           "type": "password",
-          "value": "testuser",
-          "temporary": false
+          "temporary": false,
+          "secretData": "{\"value\":\"sIzS0mQgGt24CWij5h3R7bytMIYh97e89KTk5qovsw46XIuohiTuTxk4+OnntpcQ5F4RdBo0iWpxwHzt6hsrOw==\",\"salt\":\"Q8/aeBH9rW5OurpotJxBWA==\",\"additionalParameters\":{}}",
+          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
         }
       ]
     },

@@ -23,9 +23,6 @@ const settings: Record<string, string> = {
   KEYCLOAK_REALM: "front-runner",
   KEYCLOAK_CLIENT_ID: "main-api",
   KEYCLOAK_CLIENT_SECRET: "a-secret-long-enough-to-pass",
-  // The browser's client, borrowed for one call: the password grant that
-  // checks a password somebody typed. "main-api" has every flow disabled.
-  KEYCLOAK_BROWSER_CLIENT_ID: "main-gui",
 };
 
 const config = {
@@ -501,7 +498,7 @@ describe("checking that a password is the account's own", () => {
   const grant = () =>
     ok({ access_token: "a-token", refresh_token: "a-refresh-token" });
 
-  it("asks the browser's client for a password grant, not the API's", async () => {
+  it("asks for a password grant on this API's own confidential client", async () => {
     fetchMock.mockResolvedValueOnce(grant()).mockResolvedValueOnce(ok());
     const service = new KeycloakAdminService(config);
 
@@ -515,9 +512,14 @@ describe("checking that a password is the account's own", () => {
     );
     const body = new URLSearchParams(String(init?.body));
     expect(body.get("grant_type")).toBe("password");
-    // "main-api" has every flow disabled, direct grants included, so the
-    // client that can answer this is the one the sign-in dialog already uses.
-    expect(body.get("client_id")).toBe("main-gui");
+    // The realm binds "main-api" a direct grant flow with no second factor in
+    // it, which is the only way this check can pass for an account that has
+    // an authenticator app on it: the browser's client would refuse the grant
+    // without a code, and the question being asked here is about a password.
+    // The secret goes with it, and that is what keeps the arrangement safe --
+    // nothing but this process can reach that flow.
+    expect(body.get("client_id")).toBe("main-api");
+    expect(body.get("client_secret")).toBe("a-secret-long-enough-to-pass");
     expect(body.get("username")).toBe("marcus");
     expect(body.get("password")).toBe("letmein");
   });
@@ -547,17 +549,55 @@ describe("checking that a password is the account's own", () => {
     expect(String(url)).toBe(
       "http://keycloak-idp:8080/realms/front-runner/protocol/openid-connect/logout",
     );
-    expect(new URLSearchParams(String(init?.body)).get("refresh_token")).toBe(
-      "a-refresh-token",
+    const logout = new URLSearchParams(String(init?.body));
+    expect(logout.get("refresh_token")).toBe("a-refresh-token");
+    // The session belongs to a confidential client, which is asked to prove
+    // it is itself even to give one back.
+    expect(logout.get("client_id")).toBe("main-api");
+    expect(logout.get("client_secret")).toBe("a-secret-long-enough-to-pass");
+  });
+
+  /* **Keycloak 26 answers 400 for a refused grant, not 401.** Verified
+   * against 26.7.4, which returns 400 with error "invalid_grant" for a wrong
+   * password, an account that is not there and a disabled account alike. Both
+   * are read, because 401 is what OAuth's own examples show and what another
+   * provider may well answer. */
+  it("reads a 400 invalid_grant as a wrong password, the way Keycloak sends it", async () => {
+    fetchMock.mockResolvedValueOnce(
+      failed(400, {
+        error: "invalid_grant",
+        error_description: "Invalid user credentials",
+      }),
+    );
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "not-it")).resolves.toBe(
+      false,
     );
   });
 
-  it("reads a refusal as a wrong password and nothing worse", async () => {
+  it("reads a 401 as a wrong password too", async () => {
     fetchMock.mockResolvedValueOnce(failed(401));
     const service = new KeycloakAdminService(config);
 
     await expect(service.verifyPassword("marcus", "not-it")).resolves.toBe(
       false,
+    );
+  });
+
+  /* A 400 that is not a refused credential is a client this realm will not
+   * run the grant for -- a flow override that was never applied, a client
+   * whose direct grants are off. That is an outage in the deployment rather
+   * than a wrong password, and saying "that is not your password" to it would
+   * send everybody looking for a password they already have. */
+  it("reads a 400 that is not invalid_grant as an outage", async () => {
+    fetchMock.mockResolvedValueOnce(
+      failed(400, { error: "unauthorized_client" }),
+    );
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.verifyPassword("marcus", "letmein")).rejects.toThrow(
+      "could not check that password",
     );
   });
 
@@ -1147,5 +1187,151 @@ describe("whether the account still has a password", () => {
     const service = new KeycloakAdminService(config);
 
     await expect(service.hasPassword("subject-marcus")).resolves.toBe(false);
+  });
+});
+
+/*
+ * The second factors an account holds, read out of the same credentials list
+ * the two blocks above walk, and taken away one at a time.
+ *
+ * Two assertions carry this. Only a time-based one-time password becomes a
+ * factor -- Keycloak files both flavors under type "otp" and says which in a
+ * JSON string, and a counter-based credential is a different thing to set up
+ * and to lose. And an outage throws rather than answering an empty list,
+ * which is the opposite of what hasPassword above does and is the same
+ * reasoning: the safe direction here is refusing to draw, because an empty
+ * answer is drawn as an account with nothing protecting it.
+ */
+describe("the second factors an account holds", () => {
+  const totp = (over: Record<string, unknown> = {}) => ({
+    id: "credential-otp",
+    type: "otp",
+    userLabel: "iPhone",
+    createdDate: 1790400064804,
+    credentialData: '{"subType":"totp","digits":6,"period":30}',
+    ...over,
+  });
+
+  it("reads an authenticator app off the credential list", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([{ type: "password" }, totp()]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).resolves.toEqual([
+      {
+        kind: "authenticator-app",
+        id: "credential-otp",
+        label: "iPhone",
+        createdAt: new Date(1790400064804),
+      },
+    ]);
+  });
+
+  it("asks for the account's credentials and nothing else", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok([]));
+    const service = new KeycloakAdminService(config);
+
+    await service.secondFactors("subject-marcus");
+
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/credentials",
+    );
+  });
+
+  // A counter-based credential is not an authenticator app as this product
+  // means one, and a row claiming it was would be wrong in both directions.
+  it("leaves a counter-based one-time password out", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(
+        ok([totp({ credentialData: '{"subType":"hotp","counter":0}' })]),
+      );
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).resolves.toEqual([]);
+  });
+
+  it("leaves out an otp credential whose data will not parse", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([totp({ credentialData: "not json" })]));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).resolves.toEqual([]);
+  });
+
+  it("carries no label and no date where Keycloak gives none", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(
+        ok([totp({ userLabel: "", createdDate: "whenever" })]),
+      );
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).resolves.toEqual([
+      {
+        kind: "authenticator-app",
+        id: "credential-otp",
+        label: null,
+        createdAt: null,
+      },
+    ]);
+  });
+
+  /* The assertion this block exists for. An empty list is drawn as "no second
+   * factor yet", beside an offer to turn one on; a provider that would not
+   * answer must not be drawn that way. */
+  it("throws rather than answering an empty list when the provider will not say", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).rejects.toThrow(
+      "would not say what this account uses",
+    );
+  });
+});
+
+describe("taking a second factor away", () => {
+  it("deletes the credential by the id the read gave it", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.removeSecondFactor("subject-marcus", "credential-otp");
+
+    const [url, init] = fetchMock.mock.calls[1]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/credentials/credential-otp",
+    );
+    expect(init?.method).toBe("DELETE");
+  });
+
+  // The page it was pressed on is a moment old, and the end state is the one
+  // that was asked for either way: no such factor.
+  it("reads a credential that was not there as done rather than as a failure", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(404));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.removeSecondFactor("subject-marcus", "credential-otp"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("reads anything else as an outage", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.removeSecondFactor("subject-marcus", "credential-otp"),
+    ).rejects.toThrow("would not turn off two-factor authentication");
+  });
+
+  it("quotes the credential id it is given", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.removeSecondFactor("subject-marcus", "a b");
+
+    expect(String(fetchMock.mock.calls[1]![0])).toContain("/credentials/a%20b");
   });
 });

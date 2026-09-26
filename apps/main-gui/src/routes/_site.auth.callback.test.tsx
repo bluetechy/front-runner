@@ -19,6 +19,10 @@ import { theme } from "../design-system";
  * carries on to the provider with the token this exchange just produced. What
  * matters is that a link that cannot be carried on is still a login, because
  * the account is signed in either way.
+ *
+ * The fourth is the trip back from setting up an authenticator app, which
+ * lands on the security page rather than the dashboard so that the card that
+ * asked for it can ask the API what really happened.
  */
 
 const exchangeAuthorizationCode = vi.fn();
@@ -28,12 +32,15 @@ const navigate = vi.fn();
 const search = vi.fn();
 const takePendingAccountLink = vi.fn();
 const resumeAccountLink = vi.fn();
+const takePendingSecondFactor = vi.fn();
 
 vi.mock("../authentication", () => ({
   exchangeAuthorizationCode,
   takeRedirectVerifier,
   takePendingAccountLink,
   resumeAccountLink,
+  takePendingSecondFactor,
+  setupReturnPath: (kind: string) => `/security-and-access?configured=${kind}`,
   useSession: () => ({ adoptTokens }),
 }));
 
@@ -75,6 +82,7 @@ beforeEach(() => {
   adoptTokens.mockReset();
   navigate.mockReset().mockResolvedValue(undefined);
   takePendingAccountLink.mockReset().mockReturnValue(null);
+  takePendingSecondFactor.mockReset().mockReturnValue(null);
   resumeAccountLink.mockReset().mockResolvedValue(true);
 });
 
@@ -83,7 +91,7 @@ describe("what the page says", () => {
     renderCallback({ code: "a-code", state: "a-state" });
 
     expect(
-      screen.getByRole("heading", { name: "Signing you in…" }),
+      screen.getByRole("heading", { name: "Logging you in…" }),
     ).toBeInTheDocument();
   });
 });
@@ -119,7 +127,7 @@ describe("a code that did not", () => {
     renderCallback({ code: "a-code", state: "somebody-elses-state" });
 
     expect(
-      await screen.findByRole("heading", { name: "Sign-in failed" }),
+      await screen.findByRole("heading", { name: "Login failed" }),
     ).toBeInTheDocument();
     expect(exchangeAuthorizationCode).not.toHaveBeenCalled();
     expect(adoptTokens).not.toHaveBeenCalled();
@@ -223,5 +231,46 @@ describe("the first leg of connecting a provider", () => {
       }),
     );
     expect(resumeAccountLink).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The trip back from the identity provider's own authenticator-app setup
+ * page. It is a login like any other -- there is a code on the URL and it is
+ * exchanged the same way -- and then it lands somewhere else, because the
+ * card that asked for it is the thing to look at and the only place that can
+ * ask the API what really happened.
+ */
+describe("coming back from setting up an authenticator app", () => {
+  it("lands on the security page with the kind it went to set up", async () => {
+    takePendingSecondFactor.mockReturnValue("authenticator-app");
+    renderCallback({ code: "a-code", state: "the-state" });
+
+    await waitFor(() => expect(adoptTokens).toHaveBeenCalled());
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/security-and-access?configured=authenticator-app",
+      replace: true,
+    });
+  });
+
+  // Taken rather than read, so the next ordinary login is not sent to the
+  // security page claiming something has just been configured.
+  it("takes the marker so a later login is unaffected", async () => {
+    takePendingSecondFactor.mockReturnValue("authenticator-app");
+    renderCallback({ code: "a-code", state: "the-state" });
+
+    await waitFor(() => expect(takePendingSecondFactor).toHaveBeenCalled());
+  });
+
+  /* Connecting a provider is the other half-finished flow, and it comes
+   * first: it leaves the page again, so there is nowhere to land. */
+  it("leaves the connection leg ahead of it", async () => {
+    takePendingAccountLink.mockReturnValue("google");
+    resumeAccountLink.mockResolvedValue(true);
+    takePendingSecondFactor.mockReturnValue("authenticator-app");
+    renderCallback({ code: "a-code", state: "the-state" });
+
+    await waitFor(() => expect(resumeAccountLink).toHaveBeenCalled());
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

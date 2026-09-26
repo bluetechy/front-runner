@@ -189,15 +189,29 @@ async function exchange(body: URLSearchParams): Promise<TokenSet> {
 export function signInWithPassword(
   username: string,
   password: string,
+  /* The six digits from an authenticator app, where the account has one. Sent
+   * as `totp`, which is what Keycloak's direct-grant OTP validator reads first
+   * -- it also answers to `otp`, and neither name is in OpenID Connect, so
+   * this is one of the few places in this file that is provider-shaped.
+   *
+   * Left out entirely rather than sent empty when there is none: an account
+   * with no second factor is refused for sending one, and a blank one would
+   * be sending one.
+   *
+   * **A code is good once.** The realm sets `otpPolicyCodeReusable` false, so
+   * a second attempt inside the same thirty seconds with the same digits is
+   * refused even though they are the digits the app is showing. The card says
+   * to wait for the next code rather than retrying the same one. */
+  totp?: string,
 ): Promise<TokenSet> {
-  return exchange(
-    new URLSearchParams({
-      grant_type: "password",
-      scope: "openid profile email",
-      username,
-      password,
-    }),
-  );
+  const body = new URLSearchParams({
+    grant_type: "password",
+    scope: "openid profile email",
+    username,
+    password,
+  });
+  if (totp) body.set("totp", totp);
+  return exchange(body);
 }
 
 export function refreshTokens(refreshToken: string): Promise<TokenSet> {
@@ -308,6 +322,17 @@ async function challenge(verifier: string): Promise<string> {
 export interface RedirectIntent {
   kind: "login";
   idpHint?: string;
+  /* Something for the provider to run while the browser is there, rather than
+   * only signing somebody in: setting up an authenticator app is the one this
+   * product asks for.
+   *
+   * OpenID Connect has nothing to say about this, so which parameter carries
+   * it and what the action is called are both configuration -- the same
+   * arrangement `VITE_IDP_HINT_PARAMETER` and `VITE_IDP_LINK_PATH` have.
+   * Keycloak spells the parameter `kc_action` and the action `CONFIGURE_TOTP`,
+   * and an empty parameter means this app cannot ask for one at all, which is
+   * what turns the security page's Enable button off. */
+  action?: string;
 }
 
 /*
@@ -341,6 +366,14 @@ export async function startRedirect(intent: RedirectIntent): Promise<void> {
   const hintParameter = import.meta.env.VITE_IDP_HINT_PARAMETER;
   if (intent.idpHint && hintParameter)
     parameters.set(hintParameter, intent.idpHint);
+
+  /* The action the provider should run on the way through. It comes back on
+   * the return URL with a status beside it, which is a claim like any other:
+   * see `second-factor-setup.ts`, which asks main-api what really happened
+   * rather than reading it. */
+  const actionParameter = import.meta.env.VITE_IDP_ACTION_PARAMETER;
+  if (intent.action && actionParameter)
+    parameters.set(actionParameter, intent.action);
 
   window.location.assign(`${authorize}?${parameters}`);
 }

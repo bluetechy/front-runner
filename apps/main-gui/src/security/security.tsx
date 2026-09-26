@@ -3,7 +3,12 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { beginAccountLink, useSession } from "../authentication";
+import {
+  beginAccountLink,
+  beginSecondFactorSetup,
+  canConfigureSecondFactor,
+  useSession,
+} from "../authentication";
 import { CardSurface } from "../card-surface";
 import { Toast, type Notice } from "../toast";
 import { ActivityDialog } from "./activity-dialog";
@@ -16,6 +21,11 @@ import type { ChangePasswordForm } from "./password-schema";
 import { ConnectionDialog, type ConnectionRequest } from "./connection-dialog";
 import { SsoList } from "./sso-list";
 import { useSignInMethods, type SignInMethod } from "./sso-api";
+import { TwoFactorDialog, type TwoFactorRequest } from "./two-factor-dialog";
+import { TwoFactorList } from "./two-factor-list";
+import { useTwoFactor, type TwoFactorMethod } from "./two-factor-api";
+import { RecoveryCodesCard } from "./recovery-codes-card";
+import { RecoveryCodesDialog } from "./recovery-codes-dialog";
 import { UserNameCard } from "./user-name-card";
 import { PrivacyCard } from "./privacy-card";
 import { useEmails, type UserEmail } from "./email-api";
@@ -45,7 +55,13 @@ import { useEmails, type UserEmail } from "./email-api";
  * never a fact -- anybody can type one -- so the page hands it to the API,
  * which asks the provider before it believes a word of it.
  */
-export function Security({ connected }: { connected?: string }) {
+export function Security({
+  connected,
+  configured,
+}: {
+  connected?: string;
+  configured?: string;
+}) {
   const {
     addresses,
     isPrivate,
@@ -76,6 +92,15 @@ export function Security({ connected }: { connected?: string }) {
     disconnect,
     confirm: confirmConnection,
   } = useSignInMethods();
+  const {
+    methods: factors,
+    codes,
+    loading: loadingFactors,
+    error: factorsError,
+    disable: disableFactor,
+    confirm: confirmFactor,
+    generate: generateCodes,
+  } = useTwoFactor();
   const navigate = useNavigate();
 
   /* Which row has a save in flight. One at a time is enough: every write
@@ -92,6 +117,21 @@ export function Security({ connected }: { connected?: string }) {
    * row it was opened on through its own closing transition. */
   const [connection, setConnection] = useState<ConnectionRequest | null>(null);
   const [busyAlias, setBusyAlias] = useState<string | null>(null);
+
+  /* Which second factor is being asked about, and whether its answer is in
+   * flight. The request is held rather than a kind, so the dialog keeps
+   * drawing the row it was opened on through its own closing transition. */
+  const [factorRequest, setFactorRequest] = useState<TwoFactorRequest | null>(
+    null,
+  );
+  const [busyKind, setBusyKind] = useState<string | null>(null);
+
+  /* The ten codes, for as long as the dialog showing them is open, and never
+   * anywhere else. They are held here rather than in the hook because this is
+   * the only thing that shows them: the API keeps hashes, so once this is
+   * null they are gone for good. */
+  const [newCodes, setNewCodes] = useState<string[] | null>(null);
+  const [makingCodes, setMakingCodes] = useState(false);
 
   /* Which event the dialog is looking at, and whether its answer is in flight.
    * The event is held rather than an id, so the dialog keeps drawing the row it
@@ -198,6 +238,59 @@ export function Security({ connected }: { connected?: string }) {
       );
   }, [connected, confirmConnection, navigate]);
 
+  /*
+   * The browser is back from the provider's setup page, and the URL says
+   * which factor it went to set up.
+   *
+   * The same shape as `connected` above, and the same reasoning: it runs
+   * once, the kind comes off the URL before the call is made so a reload
+   * cannot ask twice, and the ref covers StrictMode's second pass in
+   * development.
+   *
+   * What it says back comes from the API's answer rather than from the URL.
+   * The provider puts its own status on the return trip -- Keycloak writes
+   * kc_action_status -- and it is not read here: somebody who abandoned the
+   * QR code comes back the same way as somebody who scanned it, and the only
+   * difference between them is what the provider says when it is asked.
+   */
+  const checked = useRef<string | null>(null);
+  useEffect(() => {
+    if (!configured || checked.current === configured) return;
+    checked.current = configured;
+
+    void navigate({ to: "/security-and-access", replace: true });
+
+    confirmFactor(configured)
+      .then((method) =>
+        setNotice(
+          method?.Configured
+            ? {
+                /* Both halves, because the second is what somebody has to do
+                 * next and the moment they will not come back for it is the
+                 * moment they think they are finished. */
+                message: `${method.Name} is on. Logging in will ask for a code from now on: make a set of recovery codes below in case you lose it.`,
+                tone: "success",
+              }
+            : {
+                message:
+                  "That setup was not finished, so nothing has changed. You can start it again from the Two-Factor Authentication card.",
+                tone: "error",
+              },
+        ),
+      )
+      /* Said here rather than through `report`, which is rebuilt on every
+       * render and would have this effect run again every time it did. */
+      .catch((failure: unknown) =>
+        setNotice({
+          message:
+            failure instanceof Error
+              ? failure.message
+              : "That setup could not be checked.",
+          tone: "error",
+        }),
+      );
+  }, [configured, confirmFactor, navigate]);
+
   /* Connecting leaves the page: the browser goes to the identity provider,
    * then to the provider itself, and comes back to this route with the alias
    * on the URL. Nothing here waits for it, because there is nothing to wait
@@ -235,6 +328,57 @@ export function Security({ connected }: { connected?: string }) {
       report(failure, `${request.method.Name} was not disconnected.`);
     } finally {
       setBusyAlias(null);
+    }
+  }
+
+  /* Turning a factor on leaves the page: the browser goes to the identity
+   * provider's own setup page and comes back to this route with the kind on
+   * the URL. Nothing here waits for it, because there is nothing to wait for
+   * -- the page is gone the moment it starts. The row is only left busy so
+   * that a second press cannot start a second trip. The same shape as
+   * connecting a provider, above. */
+  async function enabling(request: TwoFactorRequest) {
+    setBusyKind(request.method.Kind);
+    try {
+      await beginSecondFactorSetup(request.method.Kind);
+    } catch (failure: unknown) {
+      report(failure, "We could not reach the identity provider.");
+      setFactorRequest(null);
+      setBusyKind(null);
+    }
+  }
+
+  async function disabling(request: TwoFactorRequest) {
+    setBusyKind(request.method.Kind);
+    try {
+      await disableFactor(request.method.Kind);
+      setFactorRequest(null);
+      setNotice({
+        /* Two things happened and the sentence says both, the way the
+         * disconnect one does: what stopped being asked for, and what the
+         * account now stands on. Somebody who is not told that is left
+         * thinking they are still protected by something. */
+        message: `${request.method.Name} is off. Your account is protected by its password alone.`,
+        tone: "success",
+      });
+    } catch (failure: unknown) {
+      report(failure, `${request.method.Name} was not turned off.`);
+    } finally {
+      setBusyKind(null);
+    }
+  }
+
+  /* The one call on this page whose answer is a secret. It goes straight into
+   * the dialog and nowhere else: no toast quoting it, no state that outlives
+   * the dialog, nothing written down. */
+  async function makingRecoveryCodes() {
+    setMakingCodes(true);
+    try {
+      setNewCodes(await generateCodes());
+    } catch (failure: unknown) {
+      report(failure, "Your recovery codes were not made.");
+    } finally {
+      setMakingCodes(false);
     }
   }
 
@@ -467,6 +611,63 @@ export function Security({ connected }: { connected?: string }) {
         />
       </CardSurface>
 
+      {/* Under the providers, because it is the same subject one step in:
+       * those are other ways in, and this is the thing asked for after the
+       * way in has been used. It is also the last control on the page that
+       * changes how somebody logs in, which is why the log comes after it. */}
+      <CardSurface
+        title="Two-Factor Authentication"
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+      >
+        {/* The list could not be read at all, which is a different thing from
+         * an account with no second factor and must not look like one. */}
+        {factorsError ? (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            {factorsError}
+          </Alert>
+        ) : null}
+
+        <Typography
+          sx={{
+            mb: 1,
+            fontSize: "0.82rem",
+            lineHeight: 1.7,
+            color: (theme) => theme.palette.brand.cardInkMuted,
+          }}
+        >
+          A second factor is something you have as well as something you know,
+          so a stolen password is not enough on its own. Turning one on sends
+          you to our identity provider to scan a code, and from then on logging
+          in asks for six digits as well as your password.
+        </Typography>
+
+        <TwoFactorList
+          methods={factors}
+          loading={loadingFactors}
+          failed={factorsError !== null}
+          busyKind={busyKind}
+          canEnable={canConfigureSecondFactor}
+          onEnable={(method: TwoFactorMethod) =>
+            setFactorRequest({ method, action: "enable" })
+          }
+          onDisable={(method: TwoFactorMethod) =>
+            setFactorRequest({ method, action: "disable" })
+          }
+        />
+      </CardSurface>
+
+      {/* Directly under it, because it is the other half of the same
+       * decision: what happens on the day you cannot answer the thing above.
+       * The same arrangement the privacy switch has under the addresses. */}
+      <RecoveryCodesCard
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+        status={codes}
+        loading={loadingFactors}
+        busy={makingCodes}
+        hasSecondFactor={factors.some((method) => method.Configured)}
+        onGenerate={() => void makingRecoveryCodes()}
+      />
+
       {/* Last, because it is the record of what has been done to the addresses
        * and to everything else about getting in: the page says what the
        * account is, then what can be changed about it, then what has changed.
@@ -518,6 +719,23 @@ export function Security({ connected }: { connected?: string }) {
             : disconnecting(request))
         }
       />
+
+      <TwoFactorDialog
+        request={factorRequest}
+        busy={busyKind !== null}
+        hasRecoveryCodes={codes.Remaining > 0}
+        onClose={() => setFactorRequest(null)}
+        onConfirm={(request) =>
+          void (request.action === "enable"
+            ? enabling(request)
+            : disabling(request))
+        }
+      />
+
+      {/* The one dialog on this page that is not closed by the backdrop: the
+       * codes behind it are shown once, and a stray click would throw away
+       * somebody's way back into their own account. */}
+      <RecoveryCodesDialog codes={newCodes} onClose={() => setNewCodes(null)} />
 
       <ActivityDialog
         event={viewing}

@@ -45,10 +45,13 @@ It defines:
   which covers `/auth/callback` on each. **Direct access grants are on**, so
   the app's own sign-in dialog can exchange an email and password for tokens
   without leaving the page — see below.
-- **`main-api`** — an audience, not a login. Every flow is disabled; it exists
-  so that tokens can be addressed to the API, and `main-gui` carries an
-  audience mapper that puts it in the access token's `aud`. Without that
-  mapper Keycloak stamps `aud: account` and the API rejects every token.
+- **`main-api`** — an audience, and one narrow login. The standard and
+  implicit flows are disabled; it exists so that tokens can be addressed to
+  the API, and `main-gui` carries an audience mapper that puts it in the
+  access token's `aud`. Without that mapper Keycloak stamps `aud: account` and
+  the API rejects every token. It also holds a direct grant bound to
+  **`direct grant password only`**, which is how main-api checks a current
+  password — see [direct access grants](#direct-access-grants).
 - **A development account per seeded user**, with the password equal to the
   username. The usernames match `apps/main-db/sql/Seeds/Dev/02_Users.sql`, so
   `dbo.ProvisionUser` claims the seeded row on first sign-in instead of
@@ -92,6 +95,26 @@ convenience; this line is the rule. See
 a password is set, not against what is stored, so the development accounts
 below still have the username as the password and still login. What they cannot
 do is change a password to another one like it.
+
+**It does apply to a password written in the clear in the realm import**, and
+that is worth knowing because it stops the container starting: Keycloak checks
+`credentials[].value` against the policy as it imports each user, refuses
+`testuser` / `testuser` for want of a special character, and exits with
+`ERROR: Failed to start server in (production) mode`. So the seeded accounts
+carry **pre-hashed** credentials instead — `secretData` and `credentialData`,
+pbkdf2-sha512, which is how Keycloak's own exports come back in and is not a
+password anybody is choosing. The passwords are still the ones the README
+documents; only their spelling in the file has changed.
+
+Regenerate one with:
+
+```sh
+node bin/seed-credential.mjs testuser
+```
+
+and paste what it prints into that account's `credentials`. The salt is
+random, so the same password prints differently every time, which is the point
+of a salt.
 
 This was added after the realm had already been imported here, so it is in the
 same position as the SMTP server and the identity providers: a clone starting
@@ -149,23 +172,98 @@ password grant. Without it the GUI's sign-in dialog cannot work at all: a
 public client has no other way to turn an email and a password into a token
 inside the page, and Keycloak answers `unauthorized_client`.
 
-It has a second reader now. main-api borrows this client for one call:
-checking that the password somebody typed into the change-password card is the
-one the account has. Keycloak has no endpoint that checks a password without
-issuing something, so it is asked to authenticate and the session is thrown
-away on the next line. `main-api`'s own client has every flow disabled and
-cannot answer a direct grant at all, which is why the browser's client is the
-one that does. A wrong password there is an ordinary `LOGIN_ERROR` on this
-realm, and the security page shows it as a Failed login, deliberately.
+**`main-api` has one too now, on a flow of its own.** It checks that the
+password somebody typed into the change-password card, or beside a recovery
+code, is the one the account has — and Keycloak has no endpoint that checks a
+password without issuing something, so it authenticates and throws the session
+away on the next line. On the built-in flow that check would be impossible to
+pass for exactly the accounts that most need it: an account with an
+authenticator app is refused without a code, and the question being asked is
+about a password. So the realm defines:
+
+- **`direct grant password only`** — a top-level `basic-flow` holding
+  `direct-grant-validate-username` and `direct-grant-validate-password`, both
+  REQUIRED, and no conditional OTP,
+
+and binds it to `main-api` with `authenticationFlowBindingOverrides`, whose
+`direct_grant` names that flow by id.
+
+That client is **confidential**, and that is what keeps the arrangement
+honest: its secret lives in main-api, nothing else can reach the flow, and no
+token it mints leaves the method that asked. The way into the product is still
+`main-gui`, whose direct grant asks for the second factor like everybody else.
+A public client bound to this flow would be a way past two-factor
+authentication for anyone who knew its name.
+
+A wrong password on either client is an ordinary `LOGIN_ERROR` on this realm,
+and the security page shows it as a Failed login, deliberately.
 
 The trade is deliberate and is written up in
 [the GUI's authentication notes](../main-gui/docs/authentication.md). The part
 worth repeating here is the operational one: **the password grant cannot run a
-required action**. Multi-factor, a forced password change, terms-of-service
-consent and account linking all need a page to happen on. An account that owes
-one gets `invalid_grant` and cannot sign in from the dialog — only through a
-redirect flow. Turning any of those on for this realm means moving the dialog's
-Login button to the redirect flow the social buttons already use.
+required action**. A forced password change, terms-of-service consent and
+account linking all need a page to happen on. An account that owes one gets
+`invalid_grant` and cannot sign in from the dialog — only through a redirect
+flow. Turning any of those on for this realm means moving the dialog's Login
+button to the redirect flow the social buttons already use.
+
+Multi-factor used to be on that list and no longer is: a code is not a
+required action, it is an execution in the direct grant flow, and the dialog
+sends it with the password. See below.
+
+## Two-factor authentication
+
+The realm's OTP policy is written out rather than left to defaults, because
+the login card's second step is built against these numbers:
+
+```
+otpPolicyType totp · HmacSHA1 · 6 digits · 30s · look-ahead 1 · codes not reusable
+```
+
+`otpPolicyCodeReusable: false` is the one worth knowing about. A code is good
+**once**, so pressing Login twice inside the same thirty seconds is refused
+even though the app is still showing those digits, and the card says to wait
+for the next one rather than to try again.
+
+Nothing else here needed changing: Keycloak's built-in `direct grant` flow
+already carries a **Direct Grant - Conditional OTP** subflow
+(`conditional-user-configured` + `direct-grant-validate-otp`), so an account
+with an authenticator app is asked for a code on the token endpoint, and one
+without is not. The browser flow's own conditional 2FA covers the social
+buttons.
+
+**Setting one up cannot be done through the admin API.** It can list
+credentials and delete them, and there is no operation anywhere that creates
+an OTP credential — the secret is minted by Keycloak and shown to a person
+once, as a QR code. So the security page sends the browser here with
+`kc_action=CONFIGURE_TOTP`, Keycloak runs its own setup page, and the browser
+comes back to `/auth/callback` with `kc_action_status`. main-api then reads
+the credential list to find out what really happened; the status on the URL is
+a claim and is not believed.
+
+Turning it off **is** an admin call: `DELETE /users/{id}/credentials/{id}`,
+where 404 is success.
+
+### SMS is not here
+
+Keycloak ships no SMS authenticator, so there is nothing in this realm to
+switch on and the security page draws that row as unavailable. Making it real
+means a Java authenticator built into this image — a browser one **and** a
+direct-grant one, or the login card stops working for anybody who turns it on
+— with delivery handled by main-api so that Twilio and the message copy live
+in one place. That is a Maven module in this directory and a second toolchain
+in the repository, and it is deliberately not started yet.
+
+### Recovery codes are not Keycloak's either
+
+Keycloak has a recovery-codes feature behind a preview flag; this product does
+not use it. The codes live in `dbo.RecoveryCodes` and are spent through
+main-api, because the situation they exist for is the one where Keycloak
+cannot help at all: its token endpoint will accept nothing but a valid code
+from the authenticator app that has been lost. Spending one removes the OTP
+credential through the admin API, after which the ordinary password login
+works. See
+[the security page](../main-gui/docs/security-page.md#recovery-codes).
 
 ## Identity providers
 

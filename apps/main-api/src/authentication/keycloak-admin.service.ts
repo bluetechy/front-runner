@@ -13,14 +13,15 @@ import {
   type LoginFailure,
   type LoginProvider,
   type NewAccount,
+  type SecondFactor,
 } from "./identity-admin.service.js";
 
 // IdentityAdminService against Keycloak's admin API. The only file in this
 // API that knows Keycloak has realms, and the only one that would be replaced
 // wholesale by a move to another provider -- see identity-admin.service.ts for
-// the operations it answers and why there are only fourteen.
+// the operations it answers and why there are only sixteen.
 //
-// Five things, in the language of that port.
+// Six things, in the language of that port.
 //
 // Changing the address an account logs in with: Keycloak holds one address per
 // user and it is the credential, so making an address primary on the security
@@ -48,6 +49,14 @@ import {
 // its own /broker/{alias}/link endpoint and the security page hands the
 // browser to it; what this service does is the reading either side of it and
 // the taking away. See apps/main-api/src/single-sign-on.
+//
+// And the second factors an account holds: reading them, and taking one away.
+// Setting one up is not here and cannot be, for a sharper version of the
+// reason connecting Google is not -- Keycloak's admin API has no operation
+// that creates an OTP credential at all, because the secret behind one is
+// shown to a person once, on a page, as a QR code. So the security page sends
+// the browser to Keycloak with kc_action=CONFIGURE_TOTP and this reads what
+// came back. See apps/main-api/src/two-factor.
 //
 // And reading back which logins the realm refused, which is the one thing here
 // that is not about an account somebody named. A refused password mints no
@@ -79,10 +88,6 @@ export class KeycloakAdminService extends IdentityAdminService {
   private readonly realm: string;
   private readonly clientId: string;
   private readonly clientSecret: string;
-  // The browser's client, borrowed for one thing: checking a password somebody
-  // typed. It is public and has direct access grants on, which is what the
-  // sign-in dialog already runs on -- see verifyPassword.
-  private readonly browserClientId: string;
   private token: AdminToken | null = null;
 
   constructor(config: ConfigService) {
@@ -91,9 +96,6 @@ export class KeycloakAdminService extends IdentityAdminService {
     this.realm = config.getOrThrow<string>("KEYCLOAK_REALM");
     this.clientId = config.getOrThrow<string>("KEYCLOAK_CLIENT_ID");
     this.clientSecret = config.getOrThrow<string>("KEYCLOAK_CLIENT_SECRET");
-    this.browserClientId = config.getOrThrow<string>(
-      "KEYCLOAK_BROWSER_CLIENT_ID",
-    );
   }
 
   // Keycloak spells the port's "already verified" as "emailVerified", set in
@@ -237,14 +239,25 @@ export class KeycloakAdminService extends IdentityAdminService {
   //
   // Keycloak has no endpoint that checks a password without issuing something,
   // so this asks it to authenticate and throws the answer away: a direct access
-  // grant against the "main-gui" client, which is the same exchange the sign-in
-  // dialog makes, and then a logout of the session it just opened. Anything
-  // else would leave a session behind every time somebody opened this card.
+  // grant, and then a logout of the session it just opened. Anything else
+  // would leave a session behind every time somebody opened this card.
   //
-  // It is the browser's client and not this one, because a direct grant needs a
-  // client that has them enabled and "main-api" deliberately has every flow
-  // turned off. Borrowing it costs nothing: the grant proves the password and
-  // the tokens are spent on the next line.
+  // **It runs on this API's own confidential client, and the realm binds that
+  // client a direct grant flow with no second factor in it.** On the ordinary
+  // flow this check would be impossible to pass for exactly the accounts that
+  // most need it: Keycloak refuses the grant for an account with an
+  // authenticator app unless a valid code comes with it, and there is no code
+  // here to send -- the question being asked is about a password. So the realm
+  // defines "direct grant password only", username and password and nothing
+  // else, and overrides it onto the "main-api" client. See
+  // apps/keycloak-idp/realm/front-runner-realm.json.
+  //
+  // That client is confidential and its secret lives in this process, which is
+  // what keeps the arrangement honest: nothing else can reach that flow, no
+  // token it mints leaves this method, and the way into the product is still
+  // the browser's client, whose direct grant asks for the second factor like
+  // everybody else. A public client bound to this flow would be a way past
+  // two-factor authentication for anyone who knew its name.
   //
   // **A wrong password here is a LOGIN_ERROR on the realm**, which the sweep in
   // the security vertical mirrors onto the same page the card sits on, as a
@@ -253,18 +266,26 @@ export class KeycloakAdminService extends IdentityAdminService {
   // exactly the event that page exists to show, and an attempt this application
   // quietly swallowed would be one the account's owner never sees.
   //
-  // Only 401 is a wrong password. Keycloak answers it for bad credentials, for
-  // a disabled account and for an account that owes a required action, and none
-  // of those is a password this card should accept; anything else is an outage,
-  // because a card that says "that is not your current password" when the truth
-  // is a broken realm sends somebody looking for a password they already have.
+  // A refusal is a wrong password; anything else is an outage. The difference
+  // matters, because a card that says "that is not your current password" when
+  // the truth is a broken realm sends somebody looking for a password they
+  // already have.
+  //
+  // **Keycloak 26 answers 400 for a refused grant, not 401**, and says
+  // `invalid_grant` in the body either way. Both statuses are read here: 401
+  // is what OAuth's own examples show and what other providers answer, and 400
+  // is what this one actually does -- verified against 26.7.4, which returns
+  // 400 with "Invalid user credentials" for a wrong password, an account that
+  // is not there, a disabled account and an account that owes a required
+  // action alike. None of those is a password this card should accept.
   async verifyPassword(loginName: string, password: string): Promise<boolean> {
     const response = await this.fetch(this.tokenUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "password",
-        client_id: this.browserClientId,
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
         username: loginName,
         password,
         // Nothing here reads the token. The narrowest scope Keycloak will
@@ -274,6 +295,11 @@ export class KeycloakAdminService extends IdentityAdminService {
     });
 
     if (response.status === 401) return false;
+    if (
+      response.status === 400 &&
+      (await errorCode(response)) === "invalid_grant"
+    )
+      return false;
 
     if (!response.ok)
       throw new ServiceUnavailableException(
@@ -499,6 +525,59 @@ export class KeycloakAdminService extends IdentityAdminService {
     );
   }
 
+  // The second factors on the account, off the same credentials list the two
+  // reads above walk.
+  //
+  // Keycloak calls the authenticator app's credential "otp" and writes the
+  // flavor into "credentialData" as a `subType` of "totp" or "hotp". Only the
+  // time-based one is answered: a counter-based credential is a different
+  // thing to set up and to lose, and a row on the card claiming an
+  // authenticator app for one would be wrong in both directions. An "otp"
+  // credential whose data will not parse is left out for the same reason --
+  // this reads what Keycloak says rather than assuming what it meant.
+  //
+  // **An outage throws here rather than answering an empty list.** The page
+  // draws "no second factor yet" from an empty answer and offers to turn one
+  // on, and a provider that could not be reached must not be drawn as an
+  // account with nothing protecting it.
+  async secondFactors(subjectId: string): Promise<SecondFactor[]> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not say what this account uses for two-factor authentication",
+      );
+    }
+
+    const credentials: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(credentials)) return [];
+    return credentials
+      .map(readSecondFactor)
+      .filter((factor): factor is SecondFactor => factor !== null);
+  }
+
+  // Take one away.
+  //
+  // 404 is success, the same as it is for unlinkLogin and for the same reason:
+  // it means the account has no such credential, which is the state that was
+  // asked for.
+  async removeSecondFactor(subjectId: string, id: string): Promise<void> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+
+    if (response.ok || response.status === 404) return;
+    if (response.status === 401 || response.status === 403) this.token = null;
+    throw new ServiceUnavailableException(
+      "The identity provider would not turn off two-factor authentication for this account",
+    );
+  }
+
   // Keycloak's user event log, filtered to the logins it refused.
   async loginFailures(limit: number): Promise<LoginFailure[]> {
     const events = await this.events(["LOGIN_ERROR"], limit);
@@ -642,7 +721,10 @@ export class KeycloakAdminService extends IdentityAdminService {
 
   // Give back the session a password check opened. A public client logs out by
   // posting the refresh token it was given, which is the whole of it: no admin
-  // token, no session id, nothing to look up.
+  // token, no session id, nothing to look up. The client's own credentials go
+  // with it, because the session belongs to this API's confidential client and
+  // a confidential client is asked to prove it is itself even to give a
+  // session back.
   private async endGrant(refreshToken: string): Promise<void> {
     try {
       await this.fetch(
@@ -651,7 +733,8 @@ export class KeycloakAdminService extends IdentityAdminService {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
-            client_id: this.browserClientId,
+            client_id: this.clientId,
+            client_secret: this.clientSecret,
             refresh_token: refreshToken,
           }).toString(),
         },
@@ -797,6 +880,59 @@ function readLinkedLogin(body: unknown): LinkedLogin | null {
   };
 }
 
+// One credential, read as a second factor, or null for anything that is not
+// one.
+//
+// Keycloak's "otp" type covers both flavors of one-time password and says
+// which in "credentialData", a JSON string rather than an object. Only the
+// time-based one becomes a factor here: see secondFactors above.
+//
+// "createdDate" is epoch milliseconds, and nonsense in it is dropped the way
+// passwordChangedAt drops it -- a factor dated 1970 is a line on a card that
+// would make somebody think they had set it up in another life.
+function readSecondFactor(body: unknown): SecondFactor | null {
+  const credential = body as {
+    id?: unknown;
+    type?: unknown;
+    userLabel?: unknown;
+    createdDate?: unknown;
+    credentialData?: unknown;
+  } | null;
+  if (
+    !credential ||
+    credential.type !== "otp" ||
+    typeof credential.id !== "string" ||
+    !credential.id
+  )
+    return null;
+
+  let subType: unknown = null;
+  try {
+    subType =
+      typeof credential.credentialData === "string"
+        ? (JSON.parse(credential.credentialData) as { subType?: unknown })
+            .subType
+        : null;
+  } catch {
+    return null;
+  }
+  if (subType !== "totp") return null;
+
+  const created = credential.createdDate;
+  return {
+    kind: "authenticator-app",
+    id: credential.id,
+    label:
+      typeof credential.userLabel === "string" && credential.userLabel
+        ? credential.userLabel
+        : null,
+    createdAt:
+      typeof created === "number" && Number.isFinite(created)
+        ? new Date(created)
+        : null,
+  };
+}
+
 // One LOGIN_ERROR event, read down to the three things a security log needs.
 //
 // An event with no "userId" is dropped, and that is the important line here:
@@ -859,6 +995,22 @@ function readEndedSession(body: unknown): EndedSession | null {
 // Keycloak's own sentence from a refusal, if the body carries one. A body
 // that is not JSON, or carries nothing useful, reads as no sentence rather
 // than as a second failure.
+// OAuth's own name for what went wrong, out of a refused grant: "invalid_grant"
+// for credentials the realm would not accept, "unauthorized_client" and its
+// neighbors for a client that is not allowed to ask. The description beside it
+// is deliberately not read -- Keycloak writes the same "Invalid user
+// credentials" for a wrong password, a missing second factor and an account
+// that is not there, which is a privacy decision of its own and not one to
+// unpick here.
+async function errorCode(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    return typeof body.error === "string" && body.error ? body.error : null;
+  } catch {
+    return null;
+  }
+}
+
 async function errorMessage(response: Response): Promise<string | null> {
   try {
     const body = (await response.json()) as { errorMessage?: unknown };

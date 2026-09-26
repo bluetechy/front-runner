@@ -34,6 +34,11 @@ class SignInError extends Error {
 
 vi.mock("./identity-provider", () => ({ SignInError, startRedirect }));
 
+class RecoveryCodeError extends Error {}
+const useRecoveryCode = vi.fn();
+
+vi.mock("./recovery-code", () => ({ RecoveryCodeError, useRecoveryCode }));
+
 vi.mock("./session", () => ({ useSession: () => ({ login }) }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -90,7 +95,21 @@ beforeEach(() => {
   login.mockReset().mockResolvedValue(undefined);
   navigate.mockReset().mockResolvedValue(undefined);
   startRedirect.mockReset().mockResolvedValue(undefined);
+  useRecoveryCode
+    .mockReset()
+    .mockResolvedValue({ TwoFactorRemoved: true, Remaining: 9 });
 });
+
+/* Get the card into the state where it is asking for a code, which is the
+ * only way it ever asks: the provider refuses a login, and the card cannot
+ * tell a wrong password from a missing code. */
+const refused = async () => {
+  login.mockRejectedValueOnce(new SignInError("No.", "invalid_grant"));
+  fillIn();
+  fireEvent.click(loginButton());
+  await screen.findByLabelText("Verification code");
+  login.mockReset().mockResolvedValue(undefined);
+};
 
 describe("what the card offers", () => {
   it("asks for an email and a password", () => {
@@ -144,6 +163,9 @@ describe("signing in", () => {
         "member@example.test",
         "a-password",
         true,
+        /* No code: the card has not been refused yet, so it has not asked
+         * for one, and sending an empty one would be sending one. */
+        undefined,
       ),
     );
   });
@@ -222,7 +244,11 @@ describe("while a sign-in is in flight", () => {
 });
 
 describe("when a sign-in fails", () => {
-  it("shows what Keycloak said, and lets it be tried again", async () => {
+  /* Keycloak answers a wrong password and a missing second-factor code
+   * identically -- and on purpose, so that a login form cannot be asked which
+   * accounts have two-factor authentication on. So this card cannot know
+   * which happened, and says both rather than picking one. */
+  it("says both of the things a refusal can mean, and lets it be tried again", async () => {
     login.mockRejectedValue(
       new SignInError(
         "That email and password do not match an account.",
@@ -235,9 +261,26 @@ describe("when a sign-in fails", () => {
     fireEvent.click(loginButton());
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "That email and password do not match an account.",
+      /Check your email address and password.*two-factor authentication/,
     );
     expect(loginButton()).toBeEnabled();
+  });
+
+  /* A provider refusing for a reason of its own -- a disabled account, a
+   * client that may not run this grant -- has already written the useful
+   * sentence, and it is not about a code. */
+  it("passes through a refusal the provider named itself", async () => {
+    login.mockRejectedValue(
+      new SignInError("Account is disabled.", "invalid_client"),
+    );
+    renderDialog();
+    fillIn();
+
+    fireEvent.click(loginButton());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Account is disabled.",
+    );
   });
 
   // Anything that is not a SignInError is a bug rather than a refusal, and
@@ -250,7 +293,7 @@ describe("when a sign-in fails", () => {
     fireEvent.click(loginButton());
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Sign-in failed. Please try again.",
+      "Login failed. Please try again.",
     );
   });
 
@@ -303,5 +346,207 @@ describe("the flows Keycloak hosts", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not reach the identity provider.",
     );
+  });
+});
+
+/*
+ * The second factor, asked for in the same card.
+ *
+ * Keycloak answers a wrong password and a missing code identically -- and
+ * deliberately, so a login form cannot be asked which accounts have
+ * two-factor authentication on -- so the card cannot know which happened.
+ * What it does instead is offer the box after any refusal and say both
+ * things, which costs somebody with a wrong password one box they can ignore
+ * and is the only thing that lets somebody with a factor login at all.
+ */
+describe("the code the second factor asks for", () => {
+  it("is not asked for until something has been refused", () => {
+    renderDialog();
+
+    expect(screen.queryByLabelText("Verification code")).toBeNull();
+  });
+
+  it("is asked for after a refusal, whatever the refusal was", async () => {
+    renderDialog();
+    await refused();
+
+    expect(screen.getByLabelText("Verification code")).toBeInTheDocument();
+  });
+
+  it("keeps what was typed, so only the code has to be added", async () => {
+    renderDialog();
+    await refused();
+
+    expect(screen.getByLabelText("Email")).toHaveValue("member@example.test");
+    expect(screen.getByLabelText("Password")).toHaveValue("a-password");
+  });
+
+  it("sends the code with the password rather than on its own", async () => {
+    renderDialog();
+    await refused();
+
+    fireEvent.change(screen.getByLabelText("Verification code"), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(loginButton());
+
+    await waitFor(() =>
+      expect(login).toHaveBeenCalledWith(
+        "member@example.test",
+        "a-password",
+        true,
+        "123456",
+      ),
+    );
+  });
+
+  /* Six digits and nothing else. A code is typed from a screen in a hurry,
+   * and the spaces and letters that come with that are not the person's
+   * mistake to be told off for. */
+  it("keeps only digits, and only six of them", async () => {
+    renderDialog();
+    await refused();
+
+    fireEvent.change(screen.getByLabelText("Verification code"), {
+      target: { value: "12 34ab56789" },
+    });
+
+    expect(screen.getByLabelText("Verification code")).toHaveValue("123456");
+  });
+
+  /* The realm refuses a code that has already been spent, so the digits on
+   * the screen are not new digits and pressing Login again is not a retry. */
+  it("says to wait for the next code when one was refused", async () => {
+    renderDialog();
+    await refused();
+    fireEvent.change(screen.getByLabelText("Verification code"), {
+      target: { value: "123456" },
+    });
+    login.mockRejectedValueOnce(new SignInError("No.", "invalid_grant"));
+
+    fireEvent.click(loginButton());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /Codes work once/,
+    );
+  });
+});
+
+/*
+ * The way through for somebody whose authenticator app is gone.
+ *
+ * It does not login, and the card says so: spending a code takes the second
+ * factor off the account, and the password login in front of them is what
+ * does the rest. Somebody who is not told that walks away believing they are
+ * still protected by something that is no longer there.
+ */
+describe("using a recovery code", () => {
+  const recover = async () => {
+    renderDialog();
+    await refused();
+    fireEvent.click(
+      screen.getByRole("button", { name: /Use a recovery code/ }),
+    );
+  };
+
+  it("is not offered until the card has asked for a code", () => {
+    renderDialog();
+
+    expect(screen.queryByRole("button", { name: /recovery code/ })).toBeNull();
+  });
+
+  it("asks for one code, beside the address and password already typed", async () => {
+    await recover();
+
+    expect(screen.getByLabelText("Recovery code")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toHaveValue("member@example.test");
+  });
+
+  it("spends it with the address and the password", async () => {
+    await recover();
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "abcde-fghij" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Use recovery code/ }));
+
+    await waitFor(() =>
+      expect(useRecoveryCode).toHaveBeenCalledWith(
+        "member@example.test",
+        "a-password",
+        "abcde-fghij",
+      ),
+    );
+  });
+
+  /* The sentence this flow exists to say. It logs nobody in, and it leaves
+   * the account with one less thing in front of it. */
+  it("says the factor is off and that a login is still needed", async () => {
+    await recover();
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "abcde-fghij" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Use recovery code/ }));
+
+    const said = await screen.findByRole("alert");
+    expect(said).toHaveTextContent(/Two-factor authentication is now off/);
+    expect(said).toHaveTextContent(/Login with your password/);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("says how many codes are left, so somebody knows to make more", async () => {
+    useRecoveryCode.mockResolvedValue({ TwoFactorRemoved: true, Remaining: 1 });
+    await recover();
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "abcde-fghij" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Use recovery code/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /1 recovery code left/,
+    );
+  });
+
+  it("goes back to the ordinary form, which is where the login happens", async () => {
+    await recover();
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "abcde-fghij" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Use recovery code/ }));
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Recovery code")).toBeNull(),
+    );
+    expect(loginButton()).toBeInTheDocument();
+  });
+
+  it("shows what the API said when a code is refused", async () => {
+    useRecoveryCode.mockRejectedValue(
+      new RecoveryCodeError(
+        "That email address, password and recovery code do not match an account.",
+      ),
+    );
+    await recover();
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "abcde-fghij" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Use recovery code/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /do not match an account/,
+    );
+  });
+
+  it("can be backed out of", async () => {
+    await recover();
+
+    fireEvent.click(screen.getByRole("button", { name: /Back to the code/ }));
+
+    expect(screen.queryByLabelText("Recovery code")).toBeNull();
+    expect(screen.getByLabelText("Verification code")).toBeInTheDocument();
   });
 });

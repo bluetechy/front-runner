@@ -45,7 +45,15 @@ interface Session {
   /* A valid access token, refreshed first if it is about to expire. Null when
    * nobody is signed in. */
   getAccessToken: () => Promise<string | null>;
-  login: (email: string, password: string, remember: boolean) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    remember: boolean,
+    /* The code from an authenticator app, where the account has one and the
+     * card has asked for it. Passed straight through: this provider decides
+     * whether it was needed, and the login card cannot know. */
+    totp?: string,
+  ) => Promise<void>;
   /* Used by the redirect callback, which has already done the exchange. */
   adoptTokens: (tokens: TokenSet, remember: boolean) => void;
   logout: () => Promise<void>;
@@ -146,8 +154,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [apply, clear]);
 
   const login = useCallback(
-    async (email: string, password: string, remember: boolean) => {
-      apply(await signInWithPassword(email, password), remember);
+    async (
+      email: string,
+      password: string,
+      remember: boolean,
+      totp?: string,
+    ) => {
+      apply(await signInWithPassword(email, password, totp), remember);
     },
     [apply],
   );

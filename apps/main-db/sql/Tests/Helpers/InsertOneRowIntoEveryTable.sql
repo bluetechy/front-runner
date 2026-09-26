@@ -47,6 +47,8 @@ BEGIN
     -- here and so has no row in dbo.Users at all.
     INSERT INTO "dbo"."PasswordResets" ("SubjectId", "Token", "CreatedBy")
         VALUES ('smoke-subject', 'smoke-reset-token', _By);
+    INSERT INTO "dbo"."RecoveryCodes" ("SubjectId", "CodeHash", "BatchId", "CreatedBy")
+        VALUES ('smoke-subject', 'smoke-recovery-code-hash', public.uuid_generate_v4(), _By);
     -- The wallet, written directly rather than through dbo.AddCreditCard, because
     -- this helper's job is to prove the tables accept a row. The number is
     -- encrypted here the way the function would do it: the column is bytea, so

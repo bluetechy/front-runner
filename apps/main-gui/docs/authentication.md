@@ -18,13 +18,15 @@ which is what makes the provider replaceable: see
 
 ## What the dialog does
 
-| Control                            | Where it goes                                           |
-| ---------------------------------- | ------------------------------------------------------- |
-| Email + password, **Login**, the ➜ | The provider's token endpoint, in the page. No redirect |
-| **Remember me**                    | Whether the refresh token outlives the tab              |
-| **Forgot Password**                | Another card. It does not leave the site                |
-| **Sign Up**                        | The other card. It does not leave the site              |
-| **Google / Facebook / Apple ID**   | The authorize endpoint, with the login-provider hint    |
+| Control                                | Where it goes                                              |
+| -------------------------------------- | ---------------------------------------------------------- |
+| Email + password, **Login**, the ➜     | The provider's token endpoint, in the page. No redirect    |
+| **Remember me**                        | Whether the refresh token outlives the tab                 |
+| **Forgot Password**                    | Another card. It does not leave the site                   |
+| **Sign Up**                            | The other card. It does not leave the site                 |
+| **Verification code**, after a refusal | The same token endpoint, with the code beside the password |
+| **Use a recovery code**                | `useRecoveryCode` on main-api. It does not login           |
+| **Google / Facebook / Apple ID**       | The authorize endpoint, with the login-provider hint       |
 
 Only the first of those completes in the dialog, and only the last three leave
 the site: those are pages the provider hosts, and they come back to
@@ -138,16 +140,93 @@ That is a real trade, and it is worth naming:
 - The password is typed into our page and passed through our JavaScript. With
   the redirect flow it is only ever seen by Keycloak.
 - The grant is deprecated in OAuth 2.1 and Keycloak discourages it.
-- **It cannot do anything interactive.** Multi-factor, "update your password",
+- **It cannot do anything interactive.** "Update your password",
   terms-of-service consent, account linking and every other Keycloak
-  _required action_ need a page to happen on, and the password grant has none —
+  _required action_ needs a page to happen on, and the password grant has none —
   an account that owes one gets `invalid_grant` and cannot sign in from the
   dialog at all.
+
+  **Multi-factor is the exception, and it is now built.** Keycloak's direct
+  grant flow carries a conditional OTP subflow, so an account with an
+  authenticator app can login from the card by sending the code with the
+  password: see [the second factor](#the-second-factor). What stays true is
+  everything else on this list — a required action still cannot be run from
+  here, which is exactly why _setting up_ a second factor is a redirect.
 
 The redirect flow is already built here, because the social buttons need it.
 Turning the dialog's Login button into `startRedirect({ kind: "login" })`
 is a one-line change if any of the above starts to matter — the cost is that
 the mock-up's form stops being where people sign in.
+
+## The second factor
+
+An account with an authenticator app is asked for six digits as well as a
+password, and the login card asks for them itself rather than handing the
+browser to Keycloak. Keycloak's built-in `direct grant` flow carries a
+conditional OTP subflow, so the code goes on the same token request:
+
+```text
+grant_type=password & username & password & totp=123456
+```
+
+`totp` is the parameter Keycloak's `direct-grant-validate-otp` reads first; it
+answers to `otp` as well, and neither name is in OpenID Connect, so this is
+one of the few provider-shaped lines in `identity-provider.ts`.
+
+**The card cannot know when to ask, and does not pretend to.** Verified
+against Keycloak 26.7.4: a wrong password, a missing code, a wrong code, an
+account that does not exist and a disabled account all answer
+
+```text
+400  {"error":"invalid_grant","error_description":"Invalid user credentials"}
+```
+
+byte for byte. That is deliberate on Keycloak's part — a login form that
+answered differently could be asked which accounts have two-factor
+authentication on — so the dialog does the only honest thing: after **any**
+refusal it keeps what was typed, adds a code box under it, and says both of
+the things the refusal can mean. Somebody without a second factor reads it as
+"check your password"; somebody with one fills in the box.
+
+A code is good **once**: the realm sets `otpPolicyCodeReusable` false, so
+pressing Login twice inside the same thirty seconds is refused even though the
+app is still showing those digits. A refusal with a code already in the box
+says to wait for the next one rather than to try again.
+
+Two other paths need no code at all and are unaffected: the social buttons,
+because Keycloak's own browser flow asks for it on its own page, and
+`refresh_token`, because the session is already established.
+
+### Setting one up, and getting back in without it
+
+Neither of those is the dialog's. Setting up an authenticator app is a
+redirect to Keycloak with `kc_action=CONFIGURE_TOTP`, started from the
+security page, because the secret is minted there and shown once. Spending a
+recovery code is a `@Public` mutation on main-api, offered by this card under
+the code box, because Keycloak's token endpoint will accept nothing but a
+valid code and there is no way through it for somebody whose phone is gone.
+Both are written up in [the security page's notes](./security-page.md).
+
+What the card owes somebody who spends one is the sentence: the second factor
+is now **off**, and the ordinary password login in front of them is what gets
+them in. A recovery code is not a session and this flow never produces one.
+
+### Checking a password for an account that has one
+
+`IdentityAdminService.verifyPassword` authenticates to answer its boolean,
+which on the built-in flow would be impossible to pass for exactly the
+accounts that need it most: Keycloak refuses the grant without a code, and
+the question being asked is about a password. So the realm defines a
+**`direct grant password only`** flow — username and password, no conditional
+OTP — and binds it to the confidential `main-api` client through
+`authenticationFlowBindingOverrides`.
+
+That client's secret lives in main-api and nowhere else, which is what keeps
+the arrangement honest: nothing else can reach that flow, no token it mints
+leaves the method, and the way into the product is still the browser's client,
+whose direct grant asks for the second factor like everybody else. **A public
+client bound to that flow would be a way past two-factor authentication for
+anyone who knew its name.**
 
 ## Where the tokens live
 
@@ -231,15 +310,16 @@ back. The whole flow is written up in
 Keycloak is a choice, not an assumption, and the code is arranged so that the
 choice is small. What a swap actually costs:
 
-| Where                                            | What changes                                                                         |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `VITE_IDP_ISSUER_URL`, `VITE_IDP_CLIENT_ID`      | Point at the new issuer. Every endpoint follows from discovery                       |
-| `VITE_IDP_HINT_PARAMETER`                        | The new provider's name for the social hint, or empty                                |
-| `VITE_IDP_LINK_PATH`                             | Where the new provider links an account, or empty if it has no such flow             |
-| `IDP_ISSUER_URL`, `IDP_JWKS_URL`, `IDP_AUDIENCE` | `main-api`'s half of the same three facts                                            |
-| `IDP_ACCESS_TOKEN_TYPE`                          | What the provider stamps `typ` with. Keycloak writes `Bearer`                        |
-| `apps/main-api/src/authentication/`              | A new file beside `keycloak-admin.service.ts`, and one `useClass` line in the module |
-| `apps/keycloak-idp/`                             | Replaced wholesale: an image, a container and whatever provisions it                 |
+| Where                                               | What changes                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `VITE_IDP_ISSUER_URL`, `VITE_IDP_CLIENT_ID`         | Point at the new issuer. Every endpoint follows from discovery                       |
+| `VITE_IDP_HINT_PARAMETER`                           | The new provider's name for the social hint, or empty                                |
+| `VITE_IDP_LINK_PATH`                                | Where the new provider links an account, or empty if it has no such flow             |
+| `VITE_IDP_ACTION_PARAMETER`, `VITE_IDP_TOTP_ACTION` | How the new provider is asked to run its own authenticator-app setup, or empty       |
+| `IDP_ISSUER_URL`, `IDP_JWKS_URL`, `IDP_AUDIENCE`    | `main-api`'s half of the same three facts                                            |
+| `IDP_ACCESS_TOKEN_TYPE`                             | What the provider stamps `typ` with. Keycloak writes `Bearer`                        |
+| `apps/main-api/src/authentication/`                 | A new file beside `keycloak-admin.service.ts`, and one `useClass` line in the module |
+| `apps/keycloak-idp/`                                | Replaced wholesale: an image, a container and whatever provisions it                 |
 
 What does **not** change: the four verticals that ask for an account
 (`registration`, `emails`, `password-reset`, the guard) inject
@@ -268,6 +348,8 @@ src/authentication/
   registration.ts      the register mutation on main-api
   registration-schema.ts  what a new account may be, in the browser
   password-reset.ts    the two reset mutations on main-api
+  second-factor-setup.ts  the trip out to set up an authenticator app, and back
+  recovery-code.ts     spending a recovery code, without a session
   password-reset-schema.ts  what a reset may ask for, in the browser
   storage.ts           localStorage/sessionStorage that cannot throw
 src/dashboard/         where a completed sign-in lands

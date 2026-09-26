@@ -3,12 +3,18 @@
 Lives in `src/security` and renders at `/security-and-access`, which is
 Security & Access in the rail. What it holds today is the account's **user
 name**, its **email addresses**, its **password**, the **other providers it
-can login from** and its **recent activity**:
-what the account is called, which addresses are on file, which one is the
-login, which of them anybody has proved they can read, when the password was
-last changed and how to change it, and what has lately happened to the account.
-The password itself is still Keycloak's: this page is where it is asked for,
-not where it is kept.
+can login from**, its **second factor**, its **recovery codes** and its
+**recent activity**: what the account is called, which addresses are on file,
+which one is the login, which of them anybody has proved they can read, when
+the password was last changed and how to change it, what is asked for after
+the password, what gets somebody back in when that thing is gone, and what
+has lately happened to the account.
+
+The password and the second factor are both still Keycloak's: this page is
+where they are asked for, not where they are kept. The recovery codes are the
+exception and the only credential here this application holds, because they
+exist for the one situation Keycloak has no answer to -- see
+[recovery codes](#recovery-codes).
 
 The route was `/security` and the rail read Security & Login until both were
 renamed. The vertical kept its own name: `src/security` is the subject, not
@@ -604,6 +610,143 @@ It has no `connectSignInMethod`, and the absence is the design rather than an
 omission. Connecting ends at Google with a browser, so a mutation named connect
 would be a mutation that could not connect anything.
 
+## Two-factor authentication
+
+`two-factor-list.tsx` and `two-factor-dialog.tsx`, in a card headed
+**TWO-FACTOR AUTHENTICATION**, under the SSO card. Built from a supplied
+mock-up, which is GitHub's "Two-factor methods": a mark, a name, a
+**Configured** pill, a sentence, and one action on the right.
+
+It sits under single sign-on because it is the same subject one step in.
+Those are other ways in; this is the thing asked for _after_ a way in has been
+used. It is also the last control on the page that changes how somebody logs
+in, which is why the activity log still comes after it.
+
+Two rows, in the product's order rather than alphabetical order: the
+authenticator app first because it is the one to choose, SMS under it because
+the only reason to read that row is to find out why not. **The SSO card sorts
+and this one does not**, and the difference is what each list is for -- that
+one is a list to look a row up in, and this one is a recommendation. Sorting
+these two alphabetically would put SMS first.
+
+### Turning it on happens at Keycloak, and cannot happen here
+
+The secret behind an authenticator app is minted by the provider and shown to
+a person exactly once, as a QR code. **Keycloak's admin API has no operation
+that creates an OTP credential at all** -- it can list credentials and delete
+them, and that is the whole of what it offers. So there is no version of this
+feature where our own page draws the code, and `Turn on` is a trip:
+
+```text
+the card  →  authorize?kc_action=CONFIGURE_TOTP   (session storage remembers the kind)
+          →  Keycloak's own setup page, with the QR code
+/auth/callback?...&kc_action_status=success
+          →  /security-and-access?configured=authenticator-app
+          →  confirmTwoFactorMethod(kind:) on main-api  →  Keycloak's credential list
+```
+
+**One leg, not the two `account-link.ts` takes.** Connecting a provider needs
+a first trip because Keycloak's linking endpoint checks a session cookie the
+password grant never produced; this goes through the authorize endpoint, which
+is the thing that produces that cookie.
+
+`kc_action` and `CONFIGURE_TOTP` are configuration rather than constants --
+`VITE_IDP_ACTION_PARAMETER` and `VITE_IDP_TOTP_ACTION`, the same arrangement
+`VITE_IDP_HINT_PARAMETER` and `VITE_IDP_LINK_PATH` have. Either one empty and
+the card draws no button rather than a button that goes nowhere.
+
+**`kc_action_status` on the way back is not read.** It is a claim on a URL, so
+the page hands the kind to main-api instead and main-api asks Keycloak what
+the account actually holds. Somebody who abandoned the QR code comes back
+looking exactly like somebody who scanned it, and the only difference between
+them is the provider's answer. The same argument the SSO card's `connected`
+rests on.
+
+### Turning it off is an admin call, and is not refused
+
+`DELETE /users/{id}/credentials/{id}`, and 404 is success: the page it was
+pressed on is a moment old and the end state is the one that was asked for
+either way.
+
+Nothing refuses this on the grounds of leaving the account unprotected. An
+account that could not take a factor off would be one somebody is locked
+_into_, and a password is still a password. What is owed instead is the
+sentence, so the dialog says the account will be left standing on its password
+alone and the toast says it again afterwards.
+
+### SMS is a row that does nothing, on purpose
+
+The realm has no SMS authenticator, so `Available` is false and the row offers
+nothing. It is still drawn, and it still argues: messages can be intercepted,
+a number can be taken over, and delivery is nobody's promise. A card that
+dropped the row would be hiding the reason it is missing from the one page
+whose job is saying what protects an account.
+
+Making it work is not configuration. Keycloak has no built-in SMS
+authenticator, so it means a Java authenticator (browser _and_ direct grant)
+built into the image, with delivery through main-api so that Twilio and the
+message copy stay in one place. Until then the honest state is a row that says
+so. See [keycloak-idp](../../keycloak-idp/README.md).
+
+## Recovery codes
+
+`recovery-codes-card.tsx` and `recovery-codes-dialog.tsx`, headed **RECOVERY
+CODES**, directly under the card above. Its own card rather than a line on
+that one, because it is a different question: that card is about what is asked
+for when you login, and this is about the day you cannot answer it.
+
+**This is the one credential on the page that is ours.** Everything else here
+is Keycloak's, read and removed through the port. Codes are not, because the
+situation they exist for is the one Keycloak has no answer to: its token
+endpoint will accept nothing but a valid code from the app that is in the
+lake. The rows live in `dbo.RecoveryCodes`, named by the Keycloak `sub` with no
+foreign key to `dbo.Users`, exactly as `dbo.PasswordResets` is and for the same
+reason.
+
+Ten codes to a set, made by main-api, **stored as SHA-256 and shown once**.
+The hash is not there to slow an attacker down the way a password hash is --
+the codes carry 2^49 of their own entropy, and there is no dictionary to walk
+-- it is there so that a copy of the table is not a working set of keys. A slow
+hash would buy nothing and cost a second of CPU on every login that spends one.
+
+The alphabet leaves out `0/o`, `1/l/i` and `u/v`: a code is read off a screen
+and typed somewhere else, often from a photograph, and every pair of
+characters that look alike is a code somebody will swear they typed correctly.
+They are printed `xxxxx-xxxxx`; the hyphen, the spaces and the case are all
+folded away on the way back in, because the hash is what is compared and three
+spellings of one code would be three different hashes.
+
+The dialog that shows them **does not close on the backdrop or on Escape**,
+which is the one place in this product a dialog takes that away. Everywhere
+else a stray click costs nothing; here it costs somebody the only copy of
+their way back into the account.
+
+### Spending one is a login-card flow, not a page one
+
+A code is spent from the login dialog, by somebody with no session at all, so
+`useRecoveryCode` is `@Public` for the reason the password-reset pair is:
+being unable to login is the situation.
+
+```text
+the login card  →  useRecoveryCode(identifier:, password:, code:) on main-api
+                →  the provider says which account that is
+                →  verifyPassword on the password-only direct grant
+                →  dbo.SpendRecoveryCode marks it used
+                →  every second factor is removed at the provider
+the login card  →  the ordinary password login, which now works
+```
+
+Three things are proved before anything changes, and the password is one of
+them: a sheet of codes found in a drawer must not be enough on its own to
+strip the protection off an account. **It answers no session**, and the card
+says the factor is now off, because somebody who is not told that walks away
+believing they are still protected by it.
+
+Every way it can fail gets one sentence -- wrong password, wrong code, no such
+account, no codes at all -- for the reason the forgot-password card answers
+identically: a form reachable without a session must not become the product's
+own account lookup.
+
 ## Recent activity log
 
 `activity-list.tsx` and `activity-dialog.tsx`, in a card headed **RECENT
@@ -1060,6 +1203,17 @@ matching on an address nobody has proved they read would let anyone claim one by
 typing the address it was sent to.
 
 ## What is not here yet
+
+**SMS as a second factor**, which is drawn and switched off: see
+[SMS is a row that does nothing, on purpose](#sms-is-a-row-that-does-nothing-on-purpose).
+It needs a Keycloak authenticator written in Java, which is a build this
+repository does not have yet, and Twilio behind it in main-api.
+
+**A second authenticator app on one account.** Keycloak will hold several OTP
+credentials and this card draws one row, so a second one set up from
+elsewhere shows as the same row and `Turn off` takes them all. That is the
+honest behavior for a card with one row on it, and the row it would need is a
+list rather than a line.
 
 Changing a password from this page, seeing active sessions, and signing other
 devices out. All three are Keycloak's, all three would go on this page, and

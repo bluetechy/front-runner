@@ -63,10 +63,6 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${IDP_AUDIENCE}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      # The browser's client, borrowed for one call: checking that a password
-      # somebody typed on the change-password card is the one the account has.
-      # That is a direct access grant and this client is the one that has them.
-      KEYCLOAK_BROWSER_CLIENT_ID: ${VITE_IDP_CLIENT_ID}
       WALLET_ENCRYPTION_KEY: ${WALLET_ENCRYPTION_KEY}
       # main-api sends the address-verification mail on the security page. The
       # same Mailpit container Keycloak sends its password resets through.

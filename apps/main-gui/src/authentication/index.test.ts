@@ -35,28 +35,40 @@ import {
  * finishes it, and neither of them may build a provider URL of its own. That
  * stays in `identity-provider.ts`, which is the one file that knows a provider
  * exists.
+ *
+ * The four second-factor functions are the same shape again: the security
+ * page asks for a setup trip and says whether one is possible at all, the
+ * callback route lands it, and what the provider calls the action stays
+ * behind them. And `useRecoveryCode`, which the login card spends one with
+ * when there is no session to speak of.
  */
 
 describe("what authentication offers the rest of the app", () => {
-  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, the password rules, and account linking", () => {
+  it("offers the three cards, the reset page, the two providers, their hooks, the callback's pair, the password rules, account linking and the second factor", () => {
     expect(Object.keys(authentication).toSorted()).toEqual([
       "ForgotPasswordDialog",
       "LoginDialog",
       "LoginPromptProvider",
       "PASSWORD_RULES",
       "PasswordChecklist",
+      "RecoveryCodeError",
       "ResetPassword",
       "SessionProvider",
       "SignUpDialog",
       "beginAccountLink",
+      "beginSecondFactorSetup",
+      "canConfigureSecondFactor",
       "checkPassword",
       "exchangeAuthorizationCode",
       "passwordProgress",
       "passwordSchema",
       "resumeAccountLink",
+      "setupReturnPath",
       "takePendingAccountLink",
+      "takePendingSecondFactor",
       "takeRedirectVerifier",
       "useLoginPrompt",
+      "useRecoveryCode",
       "useSession",
     ]);
   });

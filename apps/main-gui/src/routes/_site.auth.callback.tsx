@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   exchangeAuthorizationCode,
   resumeAccountLink,
+  setupReturnPath,
   takePendingAccountLink,
+  takePendingSecondFactor,
   takeRedirectVerifier,
   useSession,
   type TokenSet,
@@ -16,6 +18,11 @@ import {
  * registration form, the password reset, and the first leg of connecting a
  * provider from the security page. The provider puts an authorization code on
  * the URL; this trades it for tokens and gets out of the way.
+ *
+ * Two flows land here in the middle of something rather than at the end of
+ * it. Setting up an authenticator app comes back with a session and a job
+ * half done, so the browser goes on to the security page to have the provider
+ * asked what really happened. Connecting a provider goes further still.
  *
  * The link leg is the one that does not end here. A token minted by the login
  * card's password grant is no good to the provider's linking endpoint -- the
@@ -87,11 +94,21 @@ function AuthCallback() {
          * lost. */
         const linking = takePendingAccountLink();
         if (linking && (await resumeAccountLink(linking, tokens))) return;
+        /* Back from the provider's own setup page. The security page is where
+         * that goes, rather than the dashboard, because the card that asked
+         * for it is the thing to look at -- and the kind on the URL is a hint
+         * for it to check with the API, never a fact. A trip somebody
+         * abandoned at the QR code comes back exactly like a finished one. */
+        const configured = takePendingSecondFactor();
+        if (configured) {
+          await navigate({ to: setupReturnPath(configured), replace: true });
+          return;
+        }
         await navigate({ to: "/dashboard", replace: true });
       } catch (reason: unknown) {
         if (!canceled)
           setFailure(
-            reason instanceof Error ? reason.message : "Sign-in failed.",
+            reason instanceof Error ? reason.message : "Login failed.",
           );
       }
     })();
@@ -113,7 +130,7 @@ function AuthCallback() {
       }}
     >
       <Typography variant="h2" sx={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)" }}>
-        {failure ? "Sign-in failed" : "Signing you in…"}
+        {failure ? "Login failed" : "Logging you in…"}
       </Typography>
       {failure ? (
         <Typography

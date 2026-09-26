@@ -1,13 +1,13 @@
 // What this API needs from whoever holds the accounts.
 //
-// Fourteen operations and no more. This application's own truth -- profiles,
+// Sixteen operations and no more. This application's own truth -- profiles,
 // organizations, the email addresses somebody has proved they read -- lives in
 // dbo, so the identity provider is only ever asked about the credential half:
 // which account somebody named, what address it logs in with, what its
 // password is, when that password was last set, whether somebody typing one
 // has it right, which other providers it can be logged in from and which of
-// those it has already been, which attempts to use it were refused, and which
-// sessions are open or have ended. That is what keeps this list short, and a
+// those it has already been, which second factors it holds, which attempts to
+// use it were refused, and which sessions are open or have ended. That is what keeps this list short, and a
 // short list is what keeps the provider replaceable.
 //
 // Every one of them is an intent rather than an errand. `endOtherSessions`
@@ -112,6 +112,29 @@ export interface LoginProvider {
 export interface LinkedLogin {
   alias: string;
   userName: string | null;
+}
+
+// A second factor the provider holds for an account: today the authenticator
+// app, and whatever else a provider learns to hold.
+//
+// `kind` is the port's word rather than the provider's. Keycloak calls its
+// credential "otp" and stamps a "subType" of "totp" inside it; a provider that
+// held a passkey would call that something else again, and the security page
+// draws rows rather than credential types. Implementations map their own
+// vocabulary onto this one, and a factor an implementation has no word for is
+// left out rather than guessed at.
+//
+// `id` is the provider's handle for it, and the one field here that is not for
+// reading: removeSecondFactor is addressed by it. `createdAt` is when it was
+// set up, which is the line the card shows, and null where the provider will
+// not say.
+export interface SecondFactor {
+  kind: "authenticator-app";
+  id: string;
+  // What it was labeled where it was set up ("iPhone"), which is the provider's
+  // to have asked for and is null wherever nobody did.
+  label: string | null;
+  createdAt: Date | null;
 }
 
 export abstract class IdentityAdminService {
@@ -283,4 +306,31 @@ export abstract class IdentityAdminService {
   // say, which is the safe direction: the page offers no Disconnect, and
   // somebody is inconvenienced rather than locked out.
   abstract hasPassword(subjectId: string): Promise<boolean>;
+
+  // Which second factors the account has, if any.
+  //
+  // **Setting one up is not here, and cannot be.** A second factor is a secret
+  // the provider mints and shows to a person once, as a QR code on a page, and
+  // no admin API hands that out -- Keycloak's has no operation that creates an
+  // OTP credential at all. So enrollment is a browser being sent to the
+  // provider, the same shape connecting a login provider takes, and what this
+  // API does is read what came of it. See apps/main-api/src/two-factor.
+  //
+  // Implementations throw ServiceUnavailableException when the provider will
+  // not answer. Not an empty list: "this account has no second factor" is what
+  // the page offers to turn one on from, and an outage must not be drawn as
+  // an account left unprotected.
+  abstract secondFactors(subjectId: string): Promise<SecondFactor[]>;
+
+  // Take one away, by the id the read above gave it.
+  //
+  // Removing a factor that is not there is not an error, on the terms
+  // unlinkLogin is refused nothing: the page it was pressed on is a moment
+  // old, and the end state is the one that was asked for either way.
+  //
+  // It does not decide whether removing it is safe, for the reason unlinkLogin
+  // does not: an account is never locked out by losing a second factor -- that
+  // is the direction this makes login easier -- and what is worth saying about
+  // it is a sentence on a page rather than a refusal here.
+  abstract removeSecondFactor(subjectId: string, id: string): Promise<void>;
 }

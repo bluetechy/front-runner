@@ -90,6 +90,12 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('PasswordReset.Fresh',      '16161616-0000-4000-8000-000000000001'),
     ('PasswordReset.Stale',      '16161616-0000-4000-8000-000000000002'),
     ('PasswordReset.Spent',      '16161616-0000-4000-8000-000000000003'),
+    ('RecoveryCode.MemberFirst', '16161616-0000-4000-8001-000000000001'),
+    ('RecoveryCode.MemberSecond','16161616-0000-4000-8001-000000000002'),
+    ('RecoveryCode.MemberSpent', '16161616-0000-4000-8001-000000000003'),
+    ('RecoveryCode.OwnerOnly',   '16161616-0000-4000-8001-000000000004'),
+    ('RecoveryCode.MemberBatch', '16161616-0000-4000-8002-000000000001'),
+    ('RecoveryCode.OwnerBatch',  '16161616-0000-4000-8002-000000000002'),
     ('SecurityEvent.Login',      '17171717-0000-4000-8000-000000000001'),
     ('SecurityEvent.EmailAdded', '17171717-0000-4000-8000-000000000002'),
     ('SecurityEvent.Recognized', '17171717-0000-4000-8000-000000000003'),
@@ -437,3 +443,19 @@ INSERT INTO "dbo"."PasswordResets" ("PasswordResetUUID", "SubjectId", "Token", "
     ("test"."Fixture"('PasswordReset.Fresh'), 'subject-member', 'reset-fresh', CURRENT_TIMESTAMP - interval '10 minutes', NULL,                                      'fixtures'),
     ("test"."Fixture"('PasswordReset.Stale'), 'subject-member', 'reset-stale', CURRENT_TIMESTAMP - interval '2 hours',    NULL,                                      'fixtures'),
     ("test"."Fixture"('PasswordReset.Spent'), 'subject-owner',  'reset-spent', CURRENT_TIMESTAMP - interval '20 minutes', CURRENT_TIMESTAMP - interval '15 minutes', 'fixtures');
+
+-- Recovery codes: a batch of three for the member, one of them already spent,
+-- and a single code for the owner that nothing in the member's tests may touch.
+--
+-- The hashes are literals rather than anything computed here. main-api hashes
+-- the code before this database ever sees it, so what these rows prove is that
+-- a hash goes in and comes back matched -- what it is a hash of is not this
+-- layer's business.
+--
+-- They name their accounts by Keycloak "sub" for the reason the resets above
+-- do: the table does, and the row here may be all this database knows.
+INSERT INTO "dbo"."RecoveryCodes" ("RecoveryCodeUUID", "SubjectId", "CodeHash", "BatchId", "SpentAt", "CreatedBy") VALUES
+    ("test"."Fixture"('RecoveryCode.MemberFirst'),  'subject-member', 'hash-member-one',   "test"."Fixture"('RecoveryCode.MemberBatch'), NULL,                                      'fixtures'),
+    ("test"."Fixture"('RecoveryCode.MemberSecond'), 'subject-member', 'hash-member-two',   "test"."Fixture"('RecoveryCode.MemberBatch'), NULL,                                      'fixtures'),
+    ("test"."Fixture"('RecoveryCode.MemberSpent'),  'subject-member', 'hash-member-spent', "test"."Fixture"('RecoveryCode.MemberBatch'), CURRENT_TIMESTAMP - interval '1 day',      'fixtures'),
+    ("test"."Fixture"('RecoveryCode.OwnerOnly'),    'subject-owner',  'hash-owner-one',    "test"."Fixture"('RecoveryCode.OwnerBatch'),  NULL,                                      'fixtures');
