@@ -34,6 +34,15 @@ import org.keycloak.models.UserModel;
  * hole in it: a browser flow alone leaves the token endpoint answering
  * password-only, and everything the login page enforces can be skipped by
  * asking for a token directly.
+ *
+ * <p><b>Every send is claimed from {@link SmsSendBudget} first</b>, and over
+ * budget the grant is refused with nothing sent. The refusal is the same
+ * {@code invalid_grant} as every other one here, deliberately: a distinct
+ * answer for "this account has been texted five times already" would tell
+ * anybody posting a name at the token endpoint that the account exists and
+ * has SMS on it, which is the one thing this class is careful never to say.
+ * Somebody legitimately caught by it waits, and the browser login page, where
+ * the account is already known, says so in words.
  */
 public class SmsDirectGrantAuthenticator implements Authenticator {
     static final String CODE_PARAMETER = "sms_code";
@@ -61,6 +70,19 @@ public class SmsDirectGrantAuthenticator implements Authenticator {
         String presented = form.getFirst(CODE_PARAMETER);
 
         if (presented == null || presented.isBlank()) {
+            // A code already waiting is a code the client can still be asked
+            // for. Re-posting the password without one does not buy a second
+            // message for the same attempt.
+            if (SmsCode.outstanding(context.getSession(), user)) {
+                refuse(context, "invalid_grant");
+                return;
+            }
+            if (!claim(context, user)) {
+                // Over budget. Refused with nothing sent, and in the same
+                // words as everything else here.
+                refuse(context, "invalid_grant");
+                return;
+            }
             // Nothing was sent, so send one and refuse. The client has to come
             // back with the whole grant again, code included.
             if (gateway.send(number, remember(context, user))) {
@@ -82,9 +104,18 @@ public class SmsDirectGrantAuthenticator implements Authenticator {
 
         // One guess per message, the same rule the browser flow keeps. A new
         // code goes out with the refusal so the next attempt has something to
-        // answer with.
-        gateway.send(number, remember(context, user));
+        // answer with -- unless the budget is spent, which is the case this
+        // guard is for: a loop of wrong codes is a loop of paid-for messages,
+        // and it looks exactly like somebody who has lost their phone.
+        if (claim(context, user)) {
+            gateway.send(number, remember(context, user));
+        }
         refuse(context, "invalid_grant");
+    }
+
+    /** Whether a message may go out for this account right now. */
+    private boolean claim(AuthenticationFlowContext context, UserModel user) {
+        return SmsSendBudget.claim(context.getSession(), user) == SmsSendBudget.Decision.ALLOWED;
     }
 
     private String remember(AuthenticationFlowContext context, UserModel user) {

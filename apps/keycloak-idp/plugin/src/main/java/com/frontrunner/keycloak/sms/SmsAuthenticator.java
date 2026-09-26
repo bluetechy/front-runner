@@ -29,6 +29,11 @@ import org.keycloak.models.UserModel;
  * rather than on being right, so there is exactly one guess per message. Six
  * digits are a fifth of a million, which is nothing against a form that allows
  * retries and a great deal against one that does not.
+ *
+ * <p><b>Which is why every send is claimed from {@link SmsSendBudget} first.</b>
+ * One guess per message means a guessing loop is a spending loop, and the
+ * "send it again" link under the box is a button somebody can lean on. Over
+ * budget, the step refuses and says to wait; it never lets the login past.
  */
 public class SmsAuthenticator implements Authenticator {
     private static final Logger LOG = Logger.getLogger(SmsAuthenticator.class);
@@ -57,6 +62,15 @@ public class SmsAuthenticator implements Authenticator {
             return;
         }
 
+        // A code already waiting is a code they can still type. Somebody who
+        // reloaded the page, or came back to a login they walked away from,
+        // gets the form again rather than a second message for the same
+        // attempt.
+        if (SmsCode.outstanding(context.getSession(), user)) {
+            context.challenge(form(context, number, null));
+            return;
+        }
+
         if (!send(context, user, number)) {
             return;
         }
@@ -73,7 +87,19 @@ public class SmsAuthenticator implements Authenticator {
         // "Send it again", from the link under the box. A fresh code retires
         // the one before it, so the message that went astray stops working.
         if (form.getFirst("resend") != null) {
-            if (number == null || !send(context, user, number)) {
+            if (number == null) {
+                context.failure(AuthenticationFlowError.INVALID_CREDENTIALS);
+                return;
+            }
+            // Refused over budget, and the form comes back rather than the
+            // login failing: nothing was spent, so whatever code they were
+            // already holding still works.
+            SmsSendBudget.Decision decision = SmsSendBudget.claim(context.getSession(), user);
+            if (decision != SmsSendBudget.Decision.ALLOWED) {
+                context.challenge(form(context, number, waitMessage(decision)));
+                return;
+            }
+            if (!sendClaimed(context, user, number)) {
                 return;
             }
             context.challenge(form(context, number, null));
@@ -88,7 +114,22 @@ public class SmsAuthenticator implements Authenticator {
         // One guess per message, so a wrong code means another message. The
         // form comes back saying so rather than leaving somebody typing into a
         // box whose code is already spent.
-        if (number == null || !send(context, user, number)) {
+        if (number == null) {
+            context.failure(AuthenticationFlowError.INVALID_CREDENTIALS);
+            return;
+        }
+        // This is the path the budget is really for: the guess spent the code,
+        // so without a limit every wrong guess buys another message. Over
+        // budget there is no new code, and the form says to wait rather than
+        // asking for digits that are not coming.
+        SmsSendBudget.Decision decision = SmsSendBudget.claim(context.getSession(), user);
+        if (decision != SmsSendBudget.Decision.ALLOWED) {
+            context.failureChallenge(
+                    AuthenticationFlowError.INVALID_CREDENTIALS,
+                    form(context, number, waitMessage(decision)));
+            return;
+        }
+        if (!sendClaimed(context, user, number)) {
             return;
         }
         context.failureChallenge(
@@ -96,7 +137,24 @@ public class SmsAuthenticator implements Authenticator {
                 form(context, number, "smsCodeWrong"));
     }
 
+    /** Claim the allowance, then send. Over budget is an error page: this is
+     * the first sight of the step, so there is no form to come back to and no
+     * earlier code to fall back on. */
     private boolean send(AuthenticationFlowContext context, UserModel user, String number) {
+        SmsSendBudget.Decision decision = SmsSendBudget.claim(context.getSession(), user);
+        if (decision != SmsSendBudget.Decision.ALLOWED) {
+            context.failure(
+                    AuthenticationFlowError.INTERNAL_ERROR,
+                    context.form()
+                            .setError(waitMessage(decision))
+                            .createErrorPage(Response.Status.TOO_MANY_REQUESTS));
+            return false;
+        }
+        return sendClaimed(context, user, number);
+    }
+
+    /** The send itself, for callers that have already claimed. */
+    private boolean sendClaimed(AuthenticationFlowContext context, UserModel user, String number) {
         String code = SmsCode.generate();
         if (!gateway.send(number, code)) {
             // Failed rather than challenged. See the class comment: there is
@@ -110,6 +168,11 @@ public class SmsAuthenticator implements Authenticator {
         }
         SmsCode.remember(context.getSession(), user, code);
         return true;
+    }
+
+    /** Which of the two waits it is, as a message key the theme can translate. */
+    private static String waitMessage(SmsSendBudget.Decision decision) {
+        return decision == SmsSendBudget.Decision.TOO_SOON ? "smsCodeTooSoon" : "smsCodeTooMany";
     }
 
     private Response form(AuthenticationFlowContext context, String number, String error) {

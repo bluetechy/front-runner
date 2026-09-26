@@ -756,6 +756,12 @@ ask whether some other account has been texting a given number.
 A row is written before the message goes, so a send that fails at the gateway
 still counts. That is the safe direction to be wrong in.
 
+**The code Keycloak sends during a login is limited separately**, in the
+plugin's `SmsSendBudget`: thirty seconds apart and five in fifteen minutes.
+It has to be its own thing rather than this one, because a login code never
+touches this database. See
+[apps/keycloak-idp](../../keycloak-idp/README.md).
+
 ### The SMS row is still the one that argues
 
 `Available` comes from main-api, which answers false wherever there are no
@@ -1298,13 +1304,6 @@ typing the address it was sent to.
 **Twilio credentials**, without which the SMS row is drawn and switched off.
 The feature is finished either way: see
 [The SMS row is still the one that argues](#the-sms-row-is-still-the-one-that-argues).
-
-**Any rate limit on the login code.** The enrollment message has three, in
-`dbo.StartPhoneVerification`: see
-[how often the code can be asked for](#how-often-the-code-can-be-asked-for).
-The code Keycloak sends during a login has none, and its browser form carries
-a Send it again button. That limit belongs in the plugin, beside the code
-itself in `SmsCode`, rather than here.
 
 **Any rate limit on the verification mail.** `dbo.ResendUserEmailVerification`
 writes `VerificationSentAt` and enforces nothing with it. Mail costs nothing

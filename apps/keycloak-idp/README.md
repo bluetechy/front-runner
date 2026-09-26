@@ -299,14 +299,37 @@ being right, so a wrong code costs a fresh message. Six digits is a fifth of a
 million, which is nothing against a form that allows retries and a great deal
 against one that does not.
 
-**Nothing limits how often a login code can be asked for.** The browser form
-carries a Send it again button and the direct-grant step sends a fresh message
-on every refusal, so both are a way to spend money on messages. The enrollment
-message is limited, in `dbo.StartPhoneVerification` — one a minute and five an
-hour to an account, three an hour to a number — but that function is never on
-this path: a login code is minted and held by `SmsCode`, in Keycloak's
-single-use store, and main-api only carries it. The limit belongs there, beside
-the code, and is not written yet.
+**How often a login code can be asked for is `SmsSendBudget`'s answer.** It
+had to be written here rather than in main-api, because a login code never
+goes near `dbo.StartPhoneVerification`: it is minted and held by `SmsCode` in
+Keycloak's single-use store, and main-api only carries it. Two limits, a
+little tighter than enrollment's because a login is a shorter conversation:
+
+- Thirty seconds between messages to an account.
+- Five messages to an account in fifteen minutes.
+
+The budget is claimed before each send, and there are more sends than there
+look to be. The first sight of the step sends one, **Send another code** sends
+one, and a wrong code sends one, because a code is spent on being read. That
+last is the reason the budget exists at all: the rule that makes six digits
+safe also turns a guessing loop into a spending loop, so the count has to run
+across guesses rather than across logins.
+
+Two things it does rather than send:
+
+- **A code already outstanding is reused.** Reloading the form, or re-posting
+  the password grant without a code, gets the step again and costs nothing.
+- **Over budget refuses the login.** It never waves it through. The browser
+  page says which wait it is, in `smsCodeTooSoon` and `smsCodeTooMany`; the
+  token endpoint answers `invalid_grant` like everything else there, because a
+  distinct answer would tell anybody posting a name that the account exists
+  and has SMS on it.
+
+The store gives no compare-and-set, so two requests arriving together can both
+read the same count and both send. That is accepted: this is a cost guard
+rather than a security boundary, and one extra message inside the window
+changes nothing worth defending. The enrollment limit is one SQL statement and
+does not have the problem.
 
 #### The number, and where it lives
 

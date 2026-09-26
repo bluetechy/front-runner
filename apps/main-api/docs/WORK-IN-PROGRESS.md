@@ -109,5 +109,6 @@ npm exec --offline --package=node@24.21.0 -- npm run test --workspace main-api
   product work, not unfinished pieces of this framework refactor. The
   exception is the one operation that spends money per call:
   `startSmsEnrollment` is limited in `dbo.StartPhoneVerification`. The login
-  code Keycloak sends is not limited yet, and that limit belongs in the
-  plugin rather than here: see `apps/keycloak-idp/README.md`.
+  code Keycloak sends is limited too, in the plugin's `SmsSendBudget` rather
+  than here, because it never reaches this service: see
+  `apps/keycloak-idp/README.md`.

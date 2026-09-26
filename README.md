@@ -156,6 +156,12 @@ named in the policy is still the placeholder wordmark, the fonts still come
 from Google on every visit, and the consent this keeps cannot yet be proved to
 anybody. Read it before showing the site to somebody outside the team.
 
+**Work that is finished but waiting on something outside this repository is in
+[what is waiting on something](docs/TODO.md).** Today that is one item: SMS has
+never been sent through a real Twilio account, because there is not one yet.
+The page says what is already proven, so none of it is re-verified from
+scratch, and exactly what to do the day the credentials exist.
+
 ## Database
 
 The schema is built once, when the container first starts on an empty volume.
