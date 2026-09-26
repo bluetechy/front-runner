@@ -1,12 +1,15 @@
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   beginAccountLink,
+  beginPasskeyRegistration,
   beginSecondFactorSetup,
   canConfigureSecondFactor,
+  canRegisterPasskey,
   useSession,
 } from "../authentication";
 import { CardSurface } from "../card-surface";
@@ -19,6 +22,9 @@ import { PasswordCard } from "./password-card";
 import { usePassword } from "./password-api";
 import type { ChangePasswordForm } from "./password-schema";
 import { ConnectionDialog, type ConnectionRequest } from "./connection-dialog";
+import { PasskeyDialog, type PasskeyRequest } from "./passkey-dialog";
+import { PasskeyList } from "./passkey-list";
+import { usePasskeys, type Passkey } from "./passkey-api";
 import { SsoList } from "./sso-list";
 import { useSignInMethods, type SignInMethod } from "./sso-api";
 import { TwoFactorDialog, type TwoFactorRequest } from "./two-factor-dialog";
@@ -36,11 +42,13 @@ import { useEmails, type UserEmail } from "./email-api";
  * the rail.
  *
  * What it holds today is the account's user name, its email addresses, who is
- * shown them, its password and its recent activity: what the account is
- * called, which addresses are on file, which one is the login, which of them
- * anybody has proved they can read, when the password last changed and how to
- * change it, and what has lately happened to the account. The password itself
- * stays Keycloak's: this is where it is asked for, not where it is kept.
+ * shown them, its password, the passkeys that could stand in for one, and its
+ * recent activity: what the account is called, which addresses are on file,
+ * which one is the login, which of them anybody has proved they can read, when
+ * the password last changed and how to change it, what could be used instead
+ * of typing it, and what has lately happened to the account. The password and
+ * the passkeys are both Keycloak's: this is where they are asked for, not
+ * where they are kept.
  *
  * The user name comes off the token rather than out of the API. It is on this
  * page to be read, so there is nothing to fetch for it: `useSession` already
@@ -50,18 +58,24 @@ import { useEmails, type UserEmail } from "./email-api";
  * that a link is on its way, or that the API refused. One at a time, which is
  * what `Toast` is for.
  *
- * `connected` is the one thing this page is told from outside, and it arrives
- * on the URL: the provider drops the browser back here after a connection with
- * the alias it was asked to connect. It is a hint about what to go and check,
- * never a fact -- anybody can type one -- so the page hands it to the API,
- * which asks the provider before it believes a word of it.
+ * `connected`, `configured` and `passkey` are the three things this page is
+ * told from outside, and all three arrive on the URL: the provider drops the
+ * browser back here after a connection, after setting up a second factor, and
+ * after registering a passkey. Each is a hint about what to go and check,
+ * never a fact -- anybody can type one -- so the page hands each to the API,
+ * which asks the provider before it believes a word of it. The third names
+ * nothing, because there is nothing to name: an account holds a list of
+ * passkeys rather than one row per kind, so all a returning browser can say
+ * is that it went.
  */
 export function Security({
   connected,
   configured,
+  passkey,
 }: {
   connected?: string;
   configured?: string;
+  passkey?: string;
 }) {
   const {
     addresses,
@@ -104,6 +118,13 @@ export function Security({
     confirmSms,
     generate: generateCodes,
   } = useTwoFactor();
+  const {
+    passkeys,
+    loading: loadingPasskeys,
+    error: passkeysError,
+    confirm: confirmPasskey,
+    remove: removePasskey,
+  } = usePasskeys();
   const navigate = useNavigate();
 
   /* Which row has a save in flight. One at a time is enough: every write
@@ -128,6 +149,20 @@ export function Security({
     null,
   );
   const [busyKind, setBusyKind] = useState<string | null>(null);
+
+  /* Which passkey is being asked about, and whether its answer is in flight.
+   * The request is held rather than an id, so the dialog keeps drawing the
+   * row it was opened on through its own closing transition. Adding one is a
+   * request too, with a null row on it: an account with no passkeys still
+   * has a question to be asked before its page goes away. */
+  const [passkeyRequest, setPasskeyRequest] = useState<PasskeyRequest | null>(
+    null,
+  );
+  const [busyPasskey, setBusyPasskey] = useState<string | null>(null);
+  /* And whether a trip out to register one has been started. Separate from
+   * the id above rather than a sentinel in it, because a provider's handle
+   * is an opaque string and a sentinel is a string it could one day be. */
+  const [addingPasskey, setAddingPasskey] = useState(false);
 
   /* Attaching a phone number, which is the one factor that is set up on this
    * page rather than at the provider. Three pieces of state and they are the
@@ -304,6 +339,68 @@ export function Security({
       );
   }, [configured, confirmFactor, navigate]);
 
+  /*
+   * The browser is back from the provider's passkey registration page.
+   *
+   * The same shape as the two above, and the same reasoning: it runs once,
+   * the claim comes off the URL before the call is made so a reload cannot
+   * ask twice, and the ref covers StrictMode's second pass in development.
+   *
+   * The claim on the URL is thinner than the other two carry -- it names
+   * nothing, because there is nothing to name -- and a claim that a passkey
+   * *was* registered is believed no more than theirs are: the API is asked
+   * what the account actually holds.
+   *
+   * `cancelled` is the exception, and it is not a claim worth checking. It is
+   * the provider's own `kc_action_status`, carried here by `passkeyReturnPath`,
+   * and it means the browser's dialog was dismissed: there is nothing to go
+   * and read, nothing to record, and a round trip would answer with the list
+   * the page already has. The worst a forged one can do is say nothing
+   * changed above a list that shows otherwise.
+   */
+  const asked = useRef<string | null>(null);
+  useEffect(() => {
+    if (!passkey || asked.current === passkey) return;
+    asked.current = passkey;
+
+    void navigate({ to: "/security-and-access", replace: true });
+
+    /* `cancelled` is an answer already, so it stands in for one rather than
+     * branching around the rest of this: it lands on the same sentence the
+     * API's own no lands on, which is the sentence to say either way. */
+    (passkey === "cancelled" ? Promise.resolve(false) : confirmPasskey())
+      .then((registered) =>
+        setNotice(
+          registered
+            ? {
+                /* Both halves, because the second is the thing somebody
+                 * will not come back for once they believe they are
+                 * finished: a passkey is tied to the device that made it,
+                 * and a phone is where most people actually login. */
+                message:
+                  "Your passkey was added. It works on this device only: add one on your phone as well from the same card.",
+                tone: "success",
+              }
+            : {
+                message:
+                  "That passkey was not added, so nothing has changed. You can try it again from the Passkeys card.",
+                tone: "error",
+              },
+        ),
+      )
+      /* Said here rather than through `report`, which is rebuilt on every
+       * render and would have this effect run again every time it did. */
+      .catch((failure: unknown) =>
+        setNotice({
+          message:
+            failure instanceof Error
+              ? failure.message
+              : "That passkey could not be checked.",
+          tone: "error",
+        }),
+      );
+  }, [passkey, confirmPasskey, navigate]);
+
   /* Connecting leaves the page: the browser goes to the identity provider,
    * then to the provider itself, and comes back to this route with the alias
    * on the URL. Nothing here waits for it, because there is nothing to wait
@@ -437,6 +534,49 @@ export function Security({
       report(failure, `${request.method.Name} was not turned off.`);
     } finally {
       setBusyKind(null);
+    }
+  }
+
+  /* Adding a passkey leaves the page: the browser goes to the identity
+   * provider's own registration page, the ceremony happens there, and the
+   * browser comes back to this route with the claim on the URL. Nothing here
+   * waits for it, because there is nothing to wait for -- the page is gone
+   * the moment it starts. The dialog is only left busy so that a second
+   * press cannot start a second trip. The same shape as connecting a
+   * provider and as turning a factor on, above. */
+  async function addingAPasskey() {
+    setAddingPasskey(true);
+    try {
+      await beginPasskeyRegistration();
+    } catch (failure: unknown) {
+      report(failure, "We could not reach the identity provider.");
+      setPasskeyRequest(null);
+      setAddingPasskey(false);
+    }
+  }
+
+  async function removingPasskey(request: PasskeyRequest) {
+    /* Never reached with a null row: the dialog only offers Remove for a
+     * row it was opened on. Answered rather than asserted, because a throw
+     * here would be a page breaking over a case that cannot happen. */
+    if (!request.passkey) return;
+    const going = request.passkey;
+    setBusyPasskey(going.Id);
+    try {
+      await removePasskey(going.Id);
+      setPasskeyRequest(null);
+      setNotice({
+        /* Two things happened and the sentence says both, the way the
+         * disconnect one does: what stopped working, and what did not.
+         * Somebody who is not told the rest still works will assume they
+         * have just locked themselves out. */
+        message: `${going.Label ? `"${going.Label}"` : "That passkey"} was removed. Your password and anything you have connected still work.`,
+        tone: "success",
+      });
+    } catch (failure: unknown) {
+      report(failure, "That passkey was not removed.");
+    } finally {
+      setBusyPasskey(null);
     }
   }
 
@@ -639,11 +779,97 @@ export function Security({
         onChange={(form, done) => void changing(form, done)}
       />
 
-      {/* Under the password, because it is the same subject one step further
-       * out: the password is the way in this account holds itself, and these
-       * are the ways in somebody else holds for it. Both are credentials, so
-       * they sit together, and the one this application can actually change
-       * comes first. */}
+      {/* Directly under the password, because it is the alternative to one:
+       * the card above changes the password an account logs in with, and
+       * this is what would replace typing it. Everything below is a way of
+       * asking for something *as well as* a password, which is a different
+       * subject and comes after. */}
+      <CardSurface
+        title="Passkeys"
+        sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
+        action={
+          /* On the title line rather than under the list, because it is the
+           * only thing to do on a card most accounts arrive at empty, and
+           * because a button that moves down the card as rows are added is a
+           * button people hunt for.
+           *
+           * Nothing at all where this deployment cannot ask the provider for
+           * the registration action, rather than a button that goes nowhere:
+           * the two-factor card's rule, and the SSO card's before it. */
+          canRegisterPasskey() ? (
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              disabled={addingPasskey}
+              onClick={() =>
+                setPasskeyRequest({ passkey: null, action: "add" })
+              }
+              sx={{ fontFamily: "inherit", fontStyle: "normal" }}
+            >
+              Add passkey
+            </Button>
+          ) : undefined
+        }
+      >
+        {/* The list could not be read at all, which is a different thing
+         * from an account with no passkeys and must not look like one. */}
+        {passkeysError ? (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            {passkeysError}
+          </Alert>
+        ) : null}
+
+        <Typography
+          sx={{
+            mb: 1,
+            fontSize: "0.82rem",
+            lineHeight: 1.7,
+            color: (theme) => theme.palette.brand.cardInkMuted,
+          }}
+        >
+          A passkey logs you in with your face, your fingerprint or a security
+          key instead of a password. The key itself never leaves the device that
+          made it, so there is nothing to phish and nothing for us to lose, and
+          each device needs its own.
+        </Typography>
+
+        {/* Said on the card rather than left for somebody to discover at the
+         * login box. A credential this product cannot yet spend is still
+         * worth registering -- it is waiting for the login card, not for the
+         * account -- but a card that let somebody believe they could stop
+         * typing their password today would be a card that lied. See
+         * docs/TODO.md. */}
+        <Typography
+          sx={{
+            mb: 1.5,
+            fontSize: "0.82rem",
+            lineHeight: 1.7,
+            color: (theme) => theme.palette.brand.cardInkMuted,
+          }}
+        >
+          Our own login box cannot use one yet: it asks for an email address and
+          a password directly. Until it can, a passkey you add here works when
+          you login at our identity provider's own page, and is waiting for the
+          rest.
+        </Typography>
+
+        <PasskeyList
+          passkeys={passkeys}
+          loading={loadingPasskeys}
+          failed={passkeysError !== null}
+          busyId={busyPasskey}
+          onRemove={(row: Passkey) =>
+            setPasskeyRequest({ passkey: row, action: "remove" })
+          }
+        />
+      </CardSurface>
+
+      {/* Under the passkeys, because it is the same subject one step further
+       * out: the two cards above are ways this account proves itself, and
+       * these are the ways somebody else proves it. All of them are
+       * credentials, so they sit together, and the ones this application can
+       * actually change come first. */}
       <CardSurface
         title="Single Sign-On (SSO)"
         sx={{ height: "auto", mt: { xs: 2, md: 2.5 } }}
@@ -809,6 +1035,17 @@ export function Security({
           void (request.action === "enable"
             ? enabling(request)
             : disabling(request))
+        }
+      />
+
+      <PasskeyDialog
+        request={passkeyRequest}
+        busy={addingPasskey || busyPasskey !== null}
+        onClose={() => setPasskeyRequest(null)}
+        onConfirm={(request) =>
+          void (request.action === "add"
+            ? addingAPasskey()
+            : removingPasskey(request))
         }
       />
 

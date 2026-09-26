@@ -396,6 +396,170 @@ credential through the admin API, after which the ordinary password login
 works. See
 [the security page](../main-gui/docs/security-page.md#recovery-codes).
 
+## Passkeys
+
+A passkey is not a second factor and is not in the section above it: a second
+factor is asked for after a password is right, and a passkey replaces the
+password. Keycloak keeps the two apart as well, and keeps two flavors of
+WebAuthn apart on top of that:
+
+| Credential type         | What it is                  | Used here |
+| ----------------------- | --------------------------- | --------- |
+| `webauthn`              | WebAuthn as a second factor | No        |
+| `webauthn-passwordless` | A passkey                   | Yes       |
+
+Only the passwordless one is read, registered or removed. main-api's
+`readPasskey` drops the other on sight, because this realm's browser flow has
+no step that would ever ask for it and a row drawn for one would promise a
+login the account cannot perform.
+
+The realm writes out its passwordless policy for the reason it writes out the
+OTP policy: the defaults are Keycloak's and the product is built against these
+values.
+
+```
+webAuthnPolicyPasswordlessRpEntityName          Front Runner
+webAuthnPolicyPasswordlessRequireResidentKey    Yes
+webAuthnPolicyPasswordlessUserVerificationRequirement  required
+webAuthnPolicyPasswordlessSignatureAlgorithms   ES256, RS256
+webAuthnPolicyPasswordlessRpId                  (empty: the host Keycloak is served from)
+```
+
+`RpEntityName` is the one somebody actually sees: it is the name in the
+browser's own dialog ("Front Runner wants to..."), and Keycloak's default for
+it is the word "keycloak". `RequireResidentKey` and `required` verification
+together are what make it a passkey rather than a hardware token: the
+credential is discoverable, so the login page can offer it without being told
+a username first, and it is unlocked by a face, a fingerprint or a screen
+lock rather than by possession alone.
+
+**None of that reaches a realm that already exists**, and this is the part
+that wastes an afternoon. `--import-realm` does nothing once the realm is in
+Keycloak's database, so a development installation that predates this block
+keeps Keycloak's defaults for every one of these keys, and the tell is the
+browser's own dialog: it says **keycloak** instead of **Front Runner**. If it
+does, the realm is the old one. Either set the five values in the admin
+console under Authentication → Policies → WebAuthn Passwordless Policy, or
+`make dc3-clean` and start over, which drops the database volume and with it
+every development account. Verified by importing this file into a throwaway
+Keycloak and reading the realm back: all ten keys land exactly as written,
+with nothing in the log about a field it did not recognize.
+
+One thing to expect in the admin console that is not in the list above.
+Keycloak 26 carries both `webAuthnPolicyPasswordlessRequireResidentKey`, the
+older key, and `webAuthnPolicyPasswordlessResidentKey`, the newer one, and it
+defaults the newer one to `required` on its own. The realm sets only the older
+key, so after an import the two read `Yes` and `required`, which agree. There
+is nothing to reconcile; it is two spellings of one setting, and it is written
+here so that seeing both does not read as a conflict.
+
+**Registering one cannot be done through the admin API**, for a sharper
+version of the reason an authenticator app cannot. There is nothing for a
+server to create: the credential is made by the authenticator in somebody's
+hands, in a ceremony the browser runs **against the origin Keycloak is served
+from**. A passkey made on `localhost:30001` is one Keycloak would never be
+offered. So the security page sends the browser here with
+`kc_action=webauthn-register-passwordless` — lower case, unlike the built-in
+`CONFIGURE_TOTP` — Keycloak runs its own registration page, and the browser
+comes back to `/auth/callback`. main-api then reads the credential list to
+find out what really happened; a URL claiming a passkey was registered is a
+claim and is not believed.
+
+What Keycloak puts on that callback is worth spelling out, because it is more
+than the product used to read. Alongside the code it appends
+`kc_action=webauthn-register-passwordless` and **`kc_action_status`**, which is
+`success` when a credential was made, `cancelled` when the person dismissed
+their browser's own dialog, and `error` when the ceremony failed. The cancel
+button on the registration page is `cancel-aia`, and pressing it is what
+produces `cancelled`. Only the negative half is taken at its word — see
+[the security page's own notes](../main-gui/docs/security-page.md#what-comes-back-is-a-claim-not-a-fact)
+for why the two directions are not treated alike.
+
+Two more things about that page, both of which decide product copy and neither
+of which is guessable from the configuration:
+
+- The label field is **hidden**. The ordinary trip never asks for a name, so
+  every passkey registered the ordinary way is filed under Keycloak's default,
+  the literal string `Passkey (Default Label)`. `readPasskey` reads that as no
+  label, so the card says "Unnamed passkey" instead of printing it.
+- `rpEntityName : "Front Runner"` appears inline in the page, which is where
+  the browser's own dialog gets the name it shows. That is the check for
+  whether the realm carries this repository's policy or Keycloak's defaults,
+  and it can be made without a real authenticator.
+
+All of it verified by running the ceremony against a CDP virtual authenticator
+on a throwaway realm: `kc_action` reaches the registration page, the credential
+lands as `webauthn-passwordless` and discoverable, and the browser comes home
+with `kc_action_status=success` or `kc_action_status=cancelled` depending on
+whether the authenticator answered.
+
+Removing one **is** an admin call: `DELETE /users/{id}/credentials/{id}`,
+where 404 is success, exactly as for an OTP credential. Confirmed against
+26.7.4: the first delete answers 204 and the second answers 404, which is why
+main-api treats the pair as the same outcome. Asking twice is ordinary here --
+two tabs, or a reload of a page whose list is a few seconds old -- and the
+second answer means the passkey is gone, not that something went wrong.
+
+What that list looks like matters to `readPasskey`, so here is a real row,
+`secretData` and all, as the admin API actually answers it:
+
+```json
+{
+  "id": "e86456c9-9f0a-451f-89ea-6e7cc84ac734",
+  "type": "webauthn-passwordless",
+  "userLabel": "Passkey (Default Label)",
+  "createdDate": 1790421486798,
+  "credentialData": "{\"aaguid\":\"01020304-0506-0708-0102-030405060708\",\"credentialId\":\"...\",\"counter\":0,\"credentialPublicKey\":\"...\",\"attestationStatementFormat\":\"none\",\"transports\":[\"internal\"]}"
+}
+```
+
+That row is a passkey registered the ordinary way, through the registration
+page, which is why it is named what it is: the page keeps its label field
+hidden and fills it in. Three things in it that a reader would otherwise have
+to guess at, all of them checked rather than assumed:
+
+- `userLabel` is `"Passkey (Default Label)"` on the trip somebody actually
+  takes, and **absent** rather than `null` where a credential arrives with no
+  label at all. Both are a passkey nobody named, which is why `readPasskey`
+  reads both as no label: anything that is not a string, and that one string.
+- `createdDate` is epoch milliseconds, as a number.
+- `secretData` is never in the answer. The public key is, in
+  `credentialData`; the private half never leaves the authenticator, which is
+  the whole point of the thing.
+
+And one that is not used but would be worth using. `credentialData` carries
+the `aaguid`, the authenticator model's own identifier, and that is what the
+admin console turns into the make and model it shows beside a credential. A
+passkey named that way would read "iCloud Keychain" or "YubiKey 5 Series"
+rather than the page's own "Unnamed passkey", which is a better card for
+somebody deciding which of two passkeys to remove. What the row does **not**
+carry is a resolved name: there is no `authenticatorProvider` in it, so the
+resolving would be ours to do, against a published AAGUID list. That, plus
+parsing `credentialData`, a JSON string inside a JSON field, is the cost. It
+is also a label rather than a fact about the account, so it was left out of
+the port for now. If the Passkeys card ever reads thin, this is the first
+thing to put on it.
+
+The required action itself is not listed in `front-runner-realm.json`.
+Keycloak registers its full set of built-in required actions on import when
+the file names none, and `webauthn-register-passwordless` is in that set and
+enabled. Listing one would mean listing all of them.
+
+That is checked rather than assumed, on 26.7.4 and on both realms there are:
+the one this file imports and the one the development database has been
+carrying since before any of this was written. In both,
+`GET /admin/realms/front-runner/authentication/required-actions` answers with
+`webauthn-register-passwordless` enabled, and
+`unregistered-required-actions` answers with an empty list, so there is
+nothing left for the import to have missed.
+
+**Logging in with a passkey does not work yet, and the realm is only half the
+reason.** The browser flow here has no WebAuthn step in it, which is a line of
+configuration; the other half is that this product's own login card uses the
+password grant, and a grant has no browser in it to run a ceremony with. A
+passkey registered today is a credential the account holds and cannot yet
+spend at our own login box. See `docs/TODO.md`.
+
 ## Identity providers
 
 `google`, `facebook` and `apple` are defined but **disabled**, with placeholder

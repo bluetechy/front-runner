@@ -4,9 +4,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import {
   exchangeAuthorizationCode,
+  passkeyReturnPath,
   resumeAccountLink,
   setupReturnPath,
   takePendingAccountLink,
+  takePendingPasskey,
   takePendingSecondFactor,
   takeRedirectVerifier,
   useSession,
@@ -19,10 +21,11 @@ import {
  * provider from the security page. The provider puts an authorization code on
  * the URL; this trades it for tokens and gets out of the way.
  *
- * Two flows land here in the middle of something rather than at the end of
- * it. Setting up an authenticator app comes back with a session and a job
- * half done, so the browser goes on to the security page to have the provider
- * asked what really happened. Connecting a provider goes further still.
+ * Three flows land here in the middle of something rather than at the end of
+ * it. Setting up an authenticator app and registering a passkey each come
+ * back with a session and a job half done, so the browser goes on to the
+ * security page to have the provider asked what really happened. Connecting a
+ * provider goes further still.
  *
  * The link leg is the one that does not end here. A token minted by the login
  * card's password grant is no good to the provider's linking endpoint -- the
@@ -34,15 +37,28 @@ export const Route = createFileRoute("/_site/auth/callback")({
   component: AuthCallback,
   validateSearch: (
     search: Record<string, unknown>,
-  ): { code?: string; state?: string; error?: string } => ({
+  ): {
+    code?: string;
+    state?: string;
+    error?: string;
+    kc_action_status?: string;
+  } => ({
     code: typeof search.code === "string" ? search.code : undefined,
     state: typeof search.state === "string" ? search.state : undefined,
     error: typeof search.error === "string" ? search.error : undefined,
+    /* Not ours and not camel case, which is why it is spelled the way it
+     * arrives: Keycloak puts it here to say how a required action ended, and
+     * renaming it in the only place it is read would hide where it came
+     * from. Only the passkey trip looks at it. */
+    kc_action_status:
+      typeof search.kc_action_status === "string"
+        ? search.kc_action_status
+        : undefined,
   }),
 });
 
 function AuthCallback() {
-  const { code, state, error } = Route.useSearch();
+  const { code, state, error, kc_action_status } = Route.useSearch();
   const { adoptTokens } = useSession();
   const navigate = useNavigate();
   const [failure, setFailure] = useState<string | null>(null);
@@ -104,6 +120,21 @@ function AuthCallback() {
           await navigate({ to: setupReturnPath(configured), replace: true });
           return;
         }
+        /* And back from the provider's passkey registration page, which is
+         * the same trip with a different action on it. There is no kind to
+         * carry: an account has a list of passkeys rather than one row per
+         * kind. What is carried is how the ceremony ended, which the provider
+         * says in `kc_action_status`, and which is the only thing separating
+         * somebody who touched the reader from somebody who dismissed the
+         * dialog. Whether a passkey really was registered is still the API's
+         * answer rather than this URL's -- see `passkeyReturnPath`. */
+        if (takePendingPasskey()) {
+          await navigate({
+            to: passkeyReturnPath(kc_action_status ?? null),
+            replace: true,
+          });
+          return;
+        }
         await navigate({ to: "/dashboard", replace: true });
       } catch (reason: unknown) {
         if (!canceled)
@@ -116,7 +147,7 @@ function AuthCallback() {
     return () => {
       canceled = true;
     };
-  }, [code, state, error, adoptTokens, navigate]);
+  }, [code, state, error, kc_action_status, adoptTokens, navigate]);
 
   return (
     <Container

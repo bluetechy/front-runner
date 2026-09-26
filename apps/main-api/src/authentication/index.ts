@@ -30,6 +30,7 @@ export type {
   LoginFailure,
   LoginProvider,
   NewAccount,
+  Passkey,
   SecondFactor,
 } from "./identity-admin.service.js";
 export type { VerifiedIdentity } from "./token-verifier.service.js";

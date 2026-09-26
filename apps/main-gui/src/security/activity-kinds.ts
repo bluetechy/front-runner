@@ -80,6 +80,19 @@ const KINDS: Record<string, ActivityKind> = {
     warning: "Your account is at risk if this was not you.",
   },
   ActivityReported: { heading: "You reported activity", warning: "" },
+  /* Loud, unlike turning a second factor on, and the difference is what the
+   * thing is: a second factor adds a step to getting in, and a passkey is a
+   * whole new way in that needs no password at all. A passkey somebody else
+   * registered is somebody else's face on your account. */
+  PasskeyAdded: {
+    heading: "Passkey added",
+    warning:
+      "A passkey you did not add can login to your account without your password.",
+  },
+  /* Quiet, the way EmailRemoved and SignInMethodDisconnected are. Removing a
+   * passkey closes a door rather than opening one, and the dialog still asks
+   * the question. */
+  PasskeyRemoved: { heading: "Passkey removed", warning: "" },
   /* Quiet: turning a second factor on makes an account harder to get into,
    * and the dialog still asks the question. */
   TwoFactorEnabled: { heading: "Two-factor authentication on", warning: "" },

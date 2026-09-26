@@ -28,6 +28,7 @@ interface ImportMetaEnv {
    * Keycloak calls it CONFIGURE_TOTP. Empty turns the Enable button off the
    * same way an empty parameter does. */
   readonly VITE_IDP_TOTP_ACTION: string;
+  readonly VITE_IDP_PASSKEY_ACTION: string;
   readonly VITE_GRAPHQL_URL: string;
 }
 

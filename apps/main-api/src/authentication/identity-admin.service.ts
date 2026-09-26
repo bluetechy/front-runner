@@ -144,6 +144,29 @@ export interface SecondFactor {
   createdAt: Date | null;
 }
 
+// A passkey the provider holds for an account.
+//
+// Not a `SecondFactor`, and the difference is what it is for rather than how
+// it is stored. A second factor is asked for *after* a password is right; a
+// passkey stands in place of the password entirely, which is why it has its
+// own port operations, its own vertical and its own card. Keycloak keeps the
+// two apart as well: an authenticator app is an "otp" credential and a
+// passkey is a "webauthn-passwordless" one, and its "webauthn" credential --
+// the second-factor flavor of the same ceremony -- is deliberately not read
+// here. This product does not offer that flavor, and a row claiming a passkey
+// for one would promise a passwordless login the account cannot do.
+//
+// `id` is the provider's handle for it, and the one field here that is not
+// for reading: removePasskey is addressed by it. `label` is what the person
+// named it when they registered it, which is the only thing telling two rows
+// apart, and null wherever the provider did not ask. `createdAt` is when it
+// was registered, and null where the provider will not say.
+export interface Passkey {
+  id: string;
+  label: string | null;
+  createdAt: Date | null;
+}
+
 export abstract class IdentityAdminService {
   // Point an account's login address at a new one, already verified: this is
   // only reached for an address dbo.SetPrimaryUserEmail has refused to promote
@@ -365,4 +388,33 @@ export abstract class IdentityAdminService {
     subjectId: string,
     phoneNumber: string,
   ): Promise<void>;
+
+  // Which passkeys the account has registered.
+  //
+  // **Registering one is not here, and cannot be, for a sharper reason than
+  // an authenticator app.** A passkey is minted by the authenticator sitting
+  // in the person's hands -- a laptop's fingerprint reader, a phone, a key on
+  // a keyring -- in a ceremony the browser runs against the origin the
+  // provider is served from. Nothing on this side of the network is in it. So
+  // registration is a browser sent to the provider, the same shape connecting
+  // a login provider takes, and what this API does is read what came of it.
+  // See apps/main-api/src/passkeys.
+  //
+  // Implementations throw ServiceUnavailableException when the provider will
+  // not answer, on the terms secondFactors throws: an empty list is what the
+  // page draws "no passkeys yet" from, and an outage must not be drawn as an
+  // account that has never registered one.
+  abstract passkeys(subjectId: string): Promise<Passkey[]>;
+
+  // Take one away, by the id the read above gave it.
+  //
+  // Removing a passkey that is not there is not an error, on the terms
+  // unlinkLogin and removeSecondFactor are refused nothing: the page it was
+  // pressed on is a moment old, and the end state is the one that was asked
+  // for either way.
+  //
+  // It does not decide whether removing the last one is safe, and the caller
+  // does: PasskeysService is where that sentence is, because what is worth
+  // saying about it belongs on a page rather than in a refusal here.
+  abstract removePasskey(subjectId: string, id: string): Promise<void>;
 }

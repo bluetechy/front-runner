@@ -57,3 +57,67 @@ accounts, which arrives here as `send` returning false and the dialog saying
 "That code could not be sent to that number", the same sentence a mistyped
 number gets. If that happens, the number is probably fine and the account is
 not yet allowed to text it.
+
+---
+
+## 2. A passkey cannot be used to login yet
+
+**Blocked on.** A decision, which is the kind of blocker this page is for:
+whether this product's login card stops trading an email address and a
+password for tokens itself and hands the browser to Keycloak's own page
+instead.
+
+Passkeys are registered, listed and removed today. The Passkeys card on
+Security & Access sends the browser to Keycloak with
+`kc_action=webauthn-register-passwordless`, the ceremony runs on the
+provider's origin, and main-api reads the credential list afterwards. What
+does not work is spending one at our own login box, and no amount of work in
+this repository makes it work: **a password grant has no browser in it.** The
+WebAuthn ceremony is a conversation between an authenticator and a browser
+against a specific origin, and the token endpoint is neither.
+
+So the choice is between two products, not two implementations:
+
+- **The login card keeps the password grant.** A passkey stays what it is
+  today: a credential that works when somebody logs in at
+  `/realms/front-runner/account` and does nothing on our own page. The card
+  says so, in those words, and nothing else changes.
+- **The login card hands the browser to Keycloak.** Passkeys work, and so
+  does everything else Keycloak's page can do. The cost is the whole reason
+  the password grant is there: the login card is this product's own, in this
+  product's type, with this product's copy and this product's error
+  sentences, and it would become a redirect to somebody else's page. It also
+  moves the second factor, the SMS step and the recovery-code flow onto that
+  page, all three of which were built here deliberately.
+
+A third shape exists and is worth pricing before either: **keep the card and
+add one button on it**, "Login with a passkey", which is the only thing that
+takes the trip out. Everything else on the card stays as it is. That is the
+smallest change that makes a registered passkey worth having, and it is
+probably the answer, but it is still a decision about what the login page
+is.
+
+**To do once it is decided**, for the third shape:
+
+1. Add a WebAuthn passwordless step to the realm's browser flow: a copy of
+   `browser with sms forms` with `webauthn-authenticator-passwordless` as an
+   ALTERNATIVE beside `auth-username-password-form`. The policy it runs
+   against is already in `front-runner-realm.json`.
+2. Add the button to `login-dialog.tsx`. It starts an ordinary authorize
+   redirect with no `kc_action` on it, which is a trip
+   `identity-provider.ts` can already make.
+3. Take the second paragraph off the Passkeys card in `security.tsx` --
+   "Our own login box cannot use one yet" -- and the sentence about it in
+   `passkey-setup.ts`. Both exist only to keep the card honest while this is
+   true, and both would become a lie the day it is not.
+
+**Done when** a passkey registered on Security & Access logs somebody in
+from this product's own login card, with no password typed, and the card no
+longer says it cannot.
+
+**Watch for.** Keycloak's registration page names the relying party from
+`webAuthnPolicyPasswordlessRpEntityName`, which is set to "Front Runner".
+Changing the host Keycloak is served from invalidates every passkey already
+registered against the old one: the credential is bound to the origin, and
+there is no migration for that, only a page of passkeys that have quietly
+stopped working.

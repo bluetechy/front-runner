@@ -2,13 +2,14 @@
 
 Lives in `src/security` and renders at `/security-and-access`, which is
 Security & Access in the rail. What it holds today is the account's **user
-name**, its **email addresses**, its **password**, the **other providers it
-can login from**, its **second factor**, its **recovery codes** and its
-**recent activity**: what the account is called, which addresses are on file,
-which one is the login, which of them anybody has proved they can read, when
-the password was last changed and how to change it, what is asked for after
-the password, what gets somebody back in when that thing is gone, and what
-has lately happened to the account.
+name**, its **email addresses**, its **password**, its **passkeys**, the
+**other providers it can login from**, its **second factor**, its **recovery
+codes** and its **recent activity**: what the account is called, which
+addresses are on file, which one is the login, which of them anybody has
+proved they can read, when the password was last changed and how to change
+it, what could be used instead of typing it, what is asked for after the
+password, what gets somebody back in when that thing is gone, and what has
+lately happened to the account.
 
 The password and the second factor are both still Keycloak's: this page is
 where they are asked for, not where they are kept. The recovery codes are the
@@ -453,6 +454,172 @@ page has to be able to send somebody a link; nothing anywhere has a reason to
 change a password on an account's behalf, and an exported service that could
 would be a way to do it without the current password.
 
+## Passkeys
+
+`passkey-list.tsx` and `passkey-dialog.tsx`, in a card headed **PASSKEYS**
+directly under the password. One row per passkey the account has registered:
+the mark, what it was called where it was registered, when that was, and the
+one thing that can be done about it. **Add passkey** sits on the card's title
+line rather than under the list, because it is the only thing to do on a card
+most accounts arrive at empty and a button that moves down as rows are added
+is a button people hunt for.
+
+A row with no name reads **Unnamed passkey**, and it is the ordinary case
+rather than the edge of one. Keycloak's registration page keeps the label in a
+hidden field, so the trip somebody actually takes never asks for a name, and
+what Keycloak files the credential under is the literal string
+`Passkey (Default Label)`. That is the provider's word for "no label" and is
+translated into one in `keycloak-admin.service.ts`, at the port, where the
+provider is already known about: drawn verbatim on the card it would read like
+a name this product had chosen, parenthesis and all.
+
+It sits between CHANGE PASSWORD and SINGLE SIGN-ON because of what a passkey
+is. The card above changes the password an account logs in with; this is what
+would replace typing it. Everything below it -- a connected provider, a second
+factor -- is a way of proving something _as well as_ or _instead of_ by
+somebody else's hand, and a passkey is this account's own credential. So it
+ends the pair the password starts rather than beginning the group after it.
+
+### A passkey is not a second factor
+
+The distinction runs through every file in this feature and is not pedantry. A
+second factor is asked for **after** a password is right. A passkey replaces
+the password. They are different cards, different verticals, different
+credentials at Keycloak, and an account may sensibly have both, either or
+neither.
+
+Keycloak keeps two flavors of the same ceremony apart as well: a
+`webauthn-passwordless` credential is a passkey, and a plain `webauthn` one is
+the second-factor version. Only the first is read. This realm's browser flow
+has no step that would ever ask for the second, so a row drawn for one would
+promise a login the account cannot perform. See
+[the realm's own notes](../../keycloak-idp/README.md#passkeys).
+
+### Registering one happens at Keycloak, and cannot happen here
+
+For a sharper version of the reason
+[an authenticator app cannot](#turning-the-app-on-happens-at-keycloak-and-cannot-happen-here).
+That one is about a secret shown once. This one is about **where the ceremony
+has to happen**: the browser's WebAuthn call is bound to the origin it is made
+from, and the credential it makes will only ever be offered back to that
+origin. A passkey made at `localhost:30001` is a passkey Keycloak has never
+heard of and will never be shown.
+
+So Add passkey hands the browser to Keycloak with
+`kc_action=webauthn-register-passwordless` -- lower case, unlike the built-in
+`CONFIGURE_TOTP` -- Keycloak's own page runs the ceremony against its own
+origin, and the browser comes back to `/auth/callback` and on to
+`/security-and-access?passkey=registered` or `?passkey=cancelled`.
+
+The dialog in front of that trip says three things, and the middle one is the
+one people are surprised by: the page is about to go away, **the key stays on
+the device that makes it**, and adding one replaces nothing. A passkey made on
+a work laptop is no use on a phone, and somebody who is not told that will add
+one and then wonder why their phone still asks for a password.
+
+### What comes back is a claim, not a fact
+
+`passkey=registered` says a trip was made. It does not say a passkey exists,
+and it is believed no further than
+[the SSO card's `connected`](#what-comes-back-on-the-url-is-a-claim-not-a-fact)
+is.
+
+So the page takes the claim off the URL, calls `confirmPasskey`, and says what
+the **answer** says. The mutation takes no argument at all, which is the shape
+of the thing: there is nothing the page could tell it that would be right to
+believe.
+
+`passkey=cancelled` is the exception, and it is the one claim on this page's
+URL taken at its word. Keycloak puts `kc_action_status` on the callback --
+`success`, `cancelled` or `error` -- and `passkeyReturnPath` narrows those
+three to two words before the security page ever sees them, so Keycloak's own
+spelling stops in `passkey-setup.ts` the way every other provider detail does.
+On `cancelled` the page says nothing changed and asks nobody, because there is
+nothing to go and read.
+
+The asymmetry is the point. A URL falsely claiming a passkey **was** added
+would have somebody walk away from this card believing they can login with
+their face, which is why that direction costs a round trip to the provider. A
+URL falsely claiming one was **not** added puts a sentence saying nothing
+changed above a list that plainly shows the passkey sitting in it. One of
+those is worth checking and the other is not.
+
+`PasskeysService.confirm` works out "is one new" from the age of the newest
+credential, and that is the one compromise in this feature worth knowing
+about. It carries less weight than it used to, now that an abandoned trip says
+so on the way home: what is left for it to decide is the trip Keycloak called
+a success, which main-api still declines to take the page's word for. There is
+nothing to compare against -- this API keeps no copy of an
+account's credentials, and the page's own list is from before it left -- so a
+passkey registered inside the window the trip itself could have taken is the
+passkey that trip registered. The window is ten minutes, and it is generous on
+purpose: the honest failure is congratulating somebody twice, and the
+dishonest one is telling somebody nothing happened when something did. A
+credential Keycloak will not date answers no, because "we could not confirm
+it" sends somebody to look at the card and "it worked" sends them away.
+
+### Removing one is an admin call, and is not refused
+
+`DELETE /users/{id}/credentials/{id}`, where 404 is success, exactly as for a
+second factor. Removing the **last** passkey is not refused either, on the
+terms
+[turning the last second factor off is not](#turning-either-off-is-an-admin-call-and-is-not-refused):
+nobody is locked out by losing a passkey, because the password and every
+connected provider still work. The dialog says that in those words, and the
+toast afterwards says it again, because a security page that takes a
+credential away without saying what is left is a page people stop pressing
+buttons on.
+
+What **is** refused is an id that is not on the account. The port reads that
+request as done, because a port is asked for an end state; this vertical is
+asked by a page, and a page reporting "removed" about a row that was already
+gone would be telling somebody their list is now right when it was right
+before they pressed anything.
+
+### The card says what it cannot do yet
+
+**A passkey registered here cannot be used at this product's own login box**,
+and the card says so in its second paragraph rather than leaving somebody to
+find out at the login form.
+
+The reason is not the realm. It is that the login card trades an email address
+and a password for tokens directly, through Keycloak's direct grant, and a
+password grant has no browser in it to run a ceremony with. A passkey works
+when somebody logs in at Keycloak's own page, and is waiting for the rest. The
+decision that unblocks it, and the three shapes it could take, are in
+[docs/TODO.md](../../../docs/TODO.md).
+
+That paragraph is not decoration and should not outlive the limitation: the
+day the login card can spend one, it comes off, and so does the paragraph
+about it in `passkey-setup.ts`.
+
+### What it writes down
+
+`PasskeyAdded` and `PasskeyRemoved`, in the RECENT ACTIVITY LOG under the
+card. The first carries a warning and the second does not, which is the split
+`EmailAdded` and `EmailRemoved` have: a passkey somebody else registered can
+login to the account **without a password at all**, which makes it the loudest
+kind of way in this product records. Removing one closes a door, and the
+dialog already asked the question.
+
+Note that this is louder than `TwoFactorEnabled`, which is quiet. Turning a
+second factor on makes an account harder to get into; registering a passkey
+opens a new way in.
+
+### Where it lives
+
+`apps/main-api/src/passkeys`, a vertical of its own beside `two-factor`, and
+the thinnest of the five this page is built on. It reaches two ways out --
+the identity provider for the credentials, the security log for the two
+things worth recording -- and neither the database nor the mail. There is
+nothing of a passkey for this product to keep: the private half never leaves
+the device that made it, and the public half is Keycloak's to check a
+signature with.
+
+It has no `registerPasskey`, and the absence is the design rather than an
+omission. Registration ends at an authenticator in somebody's hand, so a
+mutation named register would be a mutation that could not register anything.
+
 ## Single sign-on
 
 `sso-list.tsx` and `connection-dialog.tsx`, in a card headed **SINGLE SIGN-ON
@@ -460,11 +627,11 @@ would be a way to do it without the current password.
 mark, what it is called, where this account stands with it, and the one thing
 that can be done about it.
 
-It sits under CHANGE PASSWORD because it is the same subject one step further
-out. A password is the credential this account holds for itself; a connected
-provider is a credential somebody else holds on its behalf. Both are ways in,
-so they sit together, and the one this application can actually change goes
-first.
+It sits under PASSKEYS because it is the same subject one step further out. A
+password and a passkey are credentials this account holds for itself; a
+connected provider is a credential somebody else holds on its behalf. All of
+them are ways in, so they sit together, and the ones this application can
+actually change go first.
 
 **The list comes from the realm, not from this bundle.** main-api reads
 Keycloak's identity provider instances and answers every one of them, so a

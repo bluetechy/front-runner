@@ -13,15 +13,16 @@ import {
   type LoginFailure,
   type LoginProvider,
   type NewAccount,
+  type Passkey,
   type SecondFactor,
 } from "./identity-admin.service.js";
 
 // IdentityAdminService against Keycloak's admin API. The only file in this
 // API that knows Keycloak has realms, and the only one that would be replaced
 // wholesale by a move to another provider -- see identity-admin.service.ts for
-// the operations it answers and why there are only seventeen.
+// the operations it answers and why there are only nineteen.
 //
-// Six things, in the language of that port.
+// Seven things, in the language of that port.
 //
 // Changing the address an account logs in with: Keycloak holds one address per
 // user and it is the credential, so making an address primary on the security
@@ -66,6 +67,16 @@ import {
 // this is asked to write anything; what checks the code at login is an
 // authenticator running inside Keycloak, reading the same attribute. See
 // apps/main-api/src/two-factor and apps/keycloak-idp/plugin.
+//
+// And the passkeys an account holds: reading them and taking one away.
+// Registering one is not here for a sharper version of the reason setting up
+// an authenticator app is not -- a passkey is minted by the authenticator in
+// the person's hands, in a ceremony the browser runs against the origin
+// Keycloak is served from, and nothing on this side of the network is in it.
+// So the security page sends the browser to Keycloak with
+// kc_action=webauthn-register-passwordless and this reads what came back.
+// Only the passwordless flavor is read: see `readPasskey`, and
+// apps/main-api/src/passkeys.
 //
 // And reading back which logins the realm refused, which is the one thing here
 // that is not about an account somebody named. A refused password mints no
@@ -619,6 +630,59 @@ export class KeycloakAdminService extends IdentityAdminService {
     await this.writePhone(subjectId, phoneNumber);
   }
 
+  // The passkeys on the account, off the same credentials list the three
+  // reads above walk.
+  //
+  // Keycloak stores one as a "webauthn-passwordless" credential. Its sibling
+  // type, plain "webauthn", is the same ceremony registered as a *second*
+  // factor, and it is left out on purpose rather than by oversight: this
+  // product does not offer that flavor, its browser flow has no step that
+  // would ask for one, and a row drawn for it would promise a login the
+  // account cannot actually perform.
+  //
+  // **An outage throws here rather than answering an empty list**, for the
+  // reason secondFactors throws: the card draws "no passkeys yet" from an
+  // empty answer and offers to add one, and a provider that could not be
+  // reached must not be drawn as an account that has never registered any.
+  async passkeys(subjectId: string): Promise<Passkey[]> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not say what passkeys this account has",
+      );
+    }
+
+    const credentials: unknown = await response.json().catch(() => null);
+    return Array.isArray(credentials)
+      ? credentials
+          .map(readPasskey)
+          .filter((passkey): passkey is Passkey => passkey !== null)
+      : [];
+  }
+
+  // Take one away.
+  //
+  // 404 is success, the same as it is for unlinkLogin and removeSecondFactor
+  // and for the same reason: it means the account has no such credential,
+  // which is the state that was asked for.
+  async removePasskey(subjectId: string, id: string): Promise<void> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+
+    if (response.ok || response.status === 404) return;
+    if (response.status === 401 || response.status === 403) this.token = null;
+    throw new ServiceUnavailableException(
+      "The identity provider would not remove that passkey",
+    );
+  }
+
   // The whole account as Keycloak holds it, for the two operations that have
   // to read it before they write it.
   //
@@ -1110,6 +1174,57 @@ function readSecondFactor(body: unknown): SecondFactor | null {
       typeof credential.userLabel === "string" && credential.userLabel
         ? credential.userLabel
         : null,
+    createdAt:
+      typeof created === "number" && Number.isFinite(created)
+        ? new Date(created)
+        : null,
+  };
+}
+
+// The name Keycloak gives a passkey nobody named.
+//
+// Its registration page carries the label in a *hidden* field, so the ordinary
+// path through it never asks, and every passkey registered the ordinary way
+// arrives here called this. Drawn verbatim it reads like something this
+// product chose, parenthesis and all. It is Keycloak's word for "no label",
+// and it is translated into one here rather than on the page: the page has no
+// business knowing which provider is behind the port, and this file is the
+// only one that does.
+const KEYCLOAK_DEFAULT_LABEL = "Passkey (Default Label)";
+
+// One credential, as a passkey, or null if it is not one.
+//
+// The type is the whole test. There is no credentialData to unpick the way an
+// "otp" credential needs: Keycloak writes the public key, the counter and the
+// authenticator's aaguid in there, and none of it is a fact this product
+// draws. What the card shows is the name the person gave it and the day it
+// was registered, and both of those are on the credential itself.
+//
+// One thing worth knowing about the label, because it decides the shape of the
+// check below: an unnamed credential comes back with no `userLabel` key at all
+// rather than with a null one, which is why anything that is not a string is
+// no label rather than being read and found empty.
+function readPasskey(body: unknown): Passkey | null {
+  const credential = body as {
+    id?: unknown;
+    type?: unknown;
+    userLabel?: unknown;
+    createdDate?: unknown;
+  } | null;
+  if (
+    !credential ||
+    credential.type !== "webauthn-passwordless" ||
+    typeof credential.id !== "string" ||
+    !credential.id
+  )
+    return null;
+
+  const created = credential.createdDate;
+  const label =
+    typeof credential.userLabel === "string" ? credential.userLabel.trim() : "";
+  return {
+    id: credential.id,
+    label: label && label !== KEYCLOAK_DEFAULT_LABEL ? label : null,
     createdAt:
       typeof created === "number" && Number.isFinite(created)
         ? new Date(created)

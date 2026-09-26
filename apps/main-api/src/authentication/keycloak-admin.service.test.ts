@@ -1512,3 +1512,180 @@ describe("taking a second factor away", () => {
     expect(attributes).toEqual({ locale: ["es-MX"] });
   });
 });
+
+/*
+ * The passkeys an account holds, read out of the same credentials list and
+ * taken away one at a time.
+ *
+ * Two assertions carry this block. Only the passwordless flavor becomes a
+ * row: Keycloak files a passkey under type "webauthn-passwordless" and files
+ * the second-factor version of the same ceremony under "webauthn", and this
+ * product's login flow has no step that would ever ask for the second. And an
+ * outage throws rather than answering an empty list, on the terms
+ * secondFactors throws: an empty answer is drawn as an account that has never
+ * registered one, beside an offer to add one.
+ */
+describe("the passkeys an account holds", () => {
+  const passkey = (over: Record<string, unknown> = {}) => ({
+    id: "credential-passkey",
+    type: "webauthn-passwordless",
+    userLabel: "MacBook Touch ID",
+    createdDate: 1790400064804,
+    ...over,
+  });
+
+  /* One read, unlike secondFactors above: a passkey is a credential and only
+   * a credential, so there is no attribute on the account to go back for. */
+  const answering = (credentials: unknown[]) =>
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok(credentials));
+
+  it("reads a registered passkey off the credential list", async () => {
+    answering([{ type: "password" }, passkey()]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([
+      {
+        id: "credential-passkey",
+        label: "MacBook Touch ID",
+        createdAt: new Date(1790400064804),
+      },
+    ]);
+  });
+
+  it("asks for the account's credentials and nothing else", async () => {
+    answering([]);
+    const service = new KeycloakAdminService(config);
+
+    await service.passkeys("subject-marcus");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/credentials",
+    );
+  });
+
+  /* The assertion this block exists for. A "webauthn" credential is the same
+   * ceremony registered as a second factor, and a row drawn for one would
+   * promise a passwordless login this realm's flow will never offer. */
+  it("leaves out the second-factor flavor of the same ceremony", async () => {
+    answering([passkey({ type: "webauthn" })]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([]);
+  });
+
+  it("leaves out a credential with no id to remove it by", async () => {
+    answering([passkey({ id: "" })]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([]);
+  });
+
+  it("carries no label and no date where Keycloak gives none", async () => {
+    answering([passkey({ userLabel: "   ", createdDate: "whenever" })]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([
+      { id: "credential-passkey", label: null, createdAt: null },
+    ]);
+  });
+
+  /* The shape a real 26.7.4 answers with for a credential nobody named: the
+   * key is not there at all, rather than there holding null. Not every
+   * authenticator asks for a name, so this is the ordinary case and not an
+   * edge of one, and it is asserted separately from the blank string above
+   * because a reader of `readPasskey` would reasonably expect `null` and be
+   * wrong. Verified against the admin API, not reasoned about: see the
+   * Passkeys section of apps/keycloak-idp/README.md. */
+  it("carries no label where Keycloak leaves the key out entirely", async () => {
+    answering([
+      {
+        id: "credential-passkey",
+        type: "webauthn-passwordless",
+        createdDate: 1790400064804,
+      },
+    ]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([
+      {
+        id: "credential-passkey",
+        label: null,
+        createdAt: new Date(1790400064804),
+      },
+    ]);
+  });
+
+  /* Keycloak's registration page keeps the label in a hidden field, so the
+   * ordinary trip through it never asks for one and this is what almost every
+   * real passkey arrives called. Drawn verbatim it reads like a name this
+   * product chose. It is the provider's word for "no label", so it is
+   * translated into one here, where the provider is already known about. */
+  it("reads Keycloak's own default label as no label at all", async () => {
+    answering([passkey({ userLabel: "Passkey (Default Label)" })]);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).resolves.toEqual([
+      {
+        id: "credential-passkey",
+        label: null,
+        createdAt: new Date(1790400064804),
+      },
+    ]);
+  });
+
+  it("throws rather than answering an empty list when the provider will not say", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.passkeys("subject-marcus")).rejects.toThrow(
+      "would not say what passkeys this account has",
+    );
+  });
+});
+
+describe("taking a passkey away", () => {
+  it("deletes the credential by the id the read gave it", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.removePasskey("subject-marcus", "credential-passkey");
+
+    const [url, init] = fetchMock.mock.calls[1]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/credentials/credential-passkey",
+    );
+    expect(init?.method).toBe("DELETE");
+  });
+
+  // The page it was pressed on is a moment old, and the end state is the one
+  // that was asked for either way: no such passkey.
+  it("reads a credential that was not there as done rather than as a failure", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(404));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.removePasskey("subject-marcus", "credential-passkey"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("reads anything else as an outage", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.removePasskey("subject-marcus", "credential-passkey"),
+    ).rejects.toThrow("would not remove that passkey");
+  });
+
+  it("quotes the credential id it is given", async () => {
+    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.removePasskey("subject-marcus", "a b");
+
+    expect(String(fetchMock.mock.calls[1]![0])).toContain("/credentials/a%20b");
+  });
+});

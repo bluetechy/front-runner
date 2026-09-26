@@ -65,6 +65,19 @@ describe("what a kind of event is called", () => {
     expect(kindOf("SignInMethodDisconnected").warning).toBe("");
   });
 
+  /* Louder than turning a second factor on, and the difference is what the
+   * thing is: a second factor adds a step to getting in, and a passkey is a
+   * whole way in that needs no password at all. */
+  it("heads an added passkey as one, and warns that it needs no password", () => {
+    expect(kindOf("PasskeyAdded").heading).toBe("Passkey added");
+    expect(kindOf("PasskeyAdded").warning).toMatch(/without your password/i);
+  });
+
+  it("heads a removed passkey as one, quietly", () => {
+    expect(kindOf("PasskeyRemoved").heading).toBe("Passkey removed");
+    expect(kindOf("PasskeyRemoved").warning).toBe("");
+  });
+
   /* A sentence about risk on every row is a sentence nobody reads by the
    * third one. A logout is the only login-shaped row that earns none: somebody
    * else ending your session locks a door rather than opening one. */

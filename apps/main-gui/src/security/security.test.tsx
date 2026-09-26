@@ -43,6 +43,19 @@ const confirmConnection = vi.fn();
 
 vi.mock("./sso-api", () => ({ useSignInMethods: () => signInMethods() }));
 
+const passkeys = vi.fn();
+const removePasskey = vi.fn();
+const confirmPasskey = vi.fn();
+
+vi.mock("./passkey-api", () => ({ usePasskeys: () => passkeys() }));
+
+/* Adding a passkey leaves the page the same way connecting a provider does:
+ * the real one hands the browser to the identity provider, whose own page
+ * runs a ceremony jsdom has no authenticator for. What is under test here is
+ * that it is called at all, and only after the dialog has said what is about
+ * to happen. */
+const beginPasskeyRegistration = vi.fn();
+
 /* Connecting a provider leaves the page: the real one hands the browser to the
  * identity provider, which jsdom has nowhere to go with. What is under test
  * here is that it is called for the right provider and only after the dialog
@@ -62,6 +75,12 @@ vi.mock("../authentication", async (importOriginal) => ({
     identity: { name: "Marcus Member", loginName: "member", email: "m@e.test" },
   }),
   beginAccountLink: (alias: string) => beginAccountLink(alias),
+  beginPasskeyRegistration: () => beginPasskeyRegistration(),
+  /* Stubbed true rather than left real: the real one reads the deployment's
+   * environment, and a page test that drew no Add passkey button because a
+   * variable was unset would be a test about vite rather than about this
+   * page. The button's absence has its own test in `passkey-setup.test.ts`. */
+  canRegisterPasskey: () => true,
 }));
 
 const navigate = vi.fn();
@@ -178,10 +197,26 @@ const offering = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   });
 
-const renderPage = (connected?: string) =>
+const laptop = {
+  Id: "credential-laptop",
+  Label: "MacBook Touch ID",
+  CreatedAt: "2026-09-01T10:00:00.000Z",
+};
+
+const registered = (overrides: Record<string, unknown> = {}) =>
+  passkeys.mockReturnValue({
+    passkeys: [laptop],
+    loading: false,
+    error: null,
+    confirm: confirmPasskey,
+    remove: removePasskey,
+    ...overrides,
+  });
+
+const renderPage = (connected?: string, passkey?: string) =>
   render(
     <ThemeProvider theme={theme}>
-      <Security connected={connected} />
+      <Security connected={connected} passkey={passkey} />
     </ThemeProvider>,
   );
 
@@ -190,6 +225,7 @@ beforeEach(() => {
   activity.mockReset();
   password.mockReset();
   signInMethods.mockReset();
+  passkeys.mockReset();
   navigate.mockReset();
   for (const call of [
     add,
@@ -200,8 +236,11 @@ beforeEach(() => {
     review,
     disconnect,
     beginAccountLink,
+    beginPasskeyRegistration,
+    removePasskey,
   ])
     call.mockReset().mockResolvedValue(undefined);
+  confirmPasskey.mockReset().mockResolvedValue(true);
   changePassword
     .mockReset()
     .mockResolvedValue({ ChangedAt: null, OtherSessionsEnded: 0 });
@@ -212,6 +251,7 @@ beforeEach(() => {
   logging();
   holding();
   offering();
+  registered();
 });
 
 describe("the page itself", () => {
@@ -223,12 +263,16 @@ describe("the page itself", () => {
     ).toBeInTheDocument();
   });
 
-  // Six cards, headed the same way, and the order is the argument: what the
+  // Seven cards, headed the same way, and the order is the argument: what the
   // account is called and cannot change, then the addresses that can, then who
-  // else is shown them, then the password all of that rests on, then the other
-  // credentials somebody else holds for this account, then what has lately
-  // been done to any of it.
-  it("holds the user name, the addresses, the switch, the password, the providers and the activity, in that order", () => {
+  // else is shown them, then the password all of that rests on, then the thing
+  // that would replace typing it, then the other credentials somebody else
+  // holds for this account, then what has lately been done to any of it.
+  //
+  // Passkeys sit directly under the password and above the providers because
+  // of what they are: a passkey is an alternative to a password, and
+  // everything below it is a way of asking for something as well as one.
+  it("holds the user name, the addresses, the switch, the password, the passkeys, the providers and the activity, in that order", () => {
     renderPage();
 
     /* The tables' own column headings are drawn with the same label, so the
@@ -238,6 +282,7 @@ describe("the page itself", () => {
       "Email Addresses",
       "Email Privacy",
       "Change Password",
+      "Passkeys",
       "Single Sign-On (SSO)",
       "Recent Activity Log",
     ];
@@ -927,6 +972,187 @@ describe("coming back from a provider", () => {
 
     expect(
       await screen.findByText("Your session has expired."),
+    ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The passkeys card.
+ *
+ * What is worth asserting here is the page's own work rather than the list's,
+ * which has its own test: that adding one asks before the page goes away,
+ * that removing one says what still works afterwards, and that a browser
+ * coming back from the provider is believed no further than the API will
+ * back it up.
+ */
+describe("adding a passkey", () => {
+  /* Pressing it does not leave: the dialog says what is about to happen
+   * first, because the page is gone the moment the trip starts. The same
+   * arrangement Connect has on the SSO card. */
+  it("asks before the page goes anywhere", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add passkey" }));
+
+    expect(beginPasskeyRegistration).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("starts the trip once the dialog is answered", async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add passkey" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Continue to your device" }),
+    );
+
+    await waitFor(() => expect(beginPasskeyRegistration).toHaveBeenCalled());
+  });
+
+  it("says so rather than going quiet when the provider cannot be reached", async () => {
+    beginPasskeyRegistration.mockRejectedValue(new Error("Nothing answered."));
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add passkey" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Continue to your device" }),
+    );
+
+    expect(await screen.findByText("Nothing answered.")).toBeInTheDocument();
+  });
+});
+
+describe("coming back from the provider's registration page", () => {
+  /* The claim on the URL is a hint about what to go and check. The page asks
+   * the API, and the API asks the provider. */
+  it("asks the API what actually happened", async () => {
+    renderPage(undefined, "registered");
+
+    await waitFor(() => expect(confirmPasskey).toHaveBeenCalled());
+  });
+
+  /* Taken off the address bar before the question is asked, so a reload
+   * cannot ask it twice. */
+  it("takes the claim off the URL", async () => {
+    renderPage(undefined, "registered");
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/security-and-access",
+        replace: true,
+      }),
+    );
+  });
+
+  /* Both halves. A passkey is tied to the device that made it, and the phone
+   * in somebody's pocket is where they will next try to login. */
+  it("says it worked, and that the phone needs its own", async () => {
+    renderPage(undefined, "registered");
+
+    expect(
+      await screen.findByText(/add one on your phone as well/),
+    ).toBeInTheDocument();
+  });
+
+  /* The assertion this block exists for: somebody must not be congratulated
+   * for a passkey that does not exist. This is the case where the provider
+   * said nothing useful and the API's answer is the only thing that knows. */
+  it("says nothing changed when the ceremony was not finished", async () => {
+    confirmPasskey.mockResolvedValue(false);
+    renderPage(undefined, "registered");
+
+    expect(
+      await screen.findByText(/That passkey was not added/),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * And the case where the provider said it outright. `cancelled` is
+   * Keycloak's own `kc_action_status`, carried here by `passkeyReturnPath`,
+   * and it means the browser's dialog was dismissed. There is nothing to go
+   * and read: the same message, without the round trip.
+   *
+   * It is the one claim on this page's URL that is taken at its word, and the
+   * asymmetry is deliberate. A wrong `registered` would leave somebody
+   * believing they can login with their face; a wrong `cancelled` puts a
+   * sentence saying nothing changed above a list that plainly shows the
+   * passkey sitting there.
+   */
+  it("says nothing changed without asking, when the provider said so", async () => {
+    renderPage(undefined, "cancelled");
+
+    expect(
+      await screen.findByText(/That passkey was not added/),
+    ).toBeInTheDocument();
+    expect(confirmPasskey).not.toHaveBeenCalled();
+  });
+
+  it("still takes a cancelled claim off the URL", async () => {
+    renderPage(undefined, "cancelled");
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/security-and-access",
+        replace: true,
+      }),
+    );
+  });
+
+  it("asks nothing at all when the browser did not come back from one", () => {
+    renderPage();
+
+    expect(confirmPasskey).not.toHaveBeenCalled();
+  });
+});
+
+describe("removing a passkey", () => {
+  it("asks before it takes one off", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(removePasskey).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("names the one it was asked about", async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove it" }));
+
+    await waitFor(() =>
+      expect(removePasskey).toHaveBeenCalledWith("credential-laptop"),
+    );
+  });
+
+  /* Two things happened and the sentence says both, the way disconnecting a
+   * provider does: somebody who is not told the rest still works will assume
+   * they have just locked themselves out. */
+  it("says what stopped working and what did not", async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove it" }));
+
+    expect(
+      await screen.findByText(
+        '"MacBook Touch ID" was removed. Your password and anything you have connected still work.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says so rather than going quiet when it is refused", async () => {
+    removePasskey.mockRejectedValue(
+      new Error("That passkey is not on this account."),
+    );
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove it" }));
+
+    expect(
+      await screen.findByText("That passkey is not on this account."),
     ).toBeInTheDocument();
   });
 });
