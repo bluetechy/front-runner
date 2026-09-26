@@ -101,12 +101,16 @@ beforeEach(() => {
 });
 
 /* Get the card into the state where it is asking for a code, which is the
- * only way it ever asks: the provider refuses a login, and the card cannot
- * tell a wrong password from a missing code. */
+ * only way it ever asks: the provider refuses three logins, and the card
+ * cannot tell a wrong password from a missing code. */
 const refused = async () => {
-  login.mockRejectedValueOnce(new SignInError("No.", "invalid_grant"));
+  login.mockRejectedValue(new SignInError("No.", "invalid_grant"));
   fillIn();
-  fireEvent.click(loginButton());
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    fireEvent.click(loginButton());
+    await waitFor(() => expect(login).toHaveBeenCalledTimes(attempt));
+    await waitFor(() => expect(loginButton()).toBeEnabled());
+  }
   await screen.findByLabelText("Verification code");
   login.mockReset().mockResolvedValue(undefined);
 };
@@ -248,7 +252,7 @@ describe("when a sign-in fails", () => {
    * identically -- and on purpose, so that a login form cannot be asked which
    * accounts have two-factor authentication on. So this card cannot know
    * which happened, and says both rather than picking one. */
-  it("says both of the things a refusal can mean, and lets it be tried again", async () => {
+  it("blames the password first, and lets it be tried again", async () => {
     login.mockRejectedValue(
       new SignInError(
         "That email and password do not match an account.",
@@ -261,9 +265,23 @@ describe("when a sign-in fails", () => {
     fireEvent.click(loginButton());
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /Check your email address and password.*two-factor authentication/,
+      "That did not work. Check your email address and password.",
+    );
+    expect(await screen.findByRole("alert")).not.toHaveTextContent(
+      /two-factor/,
     );
     expect(loginButton()).toBeEnabled();
+  });
+
+  /* Only once the password alone has been turned away three times, which is
+   * the point where a second factor is the better explanation than a typo. */
+  it("says both of the things a refusal can mean on the third", async () => {
+    renderDialog();
+    await refused();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /Check your email address and password.*two-factor authentication/,
+    );
   });
 
   /* A provider refusing for a reason of its own -- a disabled account, a
@@ -355,9 +373,10 @@ describe("the flows Keycloak hosts", () => {
  * Keycloak answers a wrong password and a missing code identically -- and
  * deliberately, so a login form cannot be asked which accounts have
  * two-factor authentication on -- so the card cannot know which happened.
- * What it does instead is offer the box after any refusal and say both
- * things, which costs somebody with a wrong password one box they can ignore
- * and is the only thing that lets somebody with a factor login at all.
+ * What it does instead is count: two refusals are a mistyped password, and
+ * the third is where a second factor becomes the better explanation and the
+ * box arrives. Nobody is locked out by the wait, and nobody who has never
+ * turned the feature on is asked about it over a typo.
  */
 describe("the code the second factor asks for", () => {
   it("is not asked for until something has been refused", () => {
@@ -366,7 +385,21 @@ describe("the code the second factor asks for", () => {
     expect(screen.queryByLabelText("Verification code")).toBeNull();
   });
 
-  it("is asked for after a refusal, whatever the refusal was", async () => {
+  it("is not asked for while a refusal still reads as a typo", async () => {
+    login.mockRejectedValue(new SignInError("No.", "invalid_grant"));
+    renderDialog();
+    fillIn();
+
+    for (const attempt of [1, 2]) {
+      fireEvent.click(loginButton());
+      await waitFor(() => expect(login).toHaveBeenCalledTimes(attempt));
+      await waitFor(() => expect(loginButton()).toBeEnabled());
+    }
+
+    expect(screen.queryByLabelText("Verification code")).toBeNull();
+  });
+
+  it("is asked for on the third refusal, whatever the refusals were", async () => {
     renderDialog();
     await refused();
 

@@ -18,15 +18,15 @@ which is what makes the provider replaceable: see
 
 ## What the dialog does
 
-| Control                                | Where it goes                                              |
-| -------------------------------------- | ---------------------------------------------------------- |
-| Email + password, **Login**, the ➜     | The provider's token endpoint, in the page. No redirect    |
-| **Remember me**                        | Whether the refresh token outlives the tab                 |
-| **Forgot Password**                    | Another card. It does not leave the site                   |
-| **Sign Up**                            | The other card. It does not leave the site                 |
-| **Verification code**, after a refusal | The same token endpoint, with the code beside the password |
-| **Use a recovery code**                | `useRecoveryCode` on main-api. It does not login           |
-| **Google / Facebook / Apple ID**       | The authorize endpoint, with the login-provider hint       |
+| Control                                     | Where it goes                                              |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| Email + password, **Login**, the ➜          | The provider's token endpoint, in the page. No redirect    |
+| **Remember me**                             | Whether the refresh token outlives the tab                 |
+| **Forgot Password**                         | Another card. It does not leave the site                   |
+| **Sign Up**                                 | The other card. It does not leave the site                 |
+| **Verification code**, on the third refusal | The same token endpoint, with the code beside the password |
+| **Use a recovery code**                     | `useRecoveryCode` on main-api. It does not login           |
+| **Google / Facebook / Apple ID**            | The authorize endpoint, with the login-provider hint       |
 
 Only the first of those completes in the dialog, and only the last three leave
 the site: those are pages the provider hosts, and they come back to
@@ -193,16 +193,28 @@ account that does not exist and a disabled account all answer
 
 byte for byte. That is deliberate on Keycloak's part — a login form that
 answered differently could be asked which accounts have two-factor
-authentication on — so the dialog does the only honest thing: after **any**
-refusal it keeps what was typed, adds a code box under it, and says both of
-the things the refusal can mean. Somebody without a second factor reads it as
-"check your password"; somebody with one fills in the box.
+authentication on — so the dialog cannot pick one. Every refusal keeps what
+was typed and lets it be tried again.
+
+**The code box waits for the third refusal**, and that is a judgement about
+which mistake is commoner rather than anything the provider says. The two
+readings are not equally likely: almost everybody who is turned away has
+mistyped a password, and answering that with a box for a feature the account
+may never have had reads as a demand for a code that does not exist. So the
+first two refusals say the thing that is almost always true ("check your
+email address and password"), and the third widens to both and opens the box
+under it. Nobody is shut out by the wait, because the box does arrive;
+somebody with a second factor pays two attempts for everybody else not being
+asked about one.
 
 That shape does double duty for SMS, because the refusal is the moment the
-message is sent. The first grant arrives with no code in it, the authenticator
-texts one and refuses in the same words a wrong password gets, and the card
-does what it was already going to do: keep what was typed and show the box.
-Nothing had to be added to the card for the second factor to become two.
+message is sent. The first grant arrives with no code in it and the
+authenticator texts one, refusing in the same words a wrong password gets.
+**Waiting costs that message nothing.** `SmsCode.outstanding` stops the
+authenticator sending a second while the first is live, so re-posting the
+password buys no extra texts, and those digits are still good when the box
+appears: a code lives five minutes and three refusals take seconds. If it has
+expired by then, the refusal that opens the box sends fresh ones.
 
 A code is good **once**, both ways. The realm sets `otpPolicyCodeReusable`
 false, so pressing Login twice inside the same thirty seconds with the app's

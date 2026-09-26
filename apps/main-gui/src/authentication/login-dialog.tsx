@@ -45,9 +45,15 @@ import { useSession } from "./session";
  * does that deliberately, so that a login form cannot be asked which accounts
  * have two-factor authentication on. So this card cannot know which of the
  * two just happened, and it does not pretend to: a refusal keeps what was
- * typed, adds a code box under it, and says both things in one sentence.
- * Somebody without a second factor reads it as "check your password" and
- * types again; somebody with one fills in the box.
+ * typed and lets it be tried again.
+ *
+ * **It waits for the third refusal before showing the code box.** The two
+ * possibilities are not equally likely. Almost everybody who is refused has
+ * mistyped a password, and answering that with a box for a feature the
+ * account may not have turned on reads as a demand for a code that does not
+ * exist. Somebody who does have a second factor spends two attempts getting
+ * here, which is the price of not putting the question to everybody else --
+ * and it is only ever attempts, never a lockout, because the box does arrive.
  *
  * **One box for both factors.** The digits go up under both of the names the
  * realm's two authenticators read, and whichever one is actually in the flow
@@ -65,16 +71,34 @@ import { useSession } from "./session";
  */
 
 /*
+ * How many refusals the code box waits for.
+ *
+ * Three, and it is a judgement about which mistake is commoner rather than
+ * anything the provider tells us: two typos are a bad day at the keyboard,
+ * and by the third refusal an account that has a second factor is the better
+ * explanation for why the password alone keeps being turned away.
+ */
+const REFUSALS_BEFORE_CODE = 3;
+
+/*
  * What to say about a refusal.
  *
- * The provider says the same thing whatever went wrong, so the first refusal
- * says both of the things it can mean and the card shows a code box under it.
+ * The provider says the same thing whatever went wrong, so the sentence
+ * widens as the refusals mount rather than saying everything at once. The
+ * first two say the thing that is almost always true, and the third adds the
+ * second factor, which is the refusal the code box appears under.
+ *
  * After that there is more to go on: a refusal with a code filled in is
  * either a wrong code or one that has already been spent, and the advice for
  * both is the same -- wait for the next one, because the digits on the screen
  * are not new digits.
  */
-function refusal(failure: unknown, asked: boolean, code: string): string {
+function refusal(
+  failure: unknown,
+  asked: boolean,
+  code: string,
+  asking: boolean,
+): string {
   if (!(failure instanceof SignInError))
     return "Login failed. Please try again.";
   /* Something the provider named for itself: a disabled account, a client
@@ -83,7 +107,9 @@ function refusal(failure: unknown, asked: boolean, code: string): string {
   if (failure.code !== "invalid_grant") return failure.message;
   if (asked && code)
     return "That code was not accepted. Codes work once, so wait for your app to show the next one, or for a new text message, and try again.";
-  return "That did not work. Check your email address and password, and if your account uses two-factor authentication, add the code from your authenticator app or the one we have just texted you.";
+  if (asking)
+    return "That did not work. Check your email address and password, and if your account uses two-factor authentication, add the code from your authenticator app or the one we have just texted you.";
+  return "That did not work. Check your email address and password.";
 }
 
 /* "1 code" or "4 codes", written out rather than left as "4 code(s)". */
@@ -141,12 +167,14 @@ export function LoginDialog({
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  /* The code box, and whether it is showing. It appears after a refusal
-   * rather than before one, because until then there is nothing to suggest
-   * this account has a second factor at all -- and nothing this card could
-   * ask that would find out. */
+  /* The code box, and what opens it. It counts refusals rather than holding
+   * a flag, because the box waits for the third: before then there is
+   * nothing to suggest this account has a second factor at all -- and
+   * nothing this card could ask that would find out -- while there is every
+   * reason to think somebody has mistyped a password. */
   const [code, setCode] = useState("");
-  const [asksForCode, setAsksForCode] = useState(false);
+  const [refusals, setRefusals] = useState(0);
+  const asksForCode = refusals >= REFUSALS_BEFORE_CODE;
 
   /* The way through for somebody whose phone is gone. It takes
    * the same email address and password as the form above it, plus one code
@@ -167,12 +195,16 @@ export function LoginDialog({
       onClose();
       await navigate({ to: "/dashboard" });
     } catch (failure) {
-      setError(refusal(failure, asksForCode, code));
-      /* Whatever it was, a code is the thing this card has not asked for yet.
-       * Offering it costs somebody with a wrong password one box they can
-       * ignore; not offering it leaves somebody with a second factor unable
-       * to login at all. */
-      setAsksForCode(true);
+      /* Waiting costs a texted code nothing. The realm sends one on the
+       * first refusal and will not send another while that one is
+       * outstanding, so the same digits are still live when the box arrives;
+       * if they have expired by then, the refusal that opens it sends
+       * fresh ones. */
+      const seen = refusals + 1;
+      setError(
+        refusal(failure, asksForCode, code, seen >= REFUSALS_BEFORE_CODE),
+      );
+      setRefusals(seen);
       setBusy(false);
     }
   }
@@ -192,7 +224,7 @@ export function LoginDialog({
        * halves are said, because somebody who is not told their second factor
        * is gone will believe they are still protected by it. */
       setRecovering(false);
-      setAsksForCode(false);
+      setRefusals(0);
       setCode("");
       setRecoveryCode("");
       setNotice(
