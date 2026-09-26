@@ -12,7 +12,8 @@ const ID = "w_0123456789abcdef0123456789abcdef";
 const widget = (extra: Partial<WidgetSummary> = {}): WidgetSummary => ({
   WidgetId: ID,
   Name: "Black Friday banner",
-  Version: 3,
+  DraftVersion: 3,
+  PublishedVersion: 2,
   CreatedAt: "2026-01-01T00:00:00.000Z",
   UpdatedAt: "2026-02-01T00:00:00.000Z",
   ...extra,
@@ -23,7 +24,7 @@ function draw({
   loading = false,
   error = null,
   selectedId = "",
-  onChoose = vi.fn(),
+  onOpen = vi.fn(),
 }: Partial<Parameters<typeof WidgetList>[0]> = {}) {
   const result = render(
     <ThemeProvider theme={theme}>
@@ -32,11 +33,11 @@ function draw({
         loading={loading}
         error={error}
         selectedId={selectedId}
-        onChoose={onChoose}
+        onOpen={onOpen}
       />
     </ThemeProvider>,
   );
-  return { ...result, onChoose };
+  return { ...result, onOpen };
 }
 
 describe("the widgets on this account", () => {
@@ -49,10 +50,21 @@ describe("the widgets on this account", () => {
     expect(screen.getByText(ID)).toBeInTheDocument();
   });
 
-  it("shows the name and which version is being served", () => {
+  /* Two marks rather than one number, because a widget being worked on is in
+   * two states at once: a draft nobody is served, and a version everybody is.
+   * The live version is named rather than implied, because "live" without a
+   * number is what makes somebody publish a draft they meant to keep. */
+  it("shows the name, the draft and what is live", () => {
     draw();
     expect(screen.getByText("Black Friday banner")).toBeInTheDocument();
-    expect(screen.getByText("Version 3")).toBeInTheDocument();
+    expect(screen.getByText("Draft 3")).toBeInTheDocument();
+    expect(screen.getByText("Live 2")).toBeInTheDocument();
+  });
+
+  it("says plainly when a widget is on nobody's site", () => {
+    draw({ widgets: [widget({ PublishedVersion: null })] });
+    expect(screen.getByText("Not published")).toBeInTheDocument();
+    expect(screen.queryByText(/^Live/)).toBeNull();
   });
 
   it("copies an id when asked", () => {
@@ -76,17 +88,20 @@ describe("the widgets on this account", () => {
     vi.unstubAllGlobals();
   });
 
-  it("hands the chosen widget back, so a save adds a version to it", () => {
-    const { onChoose } = draw();
-    fireEvent.click(screen.getByRole("button", { name: "Save over" }));
-    expect(onChoose).toHaveBeenCalledWith(
+  /* Open, not "save over". Before a definition could be read back, taking the
+   * id and leaving the box alone was the honest thing to offer; now the page
+   * holds the document it is about to write over. */
+  it("hands the widget back to be opened into the box", () => {
+    const { onOpen } = draw();
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(onOpen).toHaveBeenCalledWith(
       expect.objectContaining({ WidgetId: ID }),
     );
   });
 
-  it("says which one is already chosen, and offers no second choosing of it", () => {
+  it("says which one is already in the box, and offers no second opening of it", () => {
     draw({ selectedId: ID });
-    expect(screen.getByRole("button", { name: "Selected" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "In the box" })).toBeDisabled();
   });
 
   /* An account with nothing gets a sentence about what to do rather than an

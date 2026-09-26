@@ -7,7 +7,8 @@ this page is the server side of it.
 ```text
 the studio (main-gui)                    a customer's site
         │                                        │
-   saveWidget                              GET /widgets/:id
+  saveWidget / publishWidget               GET /widgets/:id
+  widgetDefinition / widgetVersions              │
         │                                        │
         ▼                                        ▼
   WidgetsResolver                         WidgetsController
@@ -16,10 +17,51 @@ the studio (main-gui)                    a customer's site
                           │
               parseAndValidate (Ajv + the walk)
                           │
-                dbo.SaveWidget / dbo.GetWidget
+          dbo.SaveWidget / dbo.PublishWidget / dbo.GetWidget
                           │
                  Widgets + WidgetVersions
 ```
+
+## The lifecycle
+
+A widget has two version numbers, and the difference between them is the whole
+of it:
+
+| Column             | What it is                                        |
+| ------------------ | ------------------------------------------------- |
+| `DraftVersion`     | the most recent save. Nobody is served it.        |
+| `PublishedVersion` | what browsers get. Null until somebody publishes. |
+
+So **saving is not publishing**. Somebody can work on a banner all afternoon
+while the version on a customer's storefront stays exactly where it was, and
+`GET /widgets/:id` answers nothing at all for a widget that has never been
+published.
+
+**Rollback needs no operation of its own.** Every version is still stored, so
+"go back to 3" and "ship 5" are `publishWidget` with a different number. That is
+most of the argument for appending versions rather than overwriting them, and it
+is why there is no `rollbackWidget` to go looking for.
+
+**Unpublishing deletes nothing.** It sets the column to null: the id, the draft
+and every version stay, `GET /widgets/:id` starts answering the same "no such
+widget" it answers for an id that was never minted, and publishing a version
+puts the same widget back on the same pages.
+
+There is no `Status` column beside the two numbers, on purpose. "Is there an
+unpublished draft" is `DraftVersion <> PublishedVersion`, "is it live" is
+`PublishedVersion IS NOT NULL`, and two columns that can disagree about one fact
+is how a row starts lying.
+
+### Saving over somebody else's work
+
+`saveWidget` takes an optional `expectedDraftVersion`: the version the studio
+read the document at. If the draft has moved since, the save is refused with a
+sentence saying so rather than writing over work nobody has seen. Passing
+nothing skips the check, which is what a caller that never opened anything does.
+
+It is a sentence rather than the schema's authorization message, because it is
+not about permission: the answer to it is "look at what changed", not "ask for
+access".
 
 ## The one public thing in this API
 
@@ -167,20 +209,36 @@ What keeps the column honest is that nothing reaches it unvalidated.
 never changes, so an edit is a change to a live page: "make the button blue" has
 to be a new row that can be looked at, compared and gone back from, rather than
 an `UPDATE` over what is being served to customers right now. It matters more
-once a model is the one making the edit.
+once a model is the one making the edit, and it is what makes rollback a
+publish rather than a restore.
 
-`Widgets."CurrentVersion"` is the version number a browser is served. It is a
-number rather than a foreign key because a key would be circular, and
-`dbo.SaveWidget` is the only thing that writes it, in the same call that writes
-the version it names.
+The two version columns are numbers rather than foreign keys to
+`dbo.WidgetVersions`, because a key would be circular: each table would name the
+other, and the circle would have to be broken on every insert by writing a NULL
+and coming back to it. `dbo.SaveWidget` and `dbo.PublishWidget` are the only
+writers, and each writes its column in the same call as the row it names.
 
-### The three functions
+### The functions
 
-| Function         | Who calls it        | What is unusual about it                                |
-| ---------------- | ------------------- | ------------------------------------------------------- |
-| `dbo.SaveWidget` | `saveWidget`        | Mints the public id; refuses a widget that is not yours |
-| `dbo.GetWidget`  | the public endpoint | **Takes no login name at all**                          |
-| `dbo.GetWidgets` | `widgets`           | The list behind the studio; carries no definitions      |
+| Function                  | Who calls it        | What is unusual about it                                      |
+| ------------------------- | ------------------- | ------------------------------------------------------------- |
+| `dbo.SaveWidget`          | `saveWidget`        | Mints the public id; refuses a save against a moved draft     |
+| `dbo.PublishWidget`       | `publishWidget`     | Names the version; refuses one that was never written         |
+| `dbo.UnpublishWidget`     | `unpublishWidget`   | Sets the column to null and deletes nothing                   |
+| `dbo.GetWidget`           | the public endpoint | **Takes no login name at all**; answers the published version |
+| `dbo.GetWidgetDefinition` | `widgetDefinition`  | The owner's read: will hand back an unpublished draft         |
+| `dbo.GetWidgetVersions`   | `widgetVersions`    | The history; carries no definitions                           |
+| `dbo.GetWidgets`          | `widgets`           | The list behind the studio; carries no definitions            |
+
+The two reads are two functions rather than one with a flag, and the difference
+is the point:
+
+```text
+dbo.GetWidget            the published version, to a browser, with no account
+                         involved at all
+dbo.GetWidgetDefinition  any version, to the person who owns it, so it can be
+                         edited or compared
+```
 
 `dbo.GetWidget` is the only read in this schema that asks for no account,
 because there is nobody to ask about. Everything else in `dbo` starts by
@@ -196,31 +254,48 @@ identically, with the schema's own authorization message. Answering differently
 would confirm which ids are real, and the ids are the only thing keeping
 definitions from being enumerated.
 
-## The mutation
+## The operations
 
 ```graphql
-mutation SaveWidget($name: String!, $definition: String!, $widgetId: String) {
-  saveWidget(name: $name, definition: $definition, widgetId: $widgetId) {
+mutation SaveWidget(
+  $name: String!
+  $definition: String!
+  $widgetId: String
+  $expectedDraftVersion: Int
+) {
+  saveWidget(
+    name: $name
+    definition: $definition
+    widgetId: $widgetId
+    expectedDraftVersion: $expectedDraftVersion
+  ) {
     WidgetId
     Name
-    Version
+    DraftVersion
+    PublishedVersion
     UpdatedAt
   }
 }
 ```
 
 Behind the token like everything else in the schema. `widgetId` absent means
-"make one"; present means "add a version to this one".
+"make one"; present means "add a draft version to this one".
+
+Beside it: `publishWidget(widgetId, version)` and `unpublishWidget(widgetId)`
+decide what the world sees, `widgetDefinition(widgetId, version)` reads one back
+with `version` absent meaning the draft, and `widgetVersions(widgetId)` is the
+history.
 
 **The definition is a `String` holding JSON rather than a structured input type.**
 Describing the same shapes a second time in GraphQL would be a second authority
 that disagreed with the schema by next month, and text is also exactly what the
 author has in their hand: a JSON syntax error in it is then a sentence about the
-character it broke at rather than "expected object, received string".
+character it broke at rather than "expected object, received string". It comes
+back the same way, as the stored text, compact; the studio lays it out for its
+box, because how JSON is arranged in a text area is a question about a text area.
 
-It answers the four facts somebody needs and not the definition: the document is
-kilobytes of JSON and both the save and the list are read to draw a table of
-names.
+Neither the save nor the list answers with a definition: the document is
+kilobytes of JSON and both are read to draw a table of names.
 
 ## Configuration
 
@@ -233,12 +308,12 @@ reach the widget route, which sets its own header per widget.
 
 ## What is not here yet
 
-- **A draft and a publish.** Saving publishes. The ladder the architecture calls
-  for (draft, preview, publish, roll back) is a column on `dbo.Widgets` and a
-  second read function, and half of it exists already in that every version is
-  kept.
-- **Reading an old version back.** Nothing exposes `dbo.WidgetVersions` beyond
-  the current row, so a rollback today is a save of the old document.
+- **Comparing two versions.** The history says what there is and any version can
+  be opened, but nothing diffs them, so "what changed in 4" is read by eye.
+- **Scheduled publishing.** A version goes live when somebody presses the
+  button. "Publish this at midnight" is a column and something that wakes up to
+  read it, and the second half of that is the durable-event design this API does
+  not have yet.
 - **Analytics.** The SDK reports clicks to the host page and nothing reaches this
   API. A durable event path is its own design, and the API's
   [design decisions](design-decisions.md) already say what shape it should take.

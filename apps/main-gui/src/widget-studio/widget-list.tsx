@@ -1,4 +1,5 @@
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -12,21 +13,29 @@ import type { WidgetSummary } from "./widgets-api";
  * pages carrying no token, so it has to be unguessable -- which means a widget
  * whose id has been lost can still be served forever and can never be found
  * again. So it is on the screen in full, in monospace, next to a button that
- * copies it, and choosing a row is how somebody saves a new version over an
- * existing widget.
+ * copies it.
+ *
+ * **Open** puts the widget's draft in the box, name and all. It replaced a
+ * "save over" that took the id and left the definition alone, which was the
+ * honest thing to offer before a definition could be read back: the page would
+ * otherwise have been holding one document and writing over another.
+ *
+ * Each row says where the widget stands as two marks rather than one number,
+ * because a widget being worked on is in two states at once: a draft nobody is
+ * served, and a version everybody is.
  */
 export function WidgetList({
   widgets,
   loading,
   error,
   selectedId,
-  onChoose,
+  onOpen,
 }: {
   widgets: readonly WidgetSummary[];
   loading: boolean;
   error: string | null;
   selectedId: string;
-  onChoose: (widget: WidgetSummary) => void;
+  onOpen: (widget: WidgetSummary) => void;
 }) {
   const { t } = useTranslation();
 
@@ -93,9 +102,27 @@ export function WidgetList({
             </Typography>
           </Stack>
 
-          <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-            {t("Version {{version}}", { version: widget.Version })}
-          </Typography>
+          {/* Where it stands. Words rather than color alone, and the published
+           * version named rather than implied, because "live" without a number
+           * is what makes somebody publish a draft they meant to keep. */}
+          <Stack direction="row" sx={{ gap: 0.5, flexShrink: 0 }}>
+            <Chip
+              size="small"
+              variant="outlined"
+              label={t("Draft {{version}}", { version: widget.DraftVersion })}
+            />
+            {widget.PublishedVersion === null ? (
+              <Chip size="small" label={t("Not published")} />
+            ) : (
+              <Chip
+                size="small"
+                color="success"
+                label={t("Live {{version}}", {
+                  version: widget.PublishedVersion,
+                })}
+              />
+            )}
+          </Stack>
 
           <Stack direction="row" sx={{ gap: 0.5 }}>
             {/* Best effort on purpose: the clipboard needs a permission and a
@@ -113,10 +140,10 @@ export function WidgetList({
             <Button
               size="small"
               variant="outlined"
-              onClick={() => onChoose(widget)}
+              onClick={() => onOpen(widget)}
               disabled={widget.WidgetId === selectedId}
             >
-              {widget.WidgetId === selectedId ? t("Selected") : t("Save over")}
+              {widget.WidgetId === selectedId ? t("In the box") : t("Open")}
             </Button>
           </Stack>
         </Stack>

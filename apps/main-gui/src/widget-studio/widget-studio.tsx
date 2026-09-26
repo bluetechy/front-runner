@@ -1,4 +1,5 @@
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -6,94 +7,91 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CardSurface } from "../card-surface";
 import { Toast, type Notice } from "../toast";
+import { EXAMPLE } from "./example";
 import { ProblemList } from "./problem-list";
+import { VersionList } from "./version-list";
 import { WidgetList } from "./widget-list";
-import { problemsIn, useSaveWidget, useWidgets } from "./widgets-api";
+import { WidgetPreview } from "./widget-preview";
+import {
+  problemsIn,
+  useOpenWidget,
+  usePublishWidget,
+  useSaveWidget,
+  useUnpublishWidget,
+  useWidgetVersions,
+  useWidgets,
+  type WidgetSummary,
+} from "./widgets-api";
 
 /*
- * The widget studio, at /widgets, which is Widgets in the rail.
+ * The widget studio, at /widgets, which is Site Widgets in the rail.
  *
- * **It is a text box on purpose.** A widget definition is JSON, and this page
- * is where one is pasted in and saved. The builder this becomes -- a canvas, a
- * palette of elements, a properties panel -- is a different page and a much
- * larger one, and it needs the thing underneath it to work first: the schema,
- * the validator, the store, the endpoint and the runtime. So the first version
- * of the authoring surface is the smallest one that exercises all five, and
- * what it proves is that a definition written anywhere at all can be published
- * and drawn. See docs/TODO.md for what replaces it.
+ * **It is a text box on purpose.** A widget definition is JSON, and this page is
+ * where one is pasted in, saved and published. The builder this becomes -- a
+ * canvas, a palette of elements, a properties panel -- is a different page and a
+ * much larger one, and it needs the thing underneath it to work first: the
+ * schema, the validator, the store, the endpoint and the runtime.
  *
- * The page's job, then, is almost entirely about the refusal. A pasted
- * document is usually wrong the first few times, and the API answers with every
- * problem in it at once: the toast says something went wrong, and the list
- * under the box says what, each one naming where it is. Getting that loop right
- * is worth more here than any amount of chrome.
+ * What the page has to keep straight is the difference between three things,
+ * because it is the whole lifecycle and a page that blurred it would publish
+ * work nobody meant to publish:
+ *
+ *   the box        what somebody is editing right now. Nobody is served it.
+ *   the draft      the last thing saved. Nobody is served that either.
+ *   the published  what browsers get, until somebody says otherwise.
+ *
+ * So **Save draft** and **Publish** are separate buttons, and publishing names a
+ * version. Rollback is not a third button: it is publishing an earlier version
+ * from the history, which is why the history has Open beside Publish.
  */
-
-/* Left in the box on a first visit, because a page whose one control is an
- * empty text area does not say what it wants. It is also a working document:
- * pasting nothing and pressing Save publishes a real banner, which is the
- * fastest way to see the whole path end to end. */
-const EXAMPLE = `{
-  "schemaVersion": "1.0",
-  "name": "Black Friday banner",
-  "canvas": { "width": 1200, "height": 300 },
-  "layout": { "type": "flow" },
-  "delivery": { "allowedOrigins": ["http://localhost:5174"] },
-  "root": {
-    "id": "root",
-    "type": "container",
-    "layout": {
-      "direction": "row",
-      "align": "center",
-      "justify": "space-between",
-      "padding": 40,
-      "gap": 24,
-      "stackBelow": 640
-    },
-    "style": { "background": "#111111", "color": "#f5f5f5" },
-    "children": [
-      {
-        "id": "headline",
-        "type": "text",
-        "value": "BLACK FRIDAY",
-        "variant": "title",
-        "style": { "fontSize": 40, "fontWeight": 800 }
-      },
-      {
-        "id": "clock",
-        "type": "countdown",
-        "target": "2026-11-27T00:00:00-07:00",
-        "format": "DD:HH:MM:SS",
-        "expired": { "behavior": "replace", "text": "THE SALE IS LIVE" }
-      },
-      {
-        "id": "cta",
-        "type": "button",
-        "label": "SHOP NOW",
-        "variant": "primary",
-        "style": { "background": "#d1258f", "color": "#ffffff" },
-        "action": { "type": "navigate", "url": "/black-friday" }
-      }
-    ]
-  }
-}`;
 
 export function WidgetStudio() {
   const { t } = useTranslation();
   const { data: widgets, isPending, error: listError } = useWidgets();
   const save = useSaveWidget();
+  const publish = usePublishWidget();
+  const unpublish = useUnpublishWidget();
+  const open = useOpenWidget();
 
   const [name, setName] = useState("Black Friday banner");
   const [definition, setDefinition] = useState(EXAMPLE);
-  /* Which widget a save writes a new version of. Empty means a new one, which
-   * is what the page starts on: choosing one out of the list below is how
-   * somebody edits rather than creates. */
+  /* Which widget the box is about. Empty means a new one, which is what the
+   * page starts on. */
   const [widgetId, setWidgetId] = useState("");
+  /*
+   * Which version the box was opened at, and the reason the page can be trusted
+   * to save over things.
+   *
+   * It goes back to the API with the save, which refuses if the draft has moved
+   * since: somebody else's tab, or this person's own second one. Null means the
+   * box was typed rather than opened, so nothing anybody has seen is at risk.
+   */
+  const [openedVersion, setOpenedVersion] = useState<number | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   /* The problems from the last refusal, kept after the toast has gone. A toast
    * that holds eight sentences is a toast nobody can read to the end of before
    * it disappears, so it says the first one and this list holds all of them. */
   const [problems, setProblems] = useState<string[]>([]);
+  /* Which version has a publish in flight, so its row says so and the others
+   * are held: two publishes at once would be two answers to what the world
+   * sees. */
+  const [publishing, setPublishing] = useState<number | null>(null);
+  /* What a host page would tell the widget. One field is enough to see a
+   * progress bar and a `{{placeholder}}` doing something in the preview. */
+  const [cartTotal, setCartTotal] = useState("50");
+
+  const versions = useWidgetVersions(widgetId);
+  const chosen = widgets?.find((widget) => widget.WidgetId === widgetId);
+  const draft = chosen?.DraftVersion ?? openedVersion;
+
+  function fail(failure: unknown, fallback: string) {
+    const message = failure instanceof Error ? failure.message : t(fallback);
+    const listed = problemsIn(message);
+    setProblems(listed);
+    /* The first problem rather than all of them: the panel below has the rest,
+     * and it is still there in a minute. */
+    setNotice({ message: listed[0] ?? message, tone: "error" });
+  }
 
   async function submit() {
     setProblems([]);
@@ -102,29 +100,104 @@ export function WidgetStudio() {
         name,
         definition,
         widgetId: widgetId || undefined,
+        expectedDraftVersion: openedVersion ?? undefined,
       });
-      /* The id is the thing somebody came here for, so it is in the sentence
-       * rather than only in the table underneath. */
       setWidgetId(saved.WidgetId);
+      /* The box now holds the version that was just written, so the next save
+       * is checked against this one. */
+      setOpenedVersion(saved.DraftVersion);
+      /* Which version is live is the thing somebody most needs to hear after a
+       * save, because the answer is "not this one". */
       setNotice({
-        message: t("Saved {{name}} as version {{version}}. Its id is {{id}}.", {
-          name: saved.Name,
-          version: saved.Version,
-          id: saved.WidgetId,
+        message:
+          saved.PublishedVersion === null
+            ? t("Saved {{name}} as draft {{version}}. Nothing is serving it.", {
+                name: saved.Name,
+                version: saved.DraftVersion,
+              })
+            : t(
+                "Saved {{name}} as draft {{version}}. Version {{live}} is still live.",
+                {
+                  name: saved.Name,
+                  version: saved.DraftVersion,
+                  live: saved.PublishedVersion,
+                },
+              ),
+        tone: "success",
+      });
+    } catch (failure: unknown) {
+      fail(failure, "The widget could not be saved.");
+    }
+  }
+
+  async function putLive(version: number) {
+    setProblems([]);
+    setPublishing(version);
+    try {
+      const published = await publish.mutateAsync({ widgetId, version });
+      setNotice({
+        message: t("Version {{version}} is live. Its id is {{id}}.", {
+          version,
+          id: published.WidgetId,
         }),
         tone: "success",
       });
     } catch (failure: unknown) {
-      const message =
-        failure instanceof Error
-          ? failure.message
-          : t("The widget could not be saved.");
-      const listed = problemsIn(message);
-      setProblems(listed);
-      /* The first problem rather than all of them: the panel below has the
-       * rest, and it is still there in a minute. */
-      setNotice({ message: listed[0] ?? message, tone: "error" });
+      fail(failure, "The widget could not be published.");
+    } finally {
+      setPublishing(null);
     }
+  }
+
+  async function takeDown() {
+    setProblems([]);
+    try {
+      await unpublish.mutateAsync({ widgetId });
+      setNotice({
+        message: t(
+          "{{name}} is no longer being served. Nothing was deleted, and publishing a version puts it back.",
+          { name },
+        ),
+        tone: "info",
+      });
+    } catch (failure: unknown) {
+      fail(failure, "The widget could not be taken down.");
+    }
+  }
+
+  /* Open a version into the box. It comes back as stored, which is compact, and
+   * is laid out here: how JSON is arranged in a text area is a question about a
+   * text area. */
+  async function openInto(id: string, version?: number) {
+    setProblems([]);
+    try {
+      const document = await open(id, version);
+      setWidgetId(document.WidgetId);
+      setName(document.Name);
+      setDefinition(JSON.stringify(JSON.parse(document.Definition), null, 2));
+      setOpenedVersion(document.Version);
+      setNotice({
+        message: document.IsPublished
+          ? t("Opened version {{version}}, which is the one being served.", {
+              version: document.Version,
+            })
+          : t("Opened version {{version}}. It is not being served.", {
+              version: document.Version,
+            }),
+        tone: "info",
+      });
+    } catch (failure: unknown) {
+      fail(failure, "That widget could not be opened.");
+    }
+  }
+
+  function startFresh() {
+    setWidgetId("");
+    setOpenedVersion(null);
+    setProblems([]);
+    setName("Black Friday banner");
+    setDefinition(EXAMPLE);
+    setNotice({ message: t("Started a new widget."), tone: "info" });
   }
 
   return (
@@ -138,13 +211,39 @@ export function WidgetStudio() {
         </Typography>
         <Typography sx={{ fontSize: "0.95rem", color: "text.secondary" }}>
           {t(
-            "Paste a widget definition, save it, and embed it with the id you get back.",
+            "Paste a widget definition, save it as a draft, then publish the version you want sites to serve.",
           )}
         </Typography>
       </Stack>
 
       <Stack sx={{ gap: { xs: 2, md: 2.5 } }}>
-        <CardSurface title={t("Widget definition")}>
+        <CardSurface
+          title={t("Widget definition")}
+          action={
+            /* Where the widget stands, on the heading line rather than found by
+             * comparing two numbers in a table. */
+            widgetId ? (
+              <Stack direction="row" sx={{ gap: 0.5, alignItems: "center" }}>
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={t("Draft {{version}}", { version: draft ?? 1 })}
+                />
+                {chosen?.PublishedVersion ? (
+                  <Chip
+                    size="small"
+                    color="success"
+                    label={t("Live {{version}}", {
+                      version: chosen.PublishedVersion,
+                    })}
+                  />
+                ) : (
+                  <Chip size="small" label={t("Not published")} />
+                )}
+              </Stack>
+            ) : null
+          }
+        >
           <Stack sx={{ gap: 2 }}>
             <TextField
               label={t("Name")}
@@ -157,19 +256,25 @@ export function WidgetStudio() {
             <TextField
               label={t("Widget id")}
               value={widgetId}
-              onChange={(event) => setWidgetId(event.target.value.trim())}
+              onChange={(event) => {
+                setWidgetId(event.target.value.trim());
+                /* An id typed by hand is not a version anybody opened, so the
+                 * next save must not claim to have seen one. */
+                setOpenedVersion(null);
+              }}
               placeholder={t("Leave empty to create a new widget")}
               helperText={t(
-                "Saving over an id adds a version. Everything already embedded starts serving it.",
+                "Saving adds a draft version. Publishing is what changes the sites it is on.",
               )}
               fullWidth
             />
 
             {/*
-             * The box itself. Monospace, because it holds JSON and a proportional
-             * font makes a bracket somebody is hunting for harder to find, and
-             * `spellCheck` off for the same reason a code editor turns it off:
-             * every property name in the document would otherwise be underlined.
+             * The box itself. Monospace, because it holds JSON and a
+             * proportional font makes a bracket somebody is hunting for harder
+             * to find, and `spellCheck` off for the same reason a code editor
+             * turns it off: every property name in the document would otherwise
+             * be underlined.
              */}
             <TextField
               label={t("Definition")}
@@ -206,14 +311,42 @@ export function WidgetStudio() {
                 onClick={() => void submit()}
                 disabled={save.isPending || !name.trim() || !definition.trim()}
               >
-                {save.isPending ? t("Saving") : t("Save widget")}
+                {save.isPending ? t("Saving") : t("Save draft")}
               </Button>
+
+              {/* Publishing the draft is the common case and is offered here;
+               * publishing anything else is a row in the history, which is where
+               * a version can be read before it goes live. */}
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  if (draft) void putLive(draft);
+                }}
+                disabled={
+                  !widgetId ||
+                  draft === null ||
+                  publishing !== null ||
+                  save.isPending ||
+                  chosen?.DraftVersion === chosen?.PublishedVersion
+                }
+              >
+                {t("Publish the draft")}
+              </Button>
+
+              {chosen?.PublishedVersion ? (
+                <Button
+                  variant="text"
+                  color="error"
+                  onClick={() => void takeDown()}
+                  disabled={unpublish.isPending}
+                >
+                  {t("Take it down")}
+                </Button>
+              ) : null}
+
               <Button
                 variant="text"
-                onClick={() => {
-                  setWidgetId("");
-                  setProblems([]);
-                }}
+                onClick={startFresh}
                 disabled={save.isPending}
               >
                 {t("Start a new widget")}
@@ -222,34 +355,47 @@ export function WidgetStudio() {
           </Stack>
         </CardSurface>
 
+        <CardSurface
+          title={t("Preview")}
+          action={
+            <TextField
+              label={t("cart.total")}
+              value={cartTotal}
+              onChange={(event) => setCartTotal(event.target.value)}
+              size="small"
+              sx={{ width: "8rem" }}
+            />
+          }
+        >
+          {/* Drawn with the runtime a customer embeds, so this is the widget
+           * rather than a picture of it. See widget-preview.tsx. */}
+          <WidgetPreview
+            definition={definition}
+            context={{ "cart.total": cartTotal }}
+          />
+        </CardSurface>
+
+        {widgetId ? (
+          <CardSurface title={t("History")}>
+            <VersionList
+              versions={versions.data ?? []}
+              loading={versions.isPending}
+              error={versions.error?.message ?? null}
+              openVersion={openedVersion}
+              busyVersion={publishing}
+              onOpen={(version) => void openInto(widgetId, version)}
+              onPublish={(version) => void putLive(version)}
+            />
+          </CardSurface>
+        ) : null}
+
         <CardSurface title={t("Saved widgets")}>
           <WidgetList
             widgets={widgets ?? []}
             loading={isPending}
             error={listError?.message ?? null}
             selectedId={widgetId}
-            onChoose={(chosen) => {
-              setWidgetId(chosen.WidgetId);
-              setName(chosen.Name);
-              setProblems([]);
-              /*
-               * The name and the id, not the definition.
-               *
-               * Reading a definition back would mean a second query and a
-               * second answer to "what is on the screen": the box would hold
-               * version 4 while the list said 5, and a save would quietly
-               * write whichever the page happened to be holding. Choosing a
-               * widget here means "save over this one", and what gets saved is
-               * what is in the box. Editing an existing definition properly is
-               * a read of it and a diff, which is the builder's job.
-               */
-              setNotice({
-                message: t("Saving will add a version to {{name}}.", {
-                  name: chosen.Name,
-                }),
-                tone: "info",
-              });
-            }}
+            onOpen={(widget: WidgetSummary) => void openInto(widget.WidgetId)}
           />
         </CardSurface>
       </Stack>

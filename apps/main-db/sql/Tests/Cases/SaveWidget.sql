@@ -4,7 +4,7 @@
 --
 
 -- The first save is the whole of creation: a widget, its public id and
--- version 1, from a call that had no id to give.
+-- draft 1, from a call that had no id to give.
 CREATE FUNCTION "test"."TestSaveWidget_CreatesAWidgetAndItsFirstVersion" () RETURNS void AS $$
 DECLARE
     _Saved record;
@@ -12,9 +12,89 @@ BEGIN
     SELECT * INTO _Saved FROM "dbo"."SaveWidget"('member', NULL, 'Black Friday banner',
         '{"schemaVersion": "1.0", "canvas": {"width": 1200}, "root": {"id": "root", "type": "container"}}'::jsonb);
 
-    PERFORM "test"."AssertEquals"(_Saved."Version", 1, 'the first save was not version 1');
+    PERFORM "test"."AssertEquals"(_Saved."DraftVersion", 1, 'the first save was not draft 1');
     PERFORM "test"."AssertEquals"(_Saved."Name", 'Black Friday banner'::varchar(200), 'the widget did not keep its name');
     PERFORM "test"."AssertTrue"(_Saved."WidgetId" LIKE 'w\_%', 'the widget id is not prefixed');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Saving is not publishing, which is the whole of the lifecycle: a new widget
+-- is on nobody's site until somebody says so.
+CREATE FUNCTION "test"."TestSaveWidget_DoesNotPublish" () RETURNS void AS $$
+DECLARE
+    _Saved record;
+    _Served bigint;
+BEGIN
+    SELECT * INTO _Saved FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "test"."AssertTrue"(_Saved."PublishedVersion" IS NULL, 'saving published the widget');
+
+    SELECT count(*) INTO _Served FROM "dbo"."GetWidget"(_Saved."WidgetId");
+    PERFORM "test"."AssertEquals"(_Served, 0::bigint, 'an unpublished widget is being served');
+END;
+$$ LANGUAGE plpgsql;
+
+-- And saving over a published widget leaves what is published alone, which is
+-- the reason somebody can work on a live banner at all.
+CREATE FUNCTION "test"."TestSaveWidget_LeavesThePublishedVersionWhereItIs" () RETURNS void AS $$
+DECLARE
+    _WidgetId varchar(34);
+    _Saved record;
+BEGIN
+    SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "dbo"."PublishWidget"('member', _WidgetId, 1);
+
+    SELECT * INTO _Saved FROM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "test"."AssertEquals"(_Saved."DraftVersion", 2, 'the draft did not move');
+    PERFORM "test"."AssertEquals"(_Saved."PublishedVersion", 1, 'saving moved what is published');
+END;
+$$ LANGUAGE plpgsql;
+
+--
+-- The guard against two tabs overwriting each other. The studio reads a
+-- definition at a version and hands that number back when it saves; a draft
+-- that has moved in between means somebody else's work is about to be written
+-- over, and the refusal is what turns that into a sentence on the screen.
+--
+CREATE FUNCTION "test"."TestSaveWidget_RefusesASaveAgainstAStaleDraft" () RETURNS void AS $$
+DECLARE
+    _WidgetId varchar(34);
+BEGIN
+    SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    -- A second save, which is the one the first tab has not seen.
+    PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+
+    PERFORM "test"."AssertRaises"(
+        format('SELECT "dbo"."SaveWidget"(''member'', %L, ''Banner'', ''{}''::jsonb, 1)', _WidgetId),
+        'a save against a draft that had moved was allowed to overwrite it',
+        'has been saved since you opened it'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION "test"."TestSaveWidget_AcceptsASaveAgainstTheCurrentDraft" () RETURNS void AS $$
+DECLARE
+    _WidgetId varchar(34);
+    _Saved record;
+BEGIN
+    SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+
+    SELECT * INTO _Saved FROM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb, 1);
+    PERFORM "test"."AssertEquals"(_Saved."DraftVersion", 2, 'a save against the current draft was refused');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Passing nothing skips the check, which is what a caller that never opened a
+-- widget does: the studio creating a new one has no version to be stale about.
+CREATE FUNCTION "test"."TestSaveWidget_SkipsTheCheckWhenNoVersionIsNamed" () RETURNS void AS $$
+DECLARE
+    _WidgetId varchar(34);
+    _Saved record;
+BEGIN
+    SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+
+    SELECT * INTO _Saved FROM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "test"."AssertEquals"(_Saved."DraftVersion", 3, 'a save with no expected version was refused');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -51,7 +131,7 @@ BEGIN
     SELECT * INTO _Saved FROM "dbo"."SaveWidget"('member', _WidgetId, 'Banner',
         '{"schemaVersion": "1.0", "canvas": {"width": 800}}'::jsonb);
 
-    PERFORM "test"."AssertEquals"(_Saved."Version", 2, 'the second save was not version 2');
+    PERFORM "test"."AssertEquals"(_Saved."DraftVersion", 2, 'the second save was not draft 2');
     PERFORM "test"."AssertEquals"(_Saved."WidgetId", _WidgetId, 'saving again changed the public id');
 
     SELECT count(*) INTO _Versions FROM "dbo"."WidgetVersions"
@@ -61,21 +141,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- The served version moves with the save, so a widget is never pointing at a
--- version that is not there.
-CREATE FUNCTION "test"."TestSaveWidget_ServesTheVersionItJustWrote" () RETURNS void AS $$
+-- The draft always points at the version just written, so a widget is never
+-- drafted at a version that is not there.
+CREATE FUNCTION "test"."TestSaveWidget_DraftsTheVersionItJustWrote" () RETURNS void AS $$
 DECLARE
     _WidgetId varchar(34);
-    _Served record;
+    _Draft record;
 BEGIN
     SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner',
         '{"schemaVersion": "1.0", "canvas": {"width": 1200}}'::jsonb);
     PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner',
         '{"schemaVersion": "1.0", "canvas": {"width": 800}}'::jsonb);
 
-    SELECT * INTO _Served FROM "dbo"."GetWidget"(_WidgetId);
-    PERFORM "test"."AssertEquals"(_Served."Version", 2, 'the widget is still serving the old version');
-    PERFORM "test"."AssertEquals"(_Served."Definition"->'canvas'->>'width', '800', 'the served definition is the old one');
+    SELECT * INTO _Draft FROM "dbo"."GetWidgetDefinition"('member', _WidgetId);
+    PERFORM "test"."AssertEquals"(_Draft."Version", 2, 'the draft is not the version just written');
+    PERFORM "test"."AssertEquals"(_Draft."Definition"->'canvas'->>'width', '800', 'the draft holds the old document');
 END;
 $$ LANGUAGE plpgsql;
 

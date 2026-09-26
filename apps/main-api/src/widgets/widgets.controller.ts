@@ -112,8 +112,9 @@ export class WidgetsController {
       throw new NotFoundException("No such widget");
 
     const found = await this.service.read(widgetId);
-    /* One answer for "no such id" and for "not published yet": a different one
-     * for each would tell a stranger which ids are real. */
+    /* One answer for three situations: no such id, saved but never published,
+     * and published then taken down. A different one for each would tell a
+     * stranger which ids are real and which are merely quiet. */
     if (!found) throw new NotFoundException("No such widget");
 
     if (origin !== undefined && !this.allows(found.Definition, origin))

@@ -19,30 +19,59 @@ that can produce JSON. A model writing a definition, a script generating fifty o
 them and a person typing one by hand all reach the product the same way, and the
 builder becomes one client of a contract rather than the only one.
 
+## Three things, kept apart
+
+The page's real job is that it never lets these blur into each other:
+
+```text
+the box        what somebody is editing right now. Nobody is served it.
+the draft      the last thing saved. Nobody is served that either.
+the published  what browsers get, until somebody says otherwise.
+```
+
+So **Save draft** and **Publish the draft** are two buttons. A page with one
+would be a page where fixing a typo puts it on every customer's storefront the
+moment it is saved, which is the behavior this whole lifecycle exists to stop.
+After a save the toast says which version is _actually_ live, because "saved" on
+its own is the sentence somebody reads as "shipped".
+
+**Rollback is not a button.** It is Publish on an older row of the history, and
+Open beside it is what makes that safe: the version can be read in the box before
+it goes in front of anybody.
+
 ## The page
 
-Three fields, a button and a list.
-
-| Field      | What it is                                               |
-| ---------- | -------------------------------------------------------- |
-| Name       | What the widget is called. Never rendered in the widget. |
-| Widget id  | Empty to create; filled to add a version to that widget. |
-| Definition | The JSON, in a monospace box with spell-check off.       |
+| Field      | What it is                                                |
+| ---------- | --------------------------------------------------------- |
+| Name       | What the widget is called. Never rendered in the widget.  |
+| Widget id  | Empty to create; filled to save a draft over that widget. |
+| Definition | The JSON, in a monospace box with spell-check off.        |
 
 The box starts with a working example: a Black Friday banner with a headline, a
 countdown and a button, listing `http://localhost:5174` as its allowed origin,
-which is [client-gui](../../client-gui/README.md)'s address. Pressing Save
-without touching it publishes a real widget, which is the fastest way to see the
-whole path end to end. A page whose one control is an empty text area does not
-say what it wants.
+which is [client-gui](../../client-gui/README.md)'s address. Save it and publish
+it without touching it and a real widget is live on a real id, which is the
+fastest way to see the whole path end to end. A page whose one control is an
+empty text area does not say what it wants.
 
-Under the list, **Save over** takes a widget's id and its name, and deliberately
-**not** its definition. Reading the definition back would mean a second answer to
-"what is on the screen": the box would hold version 4 while the list said 5, and
-a save would quietly write whichever the page happened to be holding. Choosing a
-widget here means "save over this one", and what gets saved is what is in the
-box. Editing an existing definition properly is a read of it and a diff, which is
-the builder's job.
+Under it, **Preview** draws whatever is in the box with the runtime a customer
+embeds, and **History** lists every version once a widget is open.
+
+### Opening a widget
+
+**Open** on a row of the list, or on a row of the history, puts the stored
+definition in the box along with its name and id, and the page remembers which
+version it came from.
+
+That number is the point. It goes back with the next save, and the API refuses
+the save if the draft has moved since: two tabs, or two people, cannot write
+over each other without one of them being told. Typing an id by hand instead
+clears it, because an id somebody typed is not a version anybody read.
+
+This replaced a "save over" that took the id and the name and deliberately left
+the box alone. That was the honest thing to offer before a definition could be
+read back: the page would otherwise have been holding one document and writing
+over another.
 
 ## The refusal is the page
 
@@ -98,10 +127,13 @@ already legible.
 
 ```text
 src/widget-studio/
-  widget-studio.tsx   the page: the fields, the save, the toast
-  widget-list.tsx     the saved widgets, their ids and their versions
+  widget-studio.tsx   the page: the fields, the lifecycle, the toast
+  widget-preview.tsx  what is in the box, drawn with the customer's runtime
+  version-list.tsx    the history, where rolling back lives
+  widget-list.tsx     the saved widgets, their ids and where each one stands
   problem-list.tsx    what was wrong with the document
-  widgets-api.ts      the query and the mutation, through TanStack Query
+  example.ts          the document the box starts on
+  widgets-api.ts      the queries and mutations, through TanStack Query
   index.ts            the page, and nothing else
 ```
 
@@ -111,9 +143,41 @@ plan written down in codebase structure was that the three copies of the GraphQL
 call become one when a second slice moved onto TanStack Query, and this is that
 second slice.
 
-`problemsIn` lives beside the queries rather than in the page, because splitting
-the API's joined message is a fact about the API's contract rather than about the
-layout.
+Two decisions in `widgets-api.ts` are worth knowing before changing it:
+
+- **Opening is a function, not a query.** A query with a key would refetch on
+  its own, and a definition that refetched would take an edit away from whoever
+  was making it. It still goes through the cache, so nothing is asked for twice.
+- **A numbered version is cached forever and the draft is never cached.**
+  Versions are appended and never overwritten, so version 3 is the same document
+  for the rest of time; the draft moves every time anybody saves. That is one
+  line, `staleTime`, and it is the difference between comparing two old versions
+  cheaply and re-reading a draft that somebody else has just changed.
+
+## The preview
+
+It renders with `WidgetView` out of `packages/widget-sdk`, which is the
+component `<Widget>` uses once it has fetched a definition. **So the preview is
+not an approximation of the widget: it is the widget**, minus the fetch. The gap
+a mock-up would leave is exactly where surprises live, and there is no gap.
+
+Three things it deliberately does not do:
+
+- **It does not validate.** The API's schema is the only authority on what a
+  valid widget is, and a copy of Ajv in this bundle would be a second one to
+  keep in step. The preview draws what the runtime can draw and says nothing
+  about whether it would be accepted; Save is what asks.
+- **It does not navigate.** A click on a button in the preview goes nowhere,
+  because a preview that navigated would take the unsaved document with it.
+- **It does not blink.** While somebody is typing, the last document that could
+  be drawn stays on the screen, since most keystrokes in the middle of an edit
+  leave the JSON unparseable.
+
+What it _does_ check is whether what is in the box can be handed to the runtime
+at all: a half-typed document with no `root` would throw inside somebody else's
+component. That guard is in `widget-preview.tsx` rather than in the SDK, because
+the SDK's contract is that it is handed a validated definition and this is the
+one caller in the product knowingly handing it something else.
 
 ## Looking at it
 
@@ -129,16 +193,12 @@ that is not this application's.
 
 ## What is not here yet
 
-- **The builder.** A canvas, elements to drop, a properties panel, a live
-  preview. This page's `<WidgetView>` neighbor in the SDK already renders a
-  definition without saving it, which is the preview half.
-- **Reading a definition back.** The page can save over a widget but cannot open
-  one. It wants the API to expose a version's document, and it wants a diff
-  before it overwrites anything.
-- **Versions and rollback.** The list says which version is being served and
-  nothing about the ones before it.
-- **A preview beside the box.** The SDK can draw a pasted document with no round
-  trip at all, so this is a component and a debounce rather than a design.
+- **The builder.** A canvas, elements to drop, a properties panel. The preview
+  is half of it already.
+- **A diff.** The history says what there is and any version can be opened, but
+  nothing compares two, so "what changed in 4" is read by eye.
+- **Editing anything but JSON.** The box is the authoring surface; the schema is
+  the thing a builder would be built against.
 - **Translation of the example.** The interface is translated; the example
-  document in the box is not, because a widget's own copy is the author's and not
-  the product's.
+  document is not, because a widget's own copy belongs to whoever writes the
+  widget.

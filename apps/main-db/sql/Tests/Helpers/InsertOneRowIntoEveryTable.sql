@@ -129,11 +129,12 @@ BEGIN
     INSERT INTO "dbo"."UserPoints" ("UserUUID", "OrganizationUUID", "PointUUID", "Description", "Amount", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointUUID, 'Smoke points.', 1.00, _By);
 
     -- A widget and the first version of it. Two statements rather than one
-    -- because the version names the widget, and "CurrentVersion" then names
-    -- the version: dbo.SaveWidget writes exactly this pair, and this helper
-    -- proves both tables accept a row without going through it.
-    INSERT INTO "dbo"."Widgets" ("WidgetId", "UserUUID", "Name", "CurrentVersion", "CreatedBy")
-        VALUES ('w_00000000000000000000000000000001', _UserUUID, 'Smoke Widget', 1, _By)
+    -- because the version names the widget, and the widget's two version
+    -- columns then name the version: dbo.SaveWidget and dbo.PublishWidget write
+    -- exactly this pair between them, and this helper proves both tables accept
+    -- a row without going through either.
+    INSERT INTO "dbo"."Widgets" ("WidgetId", "UserUUID", "Name", "DraftVersion", "PublishedVersion", "CreatedBy")
+        VALUES ('w_00000000000000000000000000000001', _UserUUID, 'Smoke Widget', 1, 1, _By)
         RETURNING "WidgetUUID" INTO _WidgetUUID;
     INSERT INTO "dbo"."WidgetVersions" ("WidgetUUID", "Version", "SchemaVersion", "Definition", "CreatedBy")
         VALUES (_WidgetUUID, 1, '1.0', '{"schemaVersion": "1.0", "canvas": {"width": 600}, "root": {"id": "root", "type": "container"}}'::jsonb, _By);

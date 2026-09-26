@@ -18,7 +18,10 @@
     "types": ["vite/client", "node", "vitest/globals"],
     /* Must agree with `resolve.alias` in vite.config.ts. TypeScript 7
      * removed baseUrl, so these resolve relative to this file. */
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "@front-runner/widget-sdk": ["../../packages/widget-sdk/src/index.ts"]
+    }
   },
   "include": ["src", "vite.config.ts", "vitest.config.ts"]
 }

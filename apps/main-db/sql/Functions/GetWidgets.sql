@@ -7,12 +7,18 @@
 -- this is a list, and a page of definitions would be several hundred
 -- kilobytes to draw a table of names.
 --
+-- Both version numbers, because the difference between them is what the page
+-- has to show: equal means everything saved is live, different means there is
+-- an unpublished draft, and a NULL published version means the widget is not on
+-- anybody's site at all.
+--
 CREATE FUNCTION "dbo"."GetWidgets" (
     _LoginName varchar(64)
 ) RETURNS TABLE(
     "WidgetId" varchar(34),
     "Name" varchar(200),
-    "Version" integer,
+    "DraftVersion" integer,
+    "PublishedVersion" integer,
     "CreatedAt" TIMESTAMPTZ,
     "UpdatedAt" TIMESTAMPTZ
 ) AS $$
@@ -25,8 +31,8 @@ CREATE FUNCTION "dbo"."GetWidgets" (
         END IF;
 
         RETURN QUERY
-        SELECT "Widgets"."WidgetId", "Widgets"."Name", "Widgets"."CurrentVersion",
-            "Widgets"."CreatedAt", "Widgets"."UpdatedAt"
+        SELECT "Widgets"."WidgetId", "Widgets"."Name", "Widgets"."DraftVersion",
+            "Widgets"."PublishedVersion", "Widgets"."CreatedAt", "Widgets"."UpdatedAt"
         FROM "dbo"."Widgets"
         WHERE "Widgets"."UserUUID" = _UserUUID
         -- "UpdatedAt" is never null on a row in this schema: dbo.insert_modified_info

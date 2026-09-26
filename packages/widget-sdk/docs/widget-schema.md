@@ -361,11 +361,19 @@ them.
 
 ## Versioning
 
-`schemaVersion` is the language's; a widget's own version is a number the store
-keeps, rising by one on every save. A widget is embedded by an id that never
-changes, so an edit is a change to a live page: the store keeps every version so
-that one can be looked at, compared and gone back from. The version a page is
-serving is on every response, which is what makes a stale cache visible.
+`schemaVersion` is the language's. A widget's own versions are numbers the store
+keeps, and there are two of them: the **draft**, which rises by one on every
+save, and the **published** one, which is what browsers are served and moves only
+when somebody publishes.
+
+That split is why a widget embedded by an id that never changes can be worked on
+safely. Saving writes a version nobody is being served; publishing points the
+world at one; publishing an earlier number is the rollback, and needs no other
+machinery because every version is still there. The version a page is serving is
+on every response, which is what makes a stale cache visible.
+
+A widget that has never been published, or has been taken down, answers nothing
+at `GET /widgets/:id` -- the same nothing an id that was never minted answers.
 
 The two ends of the contract are deliberately asymmetric about an element type
 they do not recognize. **The API refuses one**, so nothing unknown is ever

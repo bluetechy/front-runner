@@ -19,21 +19,36 @@
 -- the database, it is served to a page carrying no token, and so it has to be
 -- unguessable rather than sequential: see sql/Tables/Widgets.sql.
 --
+-- **Saving does not publish.** The new version becomes the draft and
+-- "PublishedVersion" is not touched, so a widget already on somebody's site
+-- keeps serving what it was serving until dbo.PublishWidget says otherwise.
+-- The first save of a new widget therefore leaves it unpublished, and
+-- dbo.GetWidget answers nothing for it.
+--
+-- _ExpectedDraftVersion is how two people, or one person in two tabs, are kept
+-- from overwriting each other. The studio reads a definition at version 4 and
+-- passes 4 back when it saves; if the draft has moved to 5 in between, this
+-- refuses rather than writing 6 over work nobody has seen. NULL skips the
+-- check, which is what a caller that did not open anything passes.
+--
 CREATE FUNCTION "dbo"."SaveWidget" (
     _LoginName varchar(64),
     _WidgetId varchar(34),
     _Name varchar(200),
-    _Definition jsonb
+    _Definition jsonb,
+    _ExpectedDraftVersion integer DEFAULT NULL
 ) RETURNS TABLE(
     "WidgetId" varchar(34),
     "Name" varchar(200),
-    "Version" integer,
+    "DraftVersion" integer,
+    "PublishedVersion" integer,
     "UpdatedAt" TIMESTAMPTZ
 ) AS $$
     DECLARE
         _UserUUID uuid;
         _WidgetUUID uuid;
         _Version integer;
+        _DraftVersion integer;
     BEGIN
         _UserUUID := "dbo"."GetUserUUID"(_LoginName);
         IF _UserUUID IS NULL THEN
@@ -58,12 +73,24 @@ CREATE FUNCTION "dbo"."SaveWidget" (
             -- does not exist is, and with the schema's own authorization
             -- message: answering "no such widget" for one and "not yours" for
             -- the other would confirm which ids are real.
-            SELECT "Widgets"."WidgetUUID" INTO _WidgetUUID FROM "dbo"."Widgets"
+            SELECT "Widgets"."WidgetUUID", "Widgets"."DraftVersion"
+            INTO _WidgetUUID, _DraftVersion
+            FROM "dbo"."Widgets"
             WHERE "Widgets"."WidgetId" = _WidgetId
                 AND "Widgets"."UserUUID" = _UserUUID;
 
             IF _WidgetUUID IS NULL THEN
                 RAISE EXCEPTION 'Action cannot be performed.';
+            END IF;
+
+            -- Somebody else saved while this caller was editing. Said as its
+            -- own sentence rather than the authorization message, because it is
+            -- not about permission and the answer to it is "look at what
+            -- changed", not "ask for access".
+            IF _ExpectedDraftVersion IS NOT NULL
+                AND _ExpectedDraftVersion <> _DraftVersion THEN
+                RAISE EXCEPTION 'That widget has been saved since you opened it (draft % is now draft %).',
+                    _ExpectedDraftVersion, _DraftVersion;
             END IF;
         END IF;
 
@@ -84,18 +111,18 @@ CREATE FUNCTION "dbo"."SaveWidget" (
             _LoginName
         );
 
-        -- The name and the served version move together with the version that
-        -- introduced them, so a widget is never pointing at a version that is
-        -- not there.
+        -- The draft moves to the version just written, and the name moves with
+        -- it. "PublishedVersion" is deliberately untouched: what a browser is
+        -- served changes when somebody publishes and not when somebody saves.
         UPDATE "dbo"."Widgets"
-        SET "CurrentVersion" = _Version,
+        SET "DraftVersion" = _Version,
             "Name" = btrim(_Name),
             "UpdatedBy" = _LoginName
         WHERE "Widgets"."WidgetUUID" = _WidgetUUID;
 
         RETURN QUERY
-        SELECT "Widgets"."WidgetId", "Widgets"."Name", "Widgets"."CurrentVersion",
-            "Widgets"."UpdatedAt"
+        SELECT "Widgets"."WidgetId", "Widgets"."Name", "Widgets"."DraftVersion",
+            "Widgets"."PublishedVersion", "Widgets"."UpdatedAt"
         FROM "dbo"."Widgets"
         WHERE "Widgets"."WidgetUUID" = _WidgetUUID;
     END;

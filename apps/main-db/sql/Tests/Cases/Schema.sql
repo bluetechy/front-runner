@@ -103,7 +103,8 @@ BEGIN
         ('SettlePointTransfer'), ('SpendPasswordReset'), ('StartPasswordReset'),
         ('SpendPhoneVerification'), ('StartPhoneVerification'),
         ('VerifyUserEmail'),
-        ('GetWidget'), ('GetWidgets'), ('SaveWidget'),
+        ('GetWidget'), ('GetWidgetDefinition'), ('GetWidgetVersions'),
+        ('GetWidgets'), ('PublishWidget'), ('SaveWidget'), ('UnpublishWidget'),
         ('calculate_tallies'), ('insert_modified_info'),
         ('trim_security_events'), ('update_modified_info')
     ) AS "Expected" ("Name")

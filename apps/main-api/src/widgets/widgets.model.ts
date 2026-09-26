@@ -9,9 +9,9 @@ import {
 // A widget as its author sees it, which is deliberately not the definition.
 //
 // The document is several kilobytes of JSON and the studio page is a list of
-// names, so what comes back from a save and what fills the table are the four
-// facts somebody needs: what it is called, the id to paste into a site, which
-// version is being served, and when it last changed.
+// names, so what comes back from a save and what fills the table are the facts
+// somebody needs: what it is called, the id to paste into a site, where the
+// draft and the published version have got to, and when it last changed.
 //
 // "WidgetId" is the public name and the only one that leaves the database --
 // 'w_' and sixteen random bytes. See apps/main-db/sql/Tables/Widgets.sql for
@@ -25,11 +25,19 @@ export class SavedWidget {
   WidgetId!: string;
   @Field(() => String)
   Name!: string;
-  // Which version a browser is being served. It rises by one on every save,
-  // and it is the number that makes a stale cache visible: "the page is
-  // showing 16 and you published 17".
+  // The most recent save. It rises by one every time somebody saves, and it is
+  // not what anybody is being served.
   @Field(() => Int)
-  Version!: number;
+  DraftVersion!: number;
+  // What a browser is being served, and null for a widget that has never been
+  // published or has been taken down. The two numbers together are the whole
+  // lifecycle: equal means everything saved is live, different means there is
+  // an unpublished draft, null means it is on nobody's site.
+  //
+  // It is also the number that makes a stale cache visible: "the page is
+  // showing 16 and you published 17".
+  @Field(() => Int, { nullable: true })
+  PublishedVersion!: number | null;
   @Field(() => GraphQLISODateTime)
   UpdatedAt!: Date;
 }
@@ -44,9 +52,67 @@ export class WidgetSummary {
   @Field(() => String)
   Name!: string;
   @Field(() => Int)
-  Version!: number;
+  DraftVersion!: number;
+  @Field(() => Int, { nullable: true })
+  PublishedVersion!: number | null;
   @Field(() => GraphQLISODateTime)
   CreatedAt!: Date;
   @Field(() => GraphQLISODateTime)
   UpdatedAt!: Date;
+}
+
+// One version's document, read back by the person who owns it.
+//
+// This is the one place in the schema a definition travels, and it travels as
+// a `String` of JSON for the same reason it arrives as one: what a valid widget
+// is has one authority, the JSON Schema, and describing those shapes again in
+// GraphQL would be a second authority that disagreed with it by next month.
+//
+// It is the *stored* text, compact. The studio pretty-prints it for the box,
+// because how JSON is laid out in a text area is a question about a text area.
+@ObjectType()
+export class WidgetDocument {
+  @Field(() => ID)
+  WidgetId!: string;
+  @Field(() => String)
+  Name!: string;
+  @Field(() => Int)
+  Version!: number;
+  // The version of the *language* this document is written in, lifted out of
+  // the document when it was saved.
+  @Field(() => String)
+  SchemaVersion!: string;
+  @Field(() => String)
+  Definition!: string;
+  // Whether this is the version browsers are being served. Read straight from
+  // the database rather than compared here, so the page cannot disagree with
+  // the store about what is live.
+  @Field(() => Boolean)
+  IsPublished!: boolean;
+  @Field(() => GraphQLISODateTime)
+  CreatedAt!: Date;
+}
+
+// A row of a widget's history: what there is to go back to.
+//
+// No definition in it. Twenty versions of a banner is twenty documents nobody
+// is reading, and the one being looked at is fetched by `widgetDefinition`
+// when somebody asks for it.
+@ObjectType()
+export class WidgetVersion {
+  @Field(() => Int)
+  Version!: number;
+  @Field(() => String)
+  SchemaVersion!: string;
+  // The two marks a history panel draws. They are separate fields because a
+  // widget being worked on has them on different rows, and one just published
+  // has them both on the same row.
+  @Field(() => Boolean)
+  IsPublished!: boolean;
+  @Field(() => Boolean)
+  IsDraft!: boolean;
+  @Field(() => GraphQLISODateTime)
+  CreatedAt!: Date;
+  @Field(() => String)
+  CreatedBy!: string;
 }

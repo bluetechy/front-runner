@@ -3,13 +3,14 @@
 -- asks for no account at all.
 --
 
-CREATE FUNCTION "test"."TestGetWidget_AnswersTheCurrentDefinition" () RETURNS void AS $$
+CREATE FUNCTION "test"."TestGetWidget_AnswersThePublishedDefinition" () RETURNS void AS $$
 DECLARE
     _WidgetId varchar(34);
     _Served record;
 BEGIN
     SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner',
         '{"schemaVersion": "1.0", "canvas": {"width": 1200}, "root": {"id": "root", "type": "container"}}'::jsonb);
+    PERFORM "dbo"."PublishWidget"('member', _WidgetId, 1);
 
     SELECT * INTO _Served FROM "dbo"."GetWidget"(_WidgetId);
     PERFORM "test"."AssertEquals"(_Served."WidgetId", _WidgetId, 'the wrong widget came back');
@@ -29,6 +30,7 @@ DECLARE
 BEGIN
     SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner',
         '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "dbo"."PublishWidget"('member', _WidgetId, 1);
 
     -- Nothing in the call names a caller, which is the assertion.
     SELECT count(*) INTO _Count FROM "dbo"."GetWidget"(_WidgetId);
@@ -60,6 +62,41 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- The case the whole draft/publish split exists for: a widget can be saved
+-- over and over without anything changing on the site it is embedded on.
+CREATE FUNCTION "test"."TestGetWidget_AnswersNothingForAWidgetThatWasNeverPublished" () RETURNS void AS $$
+DECLARE
+    _WidgetId varchar(34);
+    _Count bigint;
+BEGIN
+    SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+
+    SELECT count(*) INTO _Count FROM "dbo"."GetWidget"(_WidgetId);
+    PERFORM "test"."AssertEquals"(_Count, 0::bigint, 'an unpublished widget is being served');
+END;
+$$ LANGUAGE plpgsql;
+
+-- Saving does not change what a browser gets. This is the assertion somebody
+-- reading the table will want to see before they believe the two columns.
+CREATE FUNCTION "test"."TestGetWidget_KeepsServingThePublishedVersionWhileTheDraftMovesOn" () RETURNS void AS $$
+DECLARE
+    _WidgetId varchar(34);
+    _Served record;
+BEGIN
+    SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner',
+        '{"schemaVersion": "1.0", "canvas": {"width": 1200}}'::jsonb);
+    PERFORM "dbo"."PublishWidget"('member', _WidgetId, 1);
+    PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner',
+        '{"schemaVersion": "1.0", "canvas": {"width": 800}}'::jsonb);
+
+    SELECT * INTO _Served FROM "dbo"."GetWidget"(_WidgetId);
+    PERFORM "test"."AssertEquals"(_Served."Version", 1, 'saving a draft changed what is being served');
+    PERFORM "test"."AssertEquals"(_Served."Definition"->'canvas'->>'width', '1200',
+        'the draft reached the browser');
+END;
+$$ LANGUAGE plpgsql;
+
 -- One row, whatever the history is. A page is drawing one banner.
 CREATE FUNCTION "test"."TestGetWidget_AnswersOneRowHoweverManyVersionsThereAre" () RETURNS void AS $$
 DECLARE
@@ -69,6 +106,7 @@ BEGIN
     SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
     PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
     PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
+    PERFORM "dbo"."PublishWidget"('member', _WidgetId, 2);
 
     SELECT count(*) INTO _Count FROM "dbo"."GetWidget"(_WidgetId);
     PERFORM "test"."AssertEquals"(_Count, 1::bigint, 'a widget with three versions answered with more than one row');

@@ -22,11 +22,22 @@ const envDir = fileURLToPath(new URL("../..", import.meta.url));
 // vitest.config.ts merges this file, so the tests resolve it the same way.
 const srcDir = fileURLToPath(new URL("./src", import.meta.url));
 
+// The widget SDK, aliased to its source rather than to its built `dist`, the
+// same way apps/client-gui does it. The studio's preview renders a pasted
+// definition with the very runtime a customer embeds, so the loop between
+// changing an element and seeing it here should not have a `tsc` in it -- and
+// `npm run dev` would otherwise need the package built first. Vite compiles
+// the TypeScript either way, and the published entry points are checked by
+// `npm run build`, which Turborepo runs after the package's own build.
+const widgetSdk = fileURLToPath(
+  new URL("../../packages/widget-sdk/src/index.ts", import.meta.url),
+);
+
 // tanstackRouter generates src/routeTree.gen.ts from src/routes, and has to
 // run before the React plugin so the generated tree is transformed too.
 export default defineConfig({
   envDir,
-  resolve: { alias: { "@": srcDir } },
+  resolve: { alias: { "@": srcDir, "@front-runner/widget-sdk": widgetSdk } },
   plugins: [
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),

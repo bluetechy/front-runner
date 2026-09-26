@@ -44,7 +44,7 @@ CREATE FUNCTION "test"."TestGetWidgets_PutsTheMostRecentlySavedFirst" () RETURNS
 DECLARE
     _First varchar(34);
 BEGIN
-    INSERT INTO "dbo"."Widgets" ("WidgetId", "UserUUID", "Name", "CurrentVersion", "CreatedAt", "CreatedBy")
+    INSERT INTO "dbo"."Widgets" ("WidgetId", "UserUUID", "Name", "DraftVersion", "CreatedAt", "CreatedBy")
     VALUES
         ('w_00000000000000000000000000000001', "test"."Fixture"('User.Member'), 'Older', 1, '2024-01-01 00:00:00+00', 'fixtures'),
         ('w_00000000000000000000000000000002', "test"."Fixture"('User.Member'), 'Newer', 1, '2024-06-01 00:00:00+00', 'fixtures');
@@ -71,16 +71,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION "test"."TestGetWidgets_SaysHowManyVersionsAreServed" () RETURNS void AS $$
+-- The two numbers the page draws its whole lifecycle from: equal means
+-- everything saved is live, different means there is an unpublished draft, and a
+-- NULL published version means the widget is on nobody's site.
+CREATE FUNCTION "test"."TestGetWidgets_SaysWhatIsDraftedAndWhatIsPublished" () RETURNS void AS $$
 DECLARE
     _WidgetId varchar(34);
-    _Version integer;
+    _Listed record;
 BEGIN
     SELECT "WidgetId" INTO _WidgetId FROM "dbo"."SaveWidget"('member', NULL, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
     PERFORM "dbo"."SaveWidget"('member', _WidgetId, 'Banner', '{"schemaVersion": "1.0"}'::jsonb);
 
-    SELECT "Version" INTO _Version FROM "dbo"."GetWidgets"('member') WHERE "WidgetId" = _WidgetId;
-    PERFORM "test"."AssertEquals"(_Version, 2, 'the list is not showing the version being served');
+    SELECT * INTO _Listed FROM "dbo"."GetWidgets"('member') WHERE "WidgetId" = _WidgetId;
+    PERFORM "test"."AssertEquals"(_Listed."DraftVersion", 2, 'the list is not showing the draft');
+    PERFORM "test"."AssertTrue"(_Listed."PublishedVersion" IS NULL,
+        'saving a widget twice published it');
+
+    PERFORM "dbo"."PublishWidget"('member', _WidgetId, 1);
+
+    SELECT * INTO _Listed FROM "dbo"."GetWidgets"('member') WHERE "WidgetId" = _WidgetId;
+    PERFORM "test"."AssertEquals"(_Listed."PublishedVersion", 1, 'the list is not showing what is published');
+    PERFORM "test"."AssertEquals"(_Listed."DraftVersion", 2, 'publishing moved the draft');
 END;
 $$ LANGUAGE plpgsql;
 

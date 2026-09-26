@@ -10,10 +10,15 @@
 -- decided above this -- see main-api's widgets.controller.ts, which matches
 -- the browser's Origin against the list inside the definition.
 --
--- Only the current version, and only a widget that has one. A widget whose
--- row exists but whose first version is not yet written answers nothing
--- rather than an empty definition, which is what makes "not published" and
--- "no such widget" one answer at the endpoint: neither tells a stranger
+-- **The published version, which is not the newest one.** Saving writes a
+-- draft and changes nothing here; publishing is what moves what a browser
+-- gets. So a widget being worked on serves the version it was last published
+-- at, and a widget that has never been published, or has been unpublished,
+-- answers nothing at all.
+--
+-- Nothing, rather than an empty definition or a refusal, and that is what lets
+-- the endpoint above give one answer to three different situations: no such
+-- id, saved but never published, and taken down. None of them tells a stranger
 -- whether an id is real.
 --
 CREATE FUNCTION "dbo"."GetWidget" (
@@ -31,7 +36,7 @@ CREATE FUNCTION "dbo"."GetWidget" (
         FROM "dbo"."Widgets"
         JOIN "dbo"."WidgetVersions"
             ON "WidgetVersions"."WidgetUUID" = "Widgets"."WidgetUUID"
-            AND "WidgetVersions"."Version" = "Widgets"."CurrentVersion"
+            AND "WidgetVersions"."Version" = "Widgets"."PublishedVersion"
         WHERE "Widgets"."WidgetId" = _WidgetId;
     END;
 $$ LANGUAGE plpgsql;

@@ -152,6 +152,10 @@ Exact origins: scheme, host and port, no wildcards. `evil-northwind.test` ends
 with the same characters as `northwind.test`, and a suffix rule is how that gets
 through. A widget listing nothing may be rendered from nowhere.
 
+A widget also has to be **published**. Saving a definition writes a draft that
+nobody is served, so a widget that has only been saved answers the same "no
+widget with that id is published" as an id that does not exist.
+
 The failure this causes in development is worth knowing before it happens: the
 browser refuses the response and reports "Failed to fetch" with nothing in it
 about origins. The SDK's error message says so, and the API answers 403 with a

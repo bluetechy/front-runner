@@ -30,8 +30,15 @@ Then:
 
 1. Open main-gui, go to **Site Widgets**, and save the example definition. It
    already lists `http://localhost:5174` as an allowed origin.
-2. Copy the id out of the saved list.
-3. Open <http://localhost:5174>, paste it, press **Render**.
+2. Press **Publish the draft**. Saving alone does not serve it: an unpublished
+   widget answers the same "no such widget" as an id that was never minted, which
+   is the first thing to check when this page draws nothing.
+3. Copy the id out of the saved list.
+4. Open <http://localhost:5174>, paste it, press **Render**.
+
+Publishing an earlier version from the studio's history is a rollback, and this
+page is where it is worth watching one: press **Render** again after publishing
+and the version line changes under the widget.
 
 `VITE_WIDGET_API_URL` sets the API address the field starts on, and it defaults
 to `http://localhost:30000`, which is the port Compose publishes. The field is

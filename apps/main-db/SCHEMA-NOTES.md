@@ -349,15 +349,24 @@ the question SQL is the right place for, and nothing reaches it unvalidated.
 
 Two smaller decisions, recorded because each had an alternative:
 
-- `Widgets."CurrentVersion"` is a version **number**, not a foreign key to
-  `WidgetVersions`. A key would be circular -- each table naming the other -- and
-  the circle would have to be broken on every insert by writing a NULL and coming
-  back to it. `dbo.SaveWidget` is the only writer, and it writes the column in the
-  same call as the version it names.
-- Versions are appended, never overwritten, and there is no `Status` column.
-  Saving publishes. The draft/preview/publish ladder is a column here and a second
-  read function; half of it exists already in that every version is kept, and the
-  rest is deliberately unbuilt rather than half-built.
+- `Widgets` carries **two version numbers**, not one and not a status.
+  `"DraftVersion"` is the last save and `"PublishedVersion"` is what browsers
+  get, NULL until somebody publishes. Saving moves the first; `dbo.PublishWidget`
+  moves the second. A `Status` column beside them would be a second opinion about
+  a question they already answer between them ("is there an unpublished draft" is
+  `DraftVersion <> PublishedVersion`), and two columns that can disagree about one
+  fact is how a row starts lying.
+- Both are **numbers**, not foreign keys to `WidgetVersions`. A key would be
+  circular -- each table naming the other -- and the circle would have to be
+  broken on every insert by writing a NULL and coming back to it.
+  `dbo.SaveWidget` and `dbo.PublishWidget` are the only writers, and each writes
+  its column in the same call as the row it names.
+- Versions are appended and never overwritten, which is what makes **rollback a
+  publish**: `dbo.PublishWidget` with an earlier number, rather than a restore.
+  There is deliberately no `RollbackWidget` to find.
+- `dbo.UnpublishWidget` deletes nothing. It nulls the column, so `dbo.GetWidget`
+  stops answering and publishing a version puts the same id back on the same
+  pages.
 
 ## Known issues covered by tests
 

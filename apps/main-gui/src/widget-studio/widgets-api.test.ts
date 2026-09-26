@@ -22,7 +22,15 @@ vi.mock("../authentication", () => ({
   useSession: () => ({ status: status(), getAccessToken }),
 }));
 
-const { problemsIn, useSaveWidget, useWidgets } = await import("./widgets-api");
+const {
+  problemsIn,
+  useOpenWidget,
+  usePublishWidget,
+  useSaveWidget,
+  useUnpublishWidget,
+  useWidgetVersions,
+  useWidgets,
+} = await import("./widgets-api");
 
 const fetchMock = vi.fn();
 
@@ -80,7 +88,8 @@ describe("the widgets on this account", () => {
           {
             WidgetId: ID,
             Name: "Banner",
-            Version: 2,
+            DraftVersion: 2,
+            PublishedVersion: 1,
             CreatedAt: "2026-01-01T00:00:00.000Z",
             UpdatedAt: "2026-02-01T00:00:00.000Z",
           },
@@ -92,7 +101,9 @@ describe("the widgets on this account", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.[0]?.Version).toBe(2);
+    /* The two numbers the page reads the whole lifecycle from. */
+    expect(result.current.data?.[0]?.DraftVersion).toBe(2);
+    expect(result.current.data?.[0]?.PublishedVersion).toBe(1);
   });
 
   /* Nothing to ask for until there is a token to ask with. "loading" is the
@@ -119,6 +130,7 @@ describe("saving a definition", () => {
       name: "B",
       definition: "{}",
       widgetId: null,
+      expectedDraftVersion: null,
     });
   });
 
@@ -182,6 +194,145 @@ describe("saving a definition", () => {
     await expect(
       result.current.mutateAsync({ name: "B", definition: "{}" }),
     ).rejects.toThrow("root.children[0].value: must be string");
+  });
+});
+
+describe("deciding what the world sees", () => {
+  /* Publishing names a version every time. "Publish the latest" would mean
+   * something different depending on when the request landed. */
+  it("publishes the version it was given", async () => {
+    answering({
+      data: {
+        publishWidget: { WidgetId: ID, DraftVersion: 3, PublishedVersion: 3 },
+      },
+    });
+    const { result } = renderHook(() => usePublishWidget(), {
+      wrapper: wrapperFor(client()),
+    });
+
+    await result.current.mutateAsync({ widgetId: ID, version: 3 });
+    expect(bodyOf().variables).toEqual({ widgetId: ID, version: 3 });
+  });
+
+  /* There is no rollback call: the same mutation with an earlier number is the
+   * rollback, and this is the test that says so. */
+  it("rolls back by publishing an earlier version", async () => {
+    answering({
+      data: {
+        publishWidget: { WidgetId: ID, DraftVersion: 3, PublishedVersion: 1 },
+      },
+    });
+    const { result } = renderHook(() => usePublishWidget(), {
+      wrapper: wrapperFor(client()),
+    });
+
+    const published = await result.current.mutateAsync({
+      widgetId: ID,
+      version: 1,
+    });
+    expect(published.PublishedVersion).toBe(1);
+    expect(published.DraftVersion).toBe(3);
+  });
+
+  it("unpublishes without naming a version", async () => {
+    answering({
+      data: {
+        unpublishWidget: {
+          WidgetId: ID,
+          DraftVersion: 3,
+          PublishedVersion: null,
+        },
+      },
+    });
+    const { result } = renderHook(() => useUnpublishWidget(), {
+      wrapper: wrapperFor(client()),
+    });
+
+    const unpublished = await result.current.mutateAsync({ widgetId: ID });
+    expect(bodyOf().variables).toEqual({ widgetId: ID });
+    expect(unpublished.PublishedVersion).toBeNull();
+  });
+
+  /* Publishing moves what the list says, so the list is refetched. */
+  it("refreshes the list after publishing", async () => {
+    answering({ data: { publishWidget: { WidgetId: ID } } });
+    const queryClient = client();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => usePublishWidget(), {
+      wrapper: wrapperFor(queryClient),
+    });
+
+    await result.current.mutateAsync({ widgetId: ID, version: 1 });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["widgets"] });
+  });
+});
+
+describe("reading a widget back", () => {
+  const document = {
+    WidgetId: ID,
+    Name: "Banner",
+    Version: 2,
+    SchemaVersion: "1.0",
+    Definition: '{"schemaVersion":"1.0"}',
+    IsPublished: false,
+    CreatedAt: "2026-02-01T00:00:00.000Z",
+  };
+
+  /* No version means the draft, because that is what opening a widget to work
+   * on it means. */
+  it("asks for the draft when no version is named", async () => {
+    answering({ data: { widgetDefinition: document } });
+    const { result } = renderHook(() => useOpenWidget(), {
+      wrapper: wrapperFor(client()),
+    });
+
+    const read = await result.current(ID);
+    expect(bodyOf().variables).toEqual({ widgetId: ID, version: null });
+    expect(read.Version).toBe(2);
+  });
+
+  it("asks for the version it was given, which is how an old one is read", async () => {
+    answering({ data: { widgetDefinition: document } });
+    const { result } = renderHook(() => useOpenWidget(), {
+      wrapper: wrapperFor(client()),
+    });
+
+    await result.current(ID, 1);
+    expect(bodyOf().variables.version).toBe(1);
+  });
+
+  /*
+   * Opening is an act with a moment, not a query that lives on the page: a
+   * definition that refetched on its own would take an edit away from whoever
+   * was making it. Asking twice for the same version costs one request, because
+   * the answer is still cached.
+   */
+  it("asks once for a version it has already read", async () => {
+    answering({ data: { widgetDefinition: document } });
+    const { result } = renderHook(() => useOpenWidget(), {
+      wrapper: wrapperFor(client()),
+    });
+
+    await result.current(ID, 1);
+    await result.current(ID, 1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks for a widget's history when one is open", async () => {
+    answering({ data: { widgetVersions: [] } });
+    const { result } = renderHook(() => useWidgetVersions(ID), {
+      wrapper: wrapperFor(client()),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(bodyOf().variables).toEqual({ widgetId: ID });
+  });
+
+  /* A page making a new widget has no history to show, and asking for one would
+   * be a request about a widget that does not exist yet. */
+  it("asks for no history while no widget is open", () => {
+    renderHook(() => useWidgetVersions(""), { wrapper: wrapperFor(client()) });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

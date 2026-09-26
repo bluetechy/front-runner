@@ -42,6 +42,20 @@ describe("saving a widget", () => {
     ]);
   });
 
+  /* Saving is not publishing: the guard against overwriting somebody else's
+   * work is passed through, and nothing here decides what browsers get. */
+  it("passes the version the caller read the document at", async () => {
+    const { service, query } = setup();
+    await service.save("member", ID, "Banner", banner, 4);
+    expect(query.mock.calls[0]?.[1]?.[4]).toBe(4);
+  });
+
+  it("passes nothing where the caller never opened anything", async () => {
+    const { service, query } = setup();
+    await service.save("member", null, "Banner", banner);
+    expect(query.mock.calls[0]?.[1]?.[4]).toBeNull();
+  });
+
   /*
    * The invariant this vertical exists to keep. Every caller -- the resolver,
    * the studio page, whatever writes these next -- goes through this method,
@@ -108,6 +122,90 @@ describe("saving a widget", () => {
   });
 });
 
+describe("publishing and unpublishing", () => {
+  /* The version is named rather than assumed, because "publish the latest"
+   * would make the call mean something different depending on when it landed --
+   * which is exactly what somebody rolling back at speed cannot afford. */
+  it("publishes the version it was given", async () => {
+    const { service, query } = setup([
+      { WidgetId: ID, Name: "Banner", DraftVersion: 3, PublishedVersion: 2 },
+    ]);
+    await service.publish("member", ID, 2);
+    expect(sqlOf(query)).toContain('"PublishWidget"');
+    expect(query.mock.calls[0]?.[1]).toEqual(["member", ID, 2]);
+  });
+
+  /* There is no rollback call, and this is why: the same function with an
+   * earlier number is the rollback. */
+  it("is how a rollback is done, with an earlier number", async () => {
+    const { service, query } = setup([
+      { WidgetId: ID, Name: "Banner", DraftVersion: 3, PublishedVersion: 1 },
+    ]);
+    const published = await service.publish("member", ID, 1);
+    expect(query.mock.calls[0]?.[1]?.[2]).toBe(1);
+    expect(published.PublishedVersion).toBe(1);
+    expect(published.DraftVersion).toBe(3);
+  });
+
+  it("unpublishes without naming a version, because there is nothing to name", async () => {
+    const { service, query } = setup([
+      { WidgetId: ID, Name: "Banner", DraftVersion: 3, PublishedVersion: null },
+    ]);
+    const unpublished = await service.unpublish("member", ID);
+    expect(sqlOf(query)).toContain('"UnpublishWidget"');
+    expect(query.mock.calls[0]?.[1]).toEqual(["member", ID]);
+    expect(unpublished.PublishedVersion).toBeNull();
+  });
+});
+
+describe("reading a definition back", () => {
+  const stored = {
+    WidgetId: ID,
+    Name: "Banner",
+    Version: 2,
+    SchemaVersion: "1.0",
+    Definition: { schemaVersion: "1.0", canvas: { width: 600 } },
+    IsPublished: false,
+    CreatedAt: new Date("2026-02-01T00:00:00.000Z"),
+  };
+
+  it("asks for the draft when no version is named", async () => {
+    const { service, query } = setup([stored]);
+    await service.definition("member", ID);
+    expect(sqlOf(query)).toContain('"GetWidgetDefinition"');
+    expect(query.mock.calls[0]?.[1]).toEqual(["member", ID, null]);
+  });
+
+  it("asks for the version that was named", async () => {
+    const { service, query } = setup([stored]);
+    await service.definition("member", ID, 1);
+    expect(query.mock.calls[0]?.[1]?.[2]).toBe(1);
+  });
+
+  /* The driver parses jsonb into an object; the field is a string. Converting
+   * here is what keeps the widget language out of this API's schema. */
+  it("hands the document back as text, the way it arrived", async () => {
+    const { service } = setup([stored]);
+    const read = await service.definition("member", ID);
+    expect(typeof read?.Definition).toBe("string");
+    expect(JSON.parse(String(read?.Definition))).toEqual(stored.Definition);
+  });
+
+  /* An ordinary answer rather than an error: a version number from a stale page
+   * is a page asking for something that is no longer there. */
+  it("answers nothing for a version that is not there", async () => {
+    const { service } = setup([]);
+    await expect(service.definition("member", ID, 9)).resolves.toBeNull();
+  });
+
+  it("asks for a widget's history without its definitions", async () => {
+    const { service, query } = setup([]);
+    await service.versions("member", ID);
+    expect(sqlOf(query)).toContain('"GetWidgetVersions"');
+    expect(query.mock.calls[0]?.[1]).toEqual(["member", ID]);
+  });
+});
+
 describe("listing and reading widgets", () => {
   it("lists the caller's own", async () => {
     const { service, query } = setup([]);
@@ -117,13 +215,14 @@ describe("listing and reading widgets", () => {
   });
 
   /* The public read names no caller, because there is nobody to name: it
-   * answers a page anybody can open. */
+   * answers a page anybody can open. It is also a different function from the
+   * owner's read, which is the point -- this one will not hand back a draft. */
   it("reads one by its public id and nothing else", async () => {
     const { service, query } = setup([
       { WidgetId: ID, Version: 2, Definition: {} },
     ]);
     await service.read(ID);
-    expect(sqlOf(query)).toContain('"GetWidget"');
+    expect(sqlOf(query)).toBe('SELECT * FROM dbo."GetWidget"($1)');
     expect(query.mock.calls[0]?.[1]).toEqual([ID]);
   });
 
