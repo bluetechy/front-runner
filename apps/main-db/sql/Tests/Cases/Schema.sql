@@ -29,7 +29,8 @@ BEGIN
         ('Surveys'), ('TaskComments'), ('TaskDependencies'), ('TaskHistory'),
         ('TaskLabels'), ('Tasks'), ('Teams'), ('UserBadges'), ('UserOrganizations'),
         ('UserEmails'), ('UserPointLevels'), ('UserPoints'), ('UserProfiles'), ('UserRoles'),
-        ('UserTallies'), ('UserTeams'), ('Users')
+        ('UserTallies'), ('UserTeams'), ('Users'),
+        ('WidgetVersions'), ('Widgets')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (SELECT 1 FROM pg_tables WHERE "schemaname" = 'dbo' AND "tablename" = "Expected"."Name");
 
@@ -52,7 +53,8 @@ BEGIN
             'SurveyQuestionOptions', 'SurveyQuestions', 'Surveys',
             'TaskComments', 'TaskDependencies', 'TaskHistory', 'TaskLabels', 'Tasks',
             'Teams', 'UserBadges', 'UserEmails', 'UserOrganizations', 'UserPointLevels',
-            'UserPoints', 'UserProfiles', 'UserRoles', 'UserTallies', 'UserTeams', 'Users'
+            'UserPoints', 'UserProfiles', 'UserRoles', 'UserTallies', 'UserTeams', 'Users',
+            'WidgetVersions', 'Widgets'
         );
 
     PERFORM "test"."AssertEquals"(_Unexpected, NULL::text, 'tables in dbo that this test does not know about -- add them here and to test.InsertOneRowIntoEveryTable');
@@ -101,6 +103,7 @@ BEGIN
         ('SettlePointTransfer'), ('SpendPasswordReset'), ('StartPasswordReset'),
         ('SpendPhoneVerification'), ('StartPhoneVerification'),
         ('VerifyUserEmail'),
+        ('GetWidget'), ('GetWidgets'), ('SaveWidget'),
         ('calculate_tallies'), ('insert_modified_info'),
         ('trim_security_events'), ('update_modified_info')
     ) AS "Expected" ("Name")
@@ -257,7 +260,8 @@ BEGIN
         ('FK_UserPointLevels_Organizations'), ('FK_UserPointLevels_PointLevels'),
         ('FK_UserEmails_Users'),
         ('FK_UserPointLevels_Users'), ('FK_UserProfiles_Users'),
-        ('FK_UserRoles_Roles'), ('FK_UserRoles_Users')
+        ('FK_UserRoles_Roles'), ('FK_UserRoles_Users'),
+        ('FK_WidgetVersions_Widgets'), ('FK_Widgets_Users')
     ) AS "Expected" ("Name")
     WHERE NOT EXISTS (
         SELECT 1 FROM pg_constraint

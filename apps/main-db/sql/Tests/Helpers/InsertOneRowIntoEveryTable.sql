@@ -32,6 +32,7 @@ DECLARE
     _SurveyParticipantUUID uuid;
     _RoleUUID uuid;
     _TaskCommentUUID uuid;
+    _WidgetUUID uuid;
 BEGIN
     INSERT INTO "dbo"."Organizations" ("Name", "CreatedBy") VALUES ('Smoke Organization', _By) RETURNING "OrganizationUUID" INTO _OrganizationUUID;
     INSERT INTO "dbo"."Users" ("Name", "LoginName", "CreatedBy") VALUES ('Smoke User', 'smoke', _By) RETURNING "UserUUID" INTO _UserUUID;
@@ -126,5 +127,16 @@ BEGIN
     -- The UserPoints insert fires calculate_tallies, which is what puts a row
     -- into UserTallies. Inserting into UserTallies directly would hide that.
     INSERT INTO "dbo"."UserPoints" ("UserUUID", "OrganizationUUID", "PointUUID", "Description", "Amount", "CreatedBy") VALUES (_UserUUID, _OrganizationUUID, _PointUUID, 'Smoke points.', 1.00, _By);
+
+    -- A widget and the first version of it. Two statements rather than one
+    -- because the version names the widget, and "CurrentVersion" then names
+    -- the version: dbo.SaveWidget writes exactly this pair, and this helper
+    -- proves both tables accept a row without going through it.
+    INSERT INTO "dbo"."Widgets" ("WidgetId", "UserUUID", "Name", "CurrentVersion", "CreatedBy")
+        VALUES ('w_00000000000000000000000000000001', _UserUUID, 'Smoke Widget', 1, _By)
+        RETURNING "WidgetUUID" INTO _WidgetUUID;
+    INSERT INTO "dbo"."WidgetVersions" ("WidgetUUID", "Version", "SchemaVersion", "Definition", "CreatedBy")
+        VALUES (_WidgetUUID, 1, '1.0', '{"schemaVersion": "1.0", "canvas": {"width": 600}, "root": {"id": "root", "type": "container"}}'::jsonb, _By);
+
 END;
 $$ LANGUAGE plpgsql;

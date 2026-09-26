@@ -110,6 +110,7 @@ describe("the navigation", () => {
     ["Schedule", "/schedule"],
     ["Achievements", "/achievements"],
     ["Certifications", "/certifications"],
+    ["Site Widgets", "/widgets"],
     ["Profile", "/profile"],
     ["Security & Access", "/security-and-access"],
     ["Billing & Subscription", "/billing"],
@@ -130,8 +131,8 @@ describe("the navigation", () => {
     const { rail } = renderRail();
 
     const nav = within(rail).getByRole("navigation");
-    expect(within(nav).getAllByRole("link")).toHaveLength(11);
-    expect(nav.querySelectorAll("svg").length).toBe(11);
+    expect(within(nav).getAllByRole("link")).toHaveLength(12);
+    expect(nav.querySelectorAll("svg").length).toBe(12);
   });
 
   // On a narrow window the rail is a drawer over the page, and a page you
@@ -166,7 +167,7 @@ describe("the rail itself", () => {
         link.getAttribute("href"),
       );
       expect(links).toContain("/profile");
-      expect(links).toHaveLength(12);
+      expect(links).toHaveLength(13);
     }
   });
 

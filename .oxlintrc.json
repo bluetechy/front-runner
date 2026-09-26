@@ -37,7 +37,11 @@
       "env": { "jest": true }
     },
     {
-      "files": ["apps/main-gui/**"],
+      "files": [
+        "apps/main-gui/**",
+        "apps/client-gui/**",
+        "packages/widget-sdk/**"
+      ],
       "env": { "browser": true },
       "rules": {
         "react/react-in-jsx-scope": "off"

@@ -23,6 +23,7 @@ import { Route as AppSecurityAndAccessRouteImport } from './routes/_app.security
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppTutorialsRouteImport } from './routes/_app.tutorials'
 import { Route as AppWalletRouteImport } from './routes/_app.wallet'
+import { Route as AppWidgetsRouteImport } from './routes/_app.widgets'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
 import { Route as SiteContactUsRouteImport } from './routes/_site.contact-us'
@@ -101,6 +102,11 @@ const AppWalletRoute = AppWalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => AppRoute,
 } as any)
+const AppWidgetsRoute = AppWidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
+  getParentRoute: () => AppRoute,
+} as any)
 const SiteIndexRoute = SiteIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/tutorials': typeof AppTutorialsRoute
   '/wallet': typeof AppWalletRoute
+  '/widgets': typeof AppWidgetsRoute
   '/about': typeof SiteAboutRoute
   '/contact-us': typeof SiteContactUsRoute
   '/features': typeof SiteFeaturesRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/tutorials': typeof AppTutorialsRoute
   '/wallet': typeof AppWalletRoute
+  '/widgets': typeof AppWidgetsRoute
   '/about': typeof SiteAboutRoute
   '/contact-us': typeof SiteContactUsRoute
   '/features': typeof SiteFeaturesRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tutorials': typeof AppTutorialsRoute
   '/_app/wallet': typeof AppWalletRoute
+  '/_app/widgets': typeof AppWidgetsRoute
   '/_site/about': typeof SiteAboutRoute
   '/_site/contact-us': typeof SiteContactUsRoute
   '/_site/features': typeof SiteFeaturesRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tutorials'
     | '/wallet'
+    | '/widgets'
     | '/about'
     | '/contact-us'
     | '/features'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tutorials'
     | '/wallet'
+    | '/widgets'
     | '/about'
     | '/contact-us'
     | '/features'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/tutorials'
     | '/_app/wallet'
+    | '/_app/widgets'
     | '/_site/about'
     | '/_site/contact-us'
     | '/_site/features'
@@ -398,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWalletRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/widgets': {
+      id: '/_app/widgets'
+      path: '/widgets'
+      fullPath: '/widgets'
+      preLoaderRoute: typeof AppWidgetsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_site/': {
       id: '/_site/'
       path: '/'
@@ -477,6 +496,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTutorialsRoute: typeof AppTutorialsRoute
   AppWalletRoute: typeof AppWalletRoute
+  AppWidgetsRoute: typeof AppWidgetsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -492,6 +512,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTutorialsRoute: AppTutorialsRoute,
   AppWalletRoute: AppWalletRoute,
+  AppWidgetsRoute: AppWidgetsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

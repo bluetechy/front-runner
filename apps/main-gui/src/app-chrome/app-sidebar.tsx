@@ -24,6 +24,7 @@ import SecurityIcon from "@/shared/icons/SecurityIcon";
 import SettingsIcon from "@/shared/icons/SettingsIcon";
 import TutorialsIcon from "@/shared/icons/TutorialsIcon";
 import WalletIcon from "@/shared/icons/WalletIcon";
+import WidgetsIcon from "@/shared/icons/WidgetsIcon";
 import { useSession } from "../authentication";
 import { Logo } from "../logo";
 import { InitialsAvatar } from "../avatar";
@@ -57,6 +58,7 @@ type AppPath =
   | "/schedule"
   | "/achievements"
   | "/certifications"
+  | "/widgets"
   | "/profile"
   | "/security-and-access"
   | "/billing"
@@ -92,6 +94,10 @@ const navGroups: readonly NavGroup[] = [
         icon: CertificationsIcon,
         to: "/certifications",
       },
+      /* The studio is in this group because it is where it can be reached from
+       * today, not because a widget is a thing about the dashboard. It moves
+       * when the product has a section that is about publishing. */
+      { label: "Site Widgets", icon: WidgetsIcon, to: "/widgets" },
     ],
   },
   {

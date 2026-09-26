@@ -215,8 +215,13 @@ target keeps compiler dependencies and watches a read-only source mount, writing
 build output only inside the container. Compiling first and then restarting avoids
 restarting on invalid TypeScript.
 
-Real-time delivery, background jobs, AI tools and embedded dashboard SDKs are not
-introduced speculatively. Future resolvers, socket handlers and agent tools should
+Real-time delivery, background jobs and AI tools are not introduced
+speculatively. The embedded widget SDK is no longer speculative and is built:
+one public `GET` serving a validated JSON definition out of `jsonb`, an origin
+allowlist carried in each definition, and a React runtime in
+`packages/widget-sdk` that renders it without a token. It is the one part of this
+API a stranger's browser calls, and [widgets](widgets.md) is why each piece of it
+is shaped the way it is. Future resolvers, socket handlers and agent tools should
 call feature services. Reliable notifications should follow database commit and
 use an outbox/retry design when required; an in-memory event or WebSocket alone is
 not durable delivery.

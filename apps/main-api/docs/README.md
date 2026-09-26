@@ -4,8 +4,9 @@ NestJS + TypeScript + Apollo GraphQL, running on **Node 24.21.0**. The applicati
 is organized by functionality, with feature-local resolvers, services, models,
 modules, and tests — one test file per source file, which is the practice
 [testing](../../../docs/testing.md) sets out and `npm run lint:tests`
-enforces. See [design decisions](design-decisions.md) and
-[client migration](migration.md).
+enforces. See [design decisions](design-decisions.md),
+[client migration](migration.md) and [widgets](widgets.md), which is the one
+part of this API a stranger's browser calls.
 
 ## Development with Docker Compose
 
@@ -133,6 +134,13 @@ Keycloak's signatures and mints nothing. Production requires an HTTPS issuer.
 - `GET /health/ready`: database connection readiness; returns 503 on failure.
 - `POST /graphql`: GraphQL JSON requests. Every operation requires
   `Authorization: Bearer <Keycloak access token>`; there is no public one.
+- `GET /widgets/:widgetId`: a published widget's definition, for the SDK running
+  inside a customer's page. **The one endpoint with no token**, because the
+  caller is a page anybody can open; which pages may render a given widget is
+  decided by the origin allowlist inside its own document, not by
+  `CORS_ORIGINS`. See [widgets](widgets.md).
+- `GET /widgets/schema`: the widget language as JSON Schema. Public and cached,
+  because it is the contract an author, an editor and a model all read.
 
 Production introspection is disabled. Configure TLS termination and rate limiting
 at the deployment ingress before public exposure; sign-in throttling belongs to
@@ -142,5 +150,8 @@ message costs money and arrives on a handset belonging to whoever was typed
 into the form. `dbo.StartPhoneVerification` refuses a second one to an account
 inside a minute, a sixth inside an hour, and a fourth to one number inside an
 hour whoever is asking.
-Subscriptions, durable events, embedded-widget credentials and agent tools are
-future features, not implemented by this refactor.
+Subscriptions, durable events and agent tools are future features, not
+implemented by this refactor. Embedded widgets are implemented and are
+unauthenticated by design; what they still lack is a per-tenant credential to
+count and throttle, which needs a product decision before it needs code. See
+[widgets](widgets.md) and [docs/TODO.md](../../../docs/TODO.md).

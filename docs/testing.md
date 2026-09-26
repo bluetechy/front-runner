@@ -1,7 +1,8 @@
 # Every file has a test beside it
 
-**For every `.ts`, `.tsx`, `.js` and `.jsx` file under an app's `src/`, there
-is a `*.test.*` file next to it.** Not per folder, not per feature: per file.
+**For every `.ts`, `.tsx`, `.js` and `.jsx` file under an app's or a package's
+`src/`, there is a `*.test.*` file next to it.** Not per folder, not per feature:
+per file.
 
 The rule is enforced rather than remembered — `npm run lint:tests` walks
 `apps/*/src` and fails on anything that has neither a test nor a written
@@ -87,11 +88,16 @@ and `test-setup.ts`.
 
 ## What is outside the rule
 
-**Scope is each app's `src/`.** Build and run configuration — `vite.config.ts`,
-`vitest.config.ts`, `jest.config.cjs`, the scripts under `apps/*/scripts` — is
-outside it. Those files are exercised by the build and by the test run
-themselves; a test asserting what a config file contains would be reading it
-twice and would fail for every deliberate change.
+**Scope is the `src/` of every workspace member: each app, and each package under
+`packages/`.** A package is published rather than deployed, which if anything
+raises the stakes -- a file in the widget SDK is compiled into somebody else's
+application, where our suite is the last one that will ever run over it.
+
+Build and run configuration (`vite.config.ts`, `vitest.config.ts`,
+`jest.config.cjs`, the scripts under `apps/*/scripts`) is outside it. Those files
+are exercised by the build and by the test run themselves; a test asserting what
+a config file contains would be reading it twice and would fail for every
+deliberate change.
 
 `node_modules`, build output (`dist`, `build`, `coverage`, `.test-dist`) and
 any vendored or third-party directory are never walked.
@@ -153,13 +159,14 @@ is fine. The whole suite is about **22 seconds**; one slice of main-gui is about
 Three kinds of change are not one slice's business, and each of them widens
 the run deliberately:
 
-| What changed                                                                              | What runs      |
-| ----------------------------------------------------------------------------------------- | -------------- |
-| A slice: `main-gui/src/contact-us`, `main-api/src/tallies`                                | that slice     |
-| Something every slice draws on: the theme, `shared/`, main-api's infrastructure verticals | that whole app |
-| Anything outside `src/`: a config, a build script, the package                            | that whole app |
-| Anything at the root of the repository                                                    | every app      |
-| Documentation                                                                             | nothing        |
+| What changed                                                                              | What runs                                    |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------- |
+| A slice: `main-gui/src/contact-us`, `main-api/src/tallies`                                | that slice                                   |
+| A package: `packages/widget-sdk/src/...`                                                  | that package, and every app that installs it |
+| Something every slice draws on: the theme, `shared/`, main-api's infrastructure verticals | that whole app                               |
+| Anything outside `src/`: a config, a build script, the package                            | that whole app                               |
+| Anything at the root of the repository                                                    | every app                                    |
+| Documentation                                                                             | nothing                                      |
 
 Which slices count as "every slice draws on this" is a judgment, and it is
 written down in one place — the `WIDE` table at the top of

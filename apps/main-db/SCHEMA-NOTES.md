@@ -320,6 +320,45 @@ Two rough edges this deliberately leaves:
 - **Nothing sends the invitation anywhere.** There is no mail, so an invitee
   finds out by calling `dbo.GetUserInvitations`. Delivery needs its own design.
 
+## Widgets are versioned, and their ids are public
+
+`dbo.Widgets` and `dbo.WidgetVersions` hold the embeddable widgets, and they are
+unlike every other pair of tables here in three ways worth knowing before
+touching them.
+
+**The id leaves the database.** `Widgets."WidgetId"` is `'w_'` and sixteen random
+bytes as hex, minted by `dbo.SaveWidget` with `gen_random_bytes`. It is the name a
+customer pastes into their own site, and it is served to a page that carries no
+token, so it has to be unguessable rather than sequential: it is the only thing
+standing between "public to whoever was given it" and "public to whoever counts".
+`WidgetUUID` remains the internal key, the way it is everywhere else.
+
+**`dbo.GetWidget` asks for no login name.** Every other read function in this
+schema begins by resolving an account, because everything else here is
+somebody's. A widget is drawn on a page anybody can open by a runtime that
+cannot hold a credential, so this one cannot. Which pages may render it is
+decided above the database, against the origin list inside the definition: see
+`apps/main-api/docs/widgets.md`.
+
+**The definition is `jsonb` and this schema does not validate it.** What a valid
+widget is has one authority, and it is the JSON Schema in
+`apps/main-api/src/widgets/widget.schema.ts`. A second opinion written in plpgsql
+would be a second thing to keep in step with the language, and it would be the
+one nobody remembers to update. `dbo.SaveWidget` checks who may write, which is
+the question SQL is the right place for, and nothing reaches it unvalidated.
+
+Two smaller decisions, recorded because each had an alternative:
+
+- `Widgets."CurrentVersion"` is a version **number**, not a foreign key to
+  `WidgetVersions`. A key would be circular -- each table naming the other -- and
+  the circle would have to be broken on every insert by writing a NULL and coming
+  back to it. `dbo.SaveWidget` is the only writer, and it writes the column in the
+  same call as the version it names.
+- Versions are appended, never overwritten, and there is no `Status` column.
+  Saving publishes. The draft/preview/publish ladder is a column here and a second
+  read function; half of it exists already in that every version is kept, and the
+  rest is deliberately unbuilt rather than half-built.
+
 ## Known issues covered by tests
 
 These tests assert behavior that is **wrong but current**, so that the suite

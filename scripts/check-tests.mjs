@@ -15,11 +15,15 @@
  * them and a marker would be written over: anything generated (`*.gen.ts`)
  * and anything that is only type declarations (`*.d.ts`).
  *
- * Scope is each app's `src/`. Build and run configuration -- vite.config.ts,
- * the scripts under `apps/*\/scripts` -- is outside it: those files are
- * exercised by the build and the test run themselves, and a test that
- * asserted what a config file contains would only be reading it twice.
- * `node_modules`, build output and vendored code are never walked.
+ * Scope is the `src/` of everything in the workspace: each app, and each
+ * package under `packages/`. A package is published rather than deployed,
+ * which if anything raises the stakes -- a file in the SDK is compiled into
+ * somebody else's application, where our test suite is the last one that ever
+ * runs over it. Build and run configuration -- vite.config.ts, the scripts
+ * under `apps/*\/scripts` -- is outside it: those files are exercised by the
+ * build and the test run themselves, and a test that asserted what a config
+ * file contains would only be reading it twice. `node_modules`, build output
+ * and vendored code are never walked.
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -94,16 +98,29 @@ function exemption(file) {
   );
 }
 
-const apps = readdirSync(path.join(root, "apps"), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => path.join(root, "apps", entry.name, "src"))
-  .filter((directory) => {
-    try {
-      return statSync(directory).isDirectory();
-    } catch {
-      return false;
-    }
-  });
+/* Every workspace member's `src/`, whether it is deployed or published. */
+function sourceRoots(group) {
+  let entries;
+  try {
+    entries = readdirSync(path.join(root, group), { withFileTypes: true });
+  } catch {
+    /* A workspace group that does not exist yet is not a failure: this
+     * repository had no `packages/` until the widget SDK wanted one. */
+    return [];
+  }
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(root, group, entry.name, "src"))
+    .filter((directory) => {
+      try {
+        return statSync(directory).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+}
+
+const apps = [...sourceRoots("apps"), ...sourceRoots("packages")];
 
 let untested = 0;
 let exempt = 0;

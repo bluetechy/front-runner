@@ -34,6 +34,8 @@ src/
   wallet/               saved cards and bank accounts, and the dialogs that add them
   security/             the addresses on the account, and the page that verifies them
   notifications/        the bell in the top bar, and the panel behind it
+  widget-studio/        where a widget definition is pasted in and published
+  graphql/              one GraphQL call, with the signed-in person's token on it
   card-surface/         the white card those are all made of
   avatar/               the circle that stands in for somebody's face
   logo/                 the product's mark and wordmark, wherever they are drawn
@@ -149,12 +151,23 @@ reason: the top bar mounts the bell, but what the bell holds is a slice of the
 product with its own API, its own icons and its own clock. `app-chrome/` owns
 the bar; it does not own what hangs off it.
 
-It is also the one vertical reading the API through TanStack Query so far, and
-it carries a **third copy** of the GraphQL `fetch` that `profile/` and
-`wallet/` each have. That is the rule above not yet being applied: those two
-fetch in a `useEffect`, and rewriting them was not part of adding a bell. When
-the second vertical moves onto Query, the three copies become one `graphql/`
-vertical. See [notifications](notifications.md#tanstack-query).
+`graphql/` is that same rule, applied to the thing three verticals had a copy
+of. The plan written here was that the copies become one vertical when a second
+slice moved onto TanStack Query; `widget-studio/` is that second slice, so the
+vertical exists and `notifications/` and `widget-studio/` both read the API
+through it. `profile/` and `wallet/` still hold their own copies, because those
+two fetch in a `useEffect` and moving them is a rewrite of how those pages load
+rather than a change of import. `security/api-call.ts` is a fourth, and the one
+with a second shape in it for the single call that reads two fields at once.
+Three copies became one; two of the five are left, and they are named here
+rather than quietly forgotten. See
+[notifications](notifications.md#tanstack-query).
+
+`widget-studio/` is a vertical for the ordinary reason and one extra: what it
+publishes is drawn by a package rather than by this application.
+`packages/widget-sdk` renders a widget, `apps/client-gui` renders one on an
+origin that is not this one, and this vertical is only the authoring end of it.
+See [the widget studio](widget-studio.md).
 
 `authentication/` is the same rule applied to something less page-shaped: the
 header needs to know who is signed in and to open the dialog, and `dashboard/`

@@ -6,6 +6,7 @@ import {
   type UseMutationResult,
 } from "@tanstack/react-query";
 import { useSession } from "../authentication";
+import { useGraphql } from "../graphql";
 
 /*
  * The signed-in person's notifications, a page at a time, and the two ways of
@@ -97,44 +98,9 @@ export function isUnread(notification: Notification): boolean {
   return notification.ReadAt === null;
 }
 
-/*
- * The GraphQL call itself. A copy of the one in `profile-api` and
- * `wallet-api`, deliberately, rather than a third import: those two fetch
- * without Query and are not being rewritten here. When the second vertical
- * goes through Query, this is the point at which the three become one
- * `graphql/` vertical -- see docs/codebase-structure.md.
- */
-function useGraphql() {
-  const { getAccessToken } = useSession();
-
-  return async function call<Result>(
-    query: string,
-    variables: Record<string, unknown> = {},
-  ): Promise<Result> {
-    const token = await getAccessToken();
-    if (!token) throw new Error("Your session has expired. Sign in again.");
-
-    const response = await fetch(import.meta.env.VITE_GRAPHQL_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-    const body = (await response.json()) as {
-      data?: Record<string, Result | null>;
-      errors?: { message: string }[];
-    };
-    /* The API answers 200 with an errors array, so the status says nothing;
-     * the first message is the one worth showing. */
-    if (body.errors?.length) throw new Error(body.errors[0]!.message);
-    const [result] = Object.values(body.data ?? {});
-    if (result === undefined || result === null)
-      throw new Error("The API returned no notifications.");
-    return result;
-  };
-}
+/* What to say if the API answers with neither data nor an error, which is a
+ * shape rather than a message: the sentence belongs to whoever asked. */
+const NOTHING_CAME_BACK = "The API returned no notifications.";
 
 /*
  * The list, a page at a time.
@@ -157,11 +123,11 @@ export function useNotifications(filter: NotificationFilter) {
   return useInfiniteQuery({
     queryKey: [...NOTIFICATIONS, "list", filter],
     queryFn: ({ pageParam }) =>
-      call<Notification[]>(READ, {
-        filter,
-        limit: PAGE_SIZE,
-        offset: pageParam,
-      }),
+      call<Notification[]>(
+        READ,
+        { filter, limit: PAGE_SIZE, offset: pageParam },
+        NOTHING_CAME_BACK,
+      ),
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) =>
       lastPage.length < PAGE_SIZE
@@ -191,7 +157,7 @@ export function useNotificationCounts() {
 
   return useQuery({
     queryKey: [...NOTIFICATIONS, "counts"],
-    queryFn: () => call<NotificationCounts>(COUNTS),
+    queryFn: () => call<NotificationCounts>(COUNTS, {}, NOTHING_CAME_BACK),
     enabled: status === "signed-in",
     staleTime: 30_000,
   });
@@ -215,11 +181,13 @@ function useNotificationMutation<Variables, Result>(
 export function useMarkNotificationRead() {
   const call = useGraphql();
   return useNotificationMutation((notificationId: string) =>
-    call<Notification>(MARK_READ, { notificationId }),
+    call<Notification>(MARK_READ, { notificationId }, NOTHING_CAME_BACK),
   );
 }
 
 export function useMarkAllNotificationsRead() {
   const call = useGraphql();
-  return useNotificationMutation(() => call<number>(MARK_ALL_READ));
+  return useNotificationMutation(() =>
+    call<number>(MARK_ALL_READ, {}, NOTHING_CAME_BACK),
+  );
 }

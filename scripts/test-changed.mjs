@@ -20,7 +20,12 @@
  *     the whole app it is in, because every slice imports it;
  *   - a file **outside `src/`** -- a config, a build script, the package --
  *     runs the whole app, because it decides how all of it is built and run;
- *   - a file at the **root** of the repository runs both apps.
+ *   - a file at the **root** of the repository runs every workspace.
+ *
+ * A file in a **package** under `packages/` runs that package and every app
+ * that depends on it, because a package is a dependency rather than a slice:
+ * what it can break is not bounded by a folder inside one app. The SDK's own
+ * `src/` is flat, so there are no slices in it to narrow to.
  *
  * Documentation changes run nothing.
  *
@@ -106,6 +111,19 @@ function plan(files) {
     if (PROSE.test(file)) continue;
 
     const [top, app, area, ...rest] = file.split("/");
+
+    /*
+     * A package is a dependency, not a slice. Editing one runs its own tests
+     * and the tests of every app that installs it -- which for the widget SDK
+     * is client-gui, the app that exists to render what it draws.
+     */
+    if (top === "packages") {
+      if (!runnable.includes(app)) continue;
+      apps.set(app, null);
+      for (const consumer of dependents(app)) apps.set(consumer, null);
+      continue;
+    }
+
     if (top !== "apps") {
       /* The root's own files: the lockfile, turbo.json, these scripts. */
       everything();
@@ -134,17 +152,57 @@ function plan(files) {
   return apps;
 }
 
-/* The apps that have tests to run. `keycloak-idp` is a realm export and a
- * Dockerfile -- not a workspace, and nothing to run a test script on. */
+/*
+ * Every workspace with tests to run, and where it lives. `keycloak-idp` is a
+ * realm export and a Dockerfile -- not a workspace, and nothing to run a test
+ * script on.
+ *
+ * The directory is kept beside the name because a workspace's own name is not
+ * its folder: the SDK is `@front-runner/widget-sdk` in `packages/widget-sdk`,
+ * and `npm run test --workspace` wants the name while the runner's filters want
+ * the path.
+ */
+function workspaces() {
+  const found = new Map();
+  for (const group of ["apps", "packages"]) {
+    let entries;
+    try {
+      entries = readdirSync(path.join(root, group), { withFileTypes: true });
+    } catch {
+      /* A group that does not exist yet: this repository had no `packages/`
+       * until the widget SDK wanted one. */
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const manifest = path.join(root, group, entry.name, "package.json");
+      if (!existsSync(manifest)) continue;
+      const parsed = JSON.parse(readFileSync(manifest, "utf8"));
+      if (!parsed.scripts?.test) continue;
+      found.set(entry.name, {
+        directory: path.join(group, entry.name),
+        /* What `--workspace` is given. */
+        name: parsed.name ?? entry.name,
+        dependencies: Object.keys(parsed.dependencies ?? {}),
+      });
+    }
+  }
+  return found;
+}
+
+const WORKSPACES = workspaces();
+
 function appNames() {
-  return readdirSync(path.join(root, "apps"), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((app) => {
-      const manifest = path.join(root, "apps", app, "package.json");
-      if (!existsSync(manifest)) return false;
-      return Boolean(JSON.parse(readFileSync(manifest, "utf8")).scripts?.test);
-    });
+  return [...WORKSPACES.keys()];
+}
+
+/* The workspaces that install this one, by its package name. */
+function dependents(folder) {
+  const packageName = WORKSPACES.get(folder)?.name;
+  if (!packageName) return [];
+  return [...WORKSPACES]
+    .filter(([, member]) => member.dependencies.includes(packageName))
+    .map(([name]) => name);
 }
 
 /*
@@ -158,7 +216,8 @@ function appNames() {
  * and a suite that ran no tests looks exactly like a suite that passed.
  */
 function filtersFor(app, slices) {
-  const configured = (name) => existsSync(path.join(root, "apps", app, name));
+  const directory = WORKSPACES.get(app)?.directory ?? path.join("apps", app);
+  const configured = (name) => existsSync(path.join(root, directory, name));
   const dialect = configured("vitest.config.ts")
     ? (slice) => `src/${slice}`
     : configured("jest.config.cjs")
@@ -202,7 +261,14 @@ for (const [app, slices] of apps) {
 
   const result = spawnSync(
     "npm",
-    ["run", "test", "--workspace", app, "--", ...(filters ?? [])],
+    [
+      "run",
+      "test",
+      "--workspace",
+      WORKSPACES.get(app)?.name ?? app,
+      "--",
+      ...(filters ?? []),
+    ],
     { cwd: root, stdio: "inherit", shell: process.platform === "win32" },
   );
   if (result.status !== 0) failed += 1;

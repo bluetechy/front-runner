@@ -7,7 +7,11 @@ A Turborepo monorepo.
 - `apps/main-api` — NestJS/TypeScript GraphQL API
 - `apps/main-db` — Postgres image and schema
 - `apps/main-gui` — Vite/React 19/MUI front end, routed with TanStack Router
+- `apps/client-gui`: a bare page for rendering a published widget, on an origin
+  that is not main-gui's ([why](apps/client-gui/README.md))
 - `apps/keycloak-idp` — Keycloak, the identity provider
+- `packages/widget-sdk`: the React runtime a customer embeds to draw a widget
+  ([the language it renders](packages/widget-sdk/docs/widget-schema.md))
 - `main-mail` — Mailpit, a development mail sink for Keycloak's reset links
 - `Makefile` / `docker-compose-dev.yml` — Docker Compose orchestration
 - `.env` — configuration shared by every Compose service
@@ -21,8 +25,8 @@ Filter a single app with `npx turbo run build --filter=main-api`.
 
 ## Tests
 
-**Every source file under an app's `src/` has a test beside it** — per file,
-not per folder. `npm run lint:tests` enforces it, and `npm run lint` runs
+**Every source file under an app's or a package's `src/` has a test beside it:**
+per file, not per folder. `npm run lint:tests` enforces it, and `npm run lint` runs
 that. A file that genuinely cannot be tested says so in its own header with
 `@no-test` and a reason. See [testing](docs/testing.md) for the practice, the
 house style, and what is outside the rule.
