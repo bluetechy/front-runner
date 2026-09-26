@@ -26,6 +26,143 @@
   "otpPolicyCodeReusable": false,
   "authenticationFlows": [
     {
+      "id": "9f3e7a10-0000-4000-8000-000000000002",
+      "alias": "browser with sms",
+      "description": "Keycloak's own browser flow, with the SMS step offered beside the authenticator app. Bound as this realm's browser flow, so it is what the hosted login page runs.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "browser with sms forms",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "9f3e7a10-0000-4000-8000-000000000003",
+      "alias": "browser with sms forms",
+      "description": "Username and password, then whichever second factor the account has.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "browser with sms second factor",
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "9f3e7a10-0000-4000-8000-000000000004",
+      "alias": "browser with sms second factor",
+      "description": "Asked for only where the account has something to ask for. ALTERNATIVE rather than REQUIRED, so an account with both an app and a number is asked for one of them and can switch with Keycloak's own 'Try another way'.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "sms-authenticator",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "9f3e7a10-0000-4000-8000-000000000005",
+      "alias": "direct grant with sms",
+      "description": "The password grant this product's own login card uses, with both second factors on it, bound as this realm's direct grant flow. Without it the token endpoint would answer to a password alone and the login page's second factor could be skipped.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "direct-grant-validate-username",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "direct-grant-validate-password",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "direct grant with sms second factor",
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "9f3e7a10-0000-4000-8000-000000000006",
+      "alias": "direct grant with sms second factor",
+      "description": "The same pair in the vocabulary of a grant: 'totp' for the app, 'sms_code' for a texted code. A grant missing the one the account needs is refused in the same words a wrong password is, so main-gui asks for both together after a refusal.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "direct-grant-validate-otp",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "sms-direct-grant",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
       "id": "9f3e7a10-0000-4000-8000-000000000001",
       "alias": "direct grant password only",
       "description": "Username and password, and no second factor. main-api checks a current password by authenticating with it, and an account with two-factor authentication on would refuse that check on the built-in flow.",
@@ -48,6 +185,9 @@
       ]
     }
   ],
+
+  "browserFlow": "browser with sms",
+  "directGrantFlow": "direct grant with sms",
   "clients": [
     {
       "clientId": "main-gui",

@@ -190,6 +190,37 @@ describe("coming back from the provider", () => {
   });
 });
 
+describe("attaching a phone number", () => {
+  /* Two calls because it is two steps, and the split is the whole safety of
+   * it: the first sends a code to a number nobody has proved, the second is
+   * the only one that changes the account. */
+  it("sends a code to the number, and changes nothing here", async () => {
+    await settled();
+    answeringWrite({
+      PhoneNumber: "\u2022\u2022\u2022\u2022 0123",
+      SentAt: "2026-09-25T12:00:00.000Z",
+    });
+
+    const started = await api().startSms("+15555550123");
+
+    expect(bodyOf().variables).toEqual({ phoneNumber: "+15555550123" });
+    expect(started.PhoneNumber).toBe("\u2022\u2022\u2022\u2022 0123");
+    expect(await screen.findByText(/1 offered/)).toBeInTheDocument();
+  });
+
+  /* The code and nothing else. Which number it proves is the API's answer
+   * rather than anything the browser could claim. */
+  it("confirms with the code alone, and takes the new list back", async () => {
+    await settled();
+    answeringWrite([{ ...app, Kind: "sms", Configured: true }]);
+
+    await api().confirmSms("483920");
+
+    expect(bodyOf().variables).toEqual({ code: "483920" });
+    expect(await screen.findByText(/1 offered/)).toBeInTheDocument();
+  });
+});
+
 describe("making recovery codes", () => {
   const made = {
     Codes: ["abcde-fghij", "klmno-pqrst"],

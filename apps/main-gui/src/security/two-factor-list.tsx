@@ -56,9 +56,10 @@ export function TwoFactorList({
   /* The kind with something in flight, so its own row can say so without the
    * rest of the card going quiet. */
   busyKind: string | null;
-  /* Whether this deployment can hand the browser to the provider to set one
-   * up at all. False turns Enable into nothing rather than into a button that
-   * goes nowhere -- see `second-factor-setup.ts`. */
+  /* Whether this deployment can set a kind up at all. False turns Turn on
+   * into nothing rather than into a button that goes nowhere -- see
+   * `second-factor-setup.ts`, and note that it answers a different question
+   * from the row's own `Available`. */
   canEnable: (kind: string) => boolean;
   onEnable: (method: TwoFactorMethod) => void;
   onDisable: (method: TwoFactorMethod) => void;
@@ -248,7 +249,7 @@ function says(method: TwoFactorMethod, language: string): string {
 
   if (method.Kind === "sms")
     return method.Available
-      ? "We advise against SMS: messages can be intercepted, a phone number can be taken over, and delivery is never certain. Use an authenticator app instead where you can."
+      ? "We text a code to your phone when you login. We advise against it: messages can be intercepted, a phone number can be taken over, and delivery is never certain. Use an authenticator app instead where you can."
       : "Not switched on here yet. We advise against SMS anyway: messages can be intercepted, a phone number can be taken over, and delivery is never certain.";
 
   if (!method.Available) return `${method.Name} is not switched on here yet.`;

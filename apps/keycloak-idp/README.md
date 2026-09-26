@@ -9,10 +9,19 @@ gated behind a paid edition.
 
 ## What this image is
 
-`quay.io/keycloak/keycloak:26.7.4`, rebuilt for PostgreSQL. The two-stage
-Dockerfile runs `kc.sh build` so that the container starts with
+`quay.io/keycloak/keycloak:26.7.4`, rebuilt for PostgreSQL and carrying one
+provider of this repository's own. The Dockerfile has three stages: Maven
+compiles `plugin/` into a JAR, that JAR is dropped into
+`/opt/keycloak/providers`, and then `kc.sh build` indexes it along with the
+database vendor and the feature set, so that the container starts with
 `start --optimized` instead of re-deriving its configuration on every boot.
-Changing `KC_DB` or the feature set means rebuilding the image:
+
+The order matters: `kc.sh build` is what makes a provider visible, so a JAR
+copied in after it is a JAR Keycloak never sees, and the symptom is a realm
+flow naming an authenticator that does not exist.
+
+Changing `KC_DB`, the feature set or anything under `plugin/` means rebuilding
+the image:
 
 ```sh
 make dc3-build && make dc3-up-d
@@ -225,12 +234,15 @@ otpPolicyType totp · HmacSHA1 · 6 digits · 30s · look-ahead 1 · codes not r
 even though the app is still showing those digits, and the card says to wait
 for the next one rather than to try again.
 
-Nothing else here needed changing: Keycloak's built-in `direct grant` flow
-already carries a **Direct Grant - Conditional OTP** subflow
-(`conditional-user-configured` + `direct-grant-validate-otp`), so an account
+The authenticator app needed no flow of its own to begin with: Keycloak's
+built-in `direct grant` and `browser` flows already carry a conditional OTP
+subflow. They are no longer the flows this realm runs — SMS needed its own
+executions, and adding them meant a copy of each, described under
+[SMS](#sms) — but the OTP half of those copies is the built-in
+arrangement unchanged (`conditional-user-configured` +
+`direct-grant-validate-otp`, and `auth-otp-form` in the browser). An account
 with an authenticator app is asked for a code on the token endpoint, and one
-without is not. The browser flow's own conditional 2FA covers the social
-buttons.
+without is not.
 
 **Setting one up cannot be done through the admin API.** It can list
 credentials and delete them, and there is no operation anywhere that creates
@@ -244,15 +256,102 @@ a claim and is not believed.
 Turning it off **is** an admin call: `DELETE /users/{id}/credentials/{id}`,
 where 404 is success.
 
-### SMS is not here
+### SMS
 
-Keycloak ships no SMS authenticator, so there is nothing in this realm to
-switch on and the security page draws that row as unavailable. Making it real
-means a Java authenticator built into this image — a browser one **and** a
-direct-grant one, or the login card stops working for anybody who turns it on
-— with delivery handled by main-api so that Twilio and the message copy live
-in one place. That is a Maven module in this directory and a second toolchain
-in the repository, and it is deliberately not started yet.
+Keycloak ships no SMS authenticator, so this repository has one:
+`plugin/`, a Maven module compiled into the image. It is **two**
+authenticators, not one, and the second is the one that is easy to forget.
+
+| Provider id         | Where it runs         | What it reads back                         |
+| ------------------- | --------------------- | ------------------------------------------ |
+| `sms-authenticator` | The hosted login page | the `sms_code` field on its own form       |
+| `sms-direct-grant`  | The password grant    | the `sms_code` form parameter on the grant |
+
+Shipping only the first is the standard way a second factor ends up with a
+hole in it: the token endpoint would keep answering to a password alone, and
+everything the login page enforces could be skipped by asking for a token
+directly.
+
+**The decision is Keycloak's and the delivery is main-api's.** The code is
+generated in the authenticator, held in Keycloak's single-use object store
+against the account for five minutes, and compared there; what the plugin asks
+main-api for is that six digits be carried to a number. That is one
+authenticated POST to `/internal/sms/second-factor`, which writes the message
+itself and will not carry one it is handed. Twilio's credentials and the
+wording of the message stay in one place, beside the mail this product already
+sends. See `apps/main-api/src/sms`.
+
+Two settings, read from the environment by the plugin rather than from realm
+configuration, because a secret in realm configuration is a secret in the
+realm export and the realm export is a file in this repository:
+
+```
+SMS_GATEWAY_URL=http://main-api:3000/internal/sms/second-factor
+SMS_GATEWAY_SECRET=...
+```
+
+With either of them missing, the authenticator refuses the login rather than
+letting it through: a factor the site cannot apply must not be a factor the
+site waves past.
+
+**A code is good for one guess.** It is spent on being read rather than on
+being right, so a wrong code costs a fresh message. Six digits is a fifth of a
+million, which is nothing against a form that allows retries and a great deal
+against one that does not.
+
+#### The number, and where it lives
+
+On the account at Keycloak, as the `phoneNumber` attribute, with
+`phoneNumberVerifiedAt` beside it. Not a credential: there is no secret to
+store, because what an SMS factor proves is possession of a handset.
+
+It is written by main-api through the admin API and **only** after a code sent
+to it has been typed back — see
+[the security page](../main-gui/docs/security-page.md#two-factor-authentication).
+An unproved number written onto an account would be a second factor pointing
+at somebody else's phone, which is the whole attack that pair of operations
+closes.
+
+Two things about it cost time to find out, so they are written down here:
+
+- **Keycloak 24 turned on the declarative user profile and disabled unmanaged
+  attributes with it.** An attribute the profile does not declare is dropped
+  on an admin write, silently: the request is accepted, and the number is not
+  there afterwards. The realm import cannot fix this, because the importer does
+  not create the user profile component at all (verified against 26.7.4 by
+  importing one and finding the realm still on the stock four attributes). So
+  the plugin does it, from a listener on realm creation, setting the unmanaged
+  attribute policy to `ADMIN_EDIT` — readable and writable by an administrator
+  and by main-api's service account, invisible on the account holder's own
+  forms. See `SmsRealmSetup.java`. On a realm that already exists, it is Realm
+  settings → General → Unmanaged attributes → _Only administrators can write_.
+- **An admin user update clears what it leaves out.** A `PUT /users/{id}`
+  carrying only `attributes` wipes the email address, the first name and the
+  last name, and the account is then refused at the token endpoint with
+  "Account is not fully set up". main-api reads the whole account and writes
+  the whole account back.
+
+#### The flows
+
+Both authenticators have to be in a flow to do anything, so the realm defines
+four more and binds two of them:
+
+- **`browser with sms`** (bound as `browserFlow`) — cookie, identity-provider
+  redirector, then `browser with sms forms`: the username and password form,
+  then `browser with sms second factor`, a CONDITIONAL subflow holding
+  `conditional-user-configured` and then `auth-otp-form` and
+  `sms-authenticator` as ALTERNATIVEs.
+- **`direct grant with sms`** (bound as `directGrantFlow`) — username,
+  password, then `direct grant with sms second factor` on the same shape, with
+  `direct-grant-validate-otp` and `sms-direct-grant` as the two ALTERNATIVEs.
+
+ALTERNATIVE rather than REQUIRED, so an account with both an authenticator app
+and a phone number is asked for one of them rather than both, and can switch
+between them with Keycloak's own "Try another way".
+
+`main-api`'s own client is unaffected: its `authenticationFlowBindingOverrides`
+still points at `direct grant password only`, which has no second factor in it
+at all.
 
 ### Recovery codes are not Keycloak's either
 

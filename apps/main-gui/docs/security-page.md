@@ -612,8 +612,8 @@ would be a mutation that could not connect anything.
 
 ## Two-factor authentication
 
-`two-factor-list.tsx` and `two-factor-dialog.tsx`, in a card headed
-**TWO-FACTOR AUTHENTICATION**, under the SSO card. Built from a supplied
+`two-factor-list.tsx`, `two-factor-dialog.tsx` and `sms-dialog.tsx`, in a card
+headed **TWO-FACTOR AUTHENTICATION**, under the SSO card. Built from a supplied
 mock-up, which is GitHub's "Two-factor methods": a mark, a name, a
 **Configured** pill, a sentence, and one action on the right.
 
@@ -629,7 +629,13 @@ and this one does not**, and the difference is what each list is for -- that
 one is a list to look a row up in, and this one is a recommendation. Sorting
 these two alphabetically would put SMS first.
 
-### Turning it on happens at Keycloak, and cannot happen here
+**The two rows are turned on in two different places**, and the difference is
+not an inconsistency: an authenticator app has a secret to mint and a phone
+number does not. The app goes out to Keycloak, because only Keycloak can show
+the QR code. The number is proved here, in a dialog, because the only question
+about it is whether the person setting it up can answer a message sent to it.
+
+### Turning the app on happens at Keycloak, and cannot happen here
 
 The secret behind an authenticator app is minted by the provider and shown to
 a person exactly once, as a QR code. **Keycloak's admin API has no operation
@@ -662,11 +668,15 @@ looking exactly like somebody who scanned it, and the only difference between
 them is the provider's answer. The same argument the SSO card's `connected`
 rests on.
 
-### Turning it off is an admin call, and is not refused
+### Turning either off is an admin call, and is not refused
 
-`DELETE /users/{id}/credentials/{id}`, and 404 is success: the page it was
-pressed on is a moment old and the end state is the one that was asked for
-either way.
+For the app, `DELETE /users/{id}/credentials/{id}`, where 404 is success: the
+page it was pressed on is a moment old and the end state is the one that was
+asked for either way. For SMS it is a write to the account that takes the
+`phoneNumber` attribute off, because the number was never a credential. The
+card asks the same question either way and the port hides the difference: the
+implementation branches on the id it gave the row, which is the only thing
+that knows what its own ids mean.
 
 Nothing refuses this on the grounds of leaving the account unprotected. An
 account that could not take a factor off would be one somebody is locked
@@ -674,19 +684,68 @@ _into_, and a password is still a password. What is owed instead is the
 sentence, so the dialog says the account will be left standing on its password
 alone and the toast says it again afterwards.
 
-### SMS is a row that does nothing, on purpose
+### SMS is set up here, in two steps
 
-The realm has no SMS authenticator, so `Available` is false and the row offers
-nothing. It is still drawn, and it still argues: messages can be intercepted,
-a number can be taken over, and delivery is nobody's promise. A card that
-dropped the row would be hiding the reason it is missing from the one page
-whose job is saying what protects an account.
+`sms-dialog.tsx`, opened straight from the row rather than behind the
+confirmation the app gets. There is nothing to warn anybody about first:
+nothing leaves the page, and nothing changes on the account until a code comes
+back. The warning that would have been in a confirmation is in the dialog
+itself, beside the box.
 
-Making it work is not configuration. Keycloak has no built-in SMS
-authenticator, so it means a Java authenticator (browser _and_ direct grant)
-built into the image, with delivery through main-api so that Twilio and the
-message copy stay in one place. Until then the honest state is a row that says
-so. See [keycloak-idp](../../keycloak-idp/README.md).
+```text
+the row  →  "Add a phone number"     →  startSmsEnrollment(phoneNumber:)
+                                        dbo.PhoneVerifications, and a text message
+         →  "Enter the code"          →  confirmSmsEnrollment(code:)
+                                        the number goes onto the account at Keycloak
+```
+
+**Nothing is on the account until the second step, and that is the whole
+safety of it.** A number somebody typed is not yet a number they own, so the
+first step writes it into `dbo.PhoneVerifications` and nowhere else. Somebody
+who shuts the dialog at the code box has changed nothing, and the card behind
+it still says SMS is off, because it is.
+
+**The second step sends the code and nothing else.** Which number it proves is
+read off the row the code was sent against, in `dbo.SpendPhoneVerification`. A
+mutation that took both would let somebody hold a code texted to their own
+phone and spend it against a number belonging to anybody.
+
+Three rules hold the six digits up, because six digits are a fifth of a
+million and the entropy is not doing the work:
+
+- Ten minutes, from when the message went out.
+- Five wrong guesses, after which the row is retired and the message has to be
+  sent again.
+- One outstanding code per account, so "send it again" stops the first one
+  working rather than leaving two live.
+
+The number is read back masked -- the last four digits -- before the code box,
+which is how somebody who mistyped a digit finds out from the dialog rather
+than from a message that never arrives. "Use a different number" goes back a
+step rather than shutting the dialog, because that is what they want next.
+
+### The SMS row is still the one that argues
+
+`Available` comes from main-api, which answers false wherever there are no
+Twilio credentials, and the row then offers nothing and says why. It is still
+drawn: a card that dropped the row would be hiding the reason it is missing
+from the one page whose job is saying what protects an account.
+
+`Recommended` is false either way, and that is a judgment about the method
+rather than about this installation: messages can be intercepted, a number can
+be taken over at a phone shop, and delivery is nobody's promise. The row says
+so, the dialog says it again where the choice is actually being made, and both
+point at the authenticator app one row up.
+
+One asymmetry worth knowing: a row can be `Configured` and not `Available`. A
+number attached while the site could send messages is still on the account the
+week the credentials expire, and Keycloak is still asking for a code at login,
+so drawing it as off would be telling somebody they have no second factor
+while they do.
+
+The authenticator that checks the code at login is this repository's own, in
+`apps/keycloak-idp/plugin`, and the message is sent by main-api on its behalf.
+See [keycloak-idp](../../keycloak-idp/README.md#sms).
 
 ## Recovery codes
 
@@ -1204,8 +1263,14 @@ typing the address it was sent to.
 
 ## What is not here yet
 
-**SMS as a second factor**, which is drawn and switched off: see
-[SMS is a row that does nothing, on purpose](#sms-is-a-row-that-does-nothing-on-purpose).
+**Twilio credentials**, without which the SMS row is drawn and switched off.
+The feature is finished either way: see
+[The SMS row is still the one that argues](#the-sms-row-is-still-the-one-that-argues).
+
+**Any rate limit on the enrollment message.** Nothing stops somebody pressing
+"Send the code" repeatedly, and every press is a message somebody pays for.
+The database writes `SentAt` and enforces nothing with it, which is the same
+place address verification is in, and the same place it should stop being in.
 It needs a Keycloak authenticator written in Java, which is a build this
 repository does not have yet, and Twilio behind it in main-api.
 

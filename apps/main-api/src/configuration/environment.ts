@@ -109,6 +109,28 @@ export function validateEnvironment(env: Record<string, unknown>) {
     MAIL_SMTP_PORT: integer("MAIL_SMTP_PORT", 1025, 65535),
     MAIL_FROM_ADDRESS: required("MAIL_FROM_ADDRESS"),
     MAIL_FROM_NAME: String(env.MAIL_FROM_NAME ?? "Front Runner"),
+    // Twilio, for the text messages a second factor is delivered in. All
+    // three are optional and are read together: with any of them missing this
+    // deployment has nowhere to send a message, SmsService reports itself
+    // unavailable, and the SMS row on the security page says so and offers
+    // nothing. That is deliberate rather than a gap -- the whole feature ships
+    // and is reviewable before anybody has bought a phone number, the same way
+    // a login provider with no credentials is answered but not offered.
+    TWILIO_ACCOUNT_SID: String(env.TWILIO_ACCOUNT_SID ?? ""),
+    TWILIO_AUTH_TOKEN: String(env.TWILIO_AUTH_TOKEN ?? ""),
+    TWILIO_FROM_NUMBER: String(env.TWILIO_FROM_NUMBER ?? ""),
+    // What Keycloak's SMS authenticator presents on the one internal route
+    // into this API. It stands in for a bearer token, because the caller is a
+    // Java authenticator in another process with no account and no session to
+    // mint one for. Optional here and refused there: with nothing set,
+    // SmsController turns every caller away rather than every caller in.
+    //
+    // A floor under the length for the reason WALLET_ENCRYPTION_KEY has one,
+    // and checked only when something was set, so an installation without SMS
+    // is not made to invent a secret it does not use.
+    SMS_GATEWAY_SECRET: env.SMS_GATEWAY_SECRET
+      ? secret("SMS_GATEWAY_SECRET", 24)
+      : "",
     // Where a verification link points. The browser's address for main-gui,
     // because it goes into a message somebody opens on their own machine, and
     // a Compose hostname there would be a link that cannot be followed.

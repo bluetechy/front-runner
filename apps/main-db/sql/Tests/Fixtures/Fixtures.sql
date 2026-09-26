@@ -96,6 +96,10 @@ INSERT INTO "test"."Fixtures" ("Key", "UUID") VALUES
     ('RecoveryCode.OwnerOnly',   '16161616-0000-4000-8001-000000000004'),
     ('RecoveryCode.MemberBatch', '16161616-0000-4000-8002-000000000001'),
     ('RecoveryCode.OwnerBatch',  '16161616-0000-4000-8002-000000000002'),
+    ('PhoneVerification.MemberLive',    '17171717-0000-4000-8001-000000000001'),
+    ('PhoneVerification.MemberExpired', '17171717-0000-4000-8001-000000000002'),
+    ('PhoneVerification.MemberSpent',   '17171717-0000-4000-8001-000000000003'),
+    ('PhoneVerification.OwnerLive',     '17171717-0000-4000-8001-000000000004'),
     ('SecurityEvent.Login',      '17171717-0000-4000-8000-000000000001'),
     ('SecurityEvent.EmailAdded', '17171717-0000-4000-8000-000000000002'),
     ('SecurityEvent.Recognized', '17171717-0000-4000-8000-000000000003'),
@@ -459,3 +463,16 @@ INSERT INTO "dbo"."RecoveryCodes" ("RecoveryCodeUUID", "SubjectId", "CodeHash", 
     ("test"."Fixture"('RecoveryCode.MemberSecond'), 'subject-member', 'hash-member-two',   "test"."Fixture"('RecoveryCode.MemberBatch'), NULL,                                      'fixtures'),
     ("test"."Fixture"('RecoveryCode.MemberSpent'),  'subject-member', 'hash-member-spent', "test"."Fixture"('RecoveryCode.MemberBatch'), CURRENT_TIMESTAMP - interval '1 day',      'fixtures'),
     ("test"."Fixture"('RecoveryCode.OwnerOnly'),    'subject-owner',  'hash-owner-one',    "test"."Fixture"('RecoveryCode.OwnerBatch'),  NULL,                                      'fixtures');
+
+-- Phone numbers part-way through being proved. One code live, one that ran out
+-- of time, one already used, and one belonging to somebody else -- which is
+-- what proves dbo.SpendPhoneVerification looks inside the account rather than
+-- across the table.
+INSERT INTO "dbo"."PhoneVerifications" ("PhoneVerificationUUID", "SubjectId", "PhoneNumber", "CodeHash", "SentAt", "SpentAt", "CreatedBy") VALUES
+    ("test"."Fixture"('PhoneVerification.MemberLive'),    'subject-member', '+15555550111', 'hash-phone-member', CURRENT_TIMESTAMP,                       NULL,                                 'fixtures'),
+    ("test"."Fixture"('PhoneVerification.MemberSpent'),   'subject-member', '+15555550112', 'hash-phone-spent',  CURRENT_TIMESTAMP - interval '1 day',    CURRENT_TIMESTAMP - interval '1 day', 'fixtures'),
+    -- Its own account rather than a second row on subject-member's: the
+    -- function reads one outstanding row per account, so an expired one
+    -- sitting behind a live one would never be the row under test.
+    ("test"."Fixture"('PhoneVerification.MemberExpired'), 'subject-stale',  '+15555550114', 'hash-phone-stale',  CURRENT_TIMESTAMP - interval '1 hour',   NULL,                                 'fixtures'),
+    ("test"."Fixture"('PhoneVerification.OwnerLive'),     'subject-owner',  '+15555550113', 'hash-phone-owner',  CURRENT_TIMESTAMP,                       NULL,                                 'fixtures');

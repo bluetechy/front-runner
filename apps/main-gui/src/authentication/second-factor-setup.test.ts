@@ -55,10 +55,15 @@ describe("whether this deployment can set one up at all", () => {
     expect(canConfigureSecondFactor("authenticator-app")).toBe(false);
   });
 
-  /* SMS is not the provider's to configure until it has an authenticator of
-   * its own: there is no action to ask for. */
-  it("cannot, for a kind the provider has no setup page for", () => {
-    expect(canConfigureSecondFactor("sms")).toBe(false);
+  /* SMS answers true whatever is configured here, because none of it is about
+   * SMS: a phone number is proved in a dialog on the security page, with no
+   * browser sent anywhere. Whether there is anywhere to text is a different
+   * question, answered by the row's own `Available`. */
+  it("can, for SMS, whatever the provider's action settings say", () => {
+    vi.stubEnv("VITE_IDP_TOTP_ACTION", "");
+    vi.stubEnv("VITE_IDP_ACTION_PARAMETER", "");
+
+    expect(canConfigureSecondFactor("sms")).toBe(true);
   });
 });
 

@@ -177,3 +177,47 @@ describe("environment validation", () => {
     });
   });
 });
+
+/*
+ * Text messages are the one part of this API that is allowed to be absent.
+ *
+ * Everything else here is required because the application cannot run without
+ * it. SMS can: the security page draws the row, says it is not available, and
+ * offers nothing, which is what lets the feature be built and reviewed before
+ * anybody has bought a phone number.
+ */
+describe("the SMS settings", () => {
+  it("is content with none of them", () => {
+    expect(validateEnvironment(base)).toMatchObject({
+      TWILIO_ACCOUNT_SID: "",
+      TWILIO_AUTH_TOKEN: "",
+      TWILIO_FROM_NUMBER: "",
+      SMS_GATEWAY_SECRET: "",
+    });
+  });
+
+  it("carries them through when they are set", () => {
+    expect(
+      validateEnvironment({
+        ...base,
+        TWILIO_ACCOUNT_SID: "AC-account",
+        TWILIO_AUTH_TOKEN: "a-token",
+        TWILIO_FROM_NUMBER: "+15555550000",
+        SMS_GATEWAY_SECRET: "a-gateway-secret-long-enough",
+      }),
+    ).toMatchObject({
+      TWILIO_ACCOUNT_SID: "AC-account",
+      TWILIO_FROM_NUMBER: "+15555550000",
+      SMS_GATEWAY_SECRET: "a-gateway-secret-long-enough",
+    });
+  });
+
+  /* Optional, but not optional-and-weak. A gateway secret stands in for a
+   * bearer token on a route that sends text messages, and "changeme" there is
+   * worse than nothing configured at all, which refuses everybody. */
+  it("refuses a gateway secret too short to be one", () => {
+    expect(() =>
+      validateEnvironment({ ...base, SMS_GATEWAY_SECRET: "changeme" }),
+    ).toThrow("SMS_GATEWAY_SECRET");
+  });
+});

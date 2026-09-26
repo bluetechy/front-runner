@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The SMS second factor, as a Keycloak provider.
+
+  It is Java and it lives inside Keycloak because of what it decides. Whether a
+  login proceeds is the identity provider's call: the code is generated here,
+  held here and compared here, and an authenticator that refuses hands back no
+  token at all. A check bolted on after the token was issued would be a check
+  anybody could skip by asking for the token directly, which is the whole
+  reason this module exists rather than a few lines in main-api.
+
+  What is not here is the sending. main-api holds the Twilio credentials and
+  the wording of the message, and this asks it to carry a code to a number. See
+  apps/main-api/src/sms.
+
+  Everything Keycloak supplies is `provided`: the JAR that comes out of here
+  holds four classes and no dependencies, and is dropped into
+  /opt/keycloak/providers before `kc.sh build` bakes it into the image.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.frontrunner</groupId>
+  <artifactId>keycloak-sms-authenticator</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>Front Runner SMS authenticator</name>
+
+  <properties>
+    <!-- The same Keycloak the Dockerfile builds from. The two have to agree:
+         a provider compiled against another version is refused at boot, which
+         is the good failure, in that it happens on `kc.sh build` rather than
+         on somebody's login. -->
+    <keycloak.version>26.7.4</keycloak.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi-private</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-services</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
+      <version>3.1.0</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>keycloak-sms-authenticator</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>

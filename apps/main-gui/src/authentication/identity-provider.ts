@@ -189,20 +189,32 @@ async function exchange(body: URLSearchParams): Promise<TokenSet> {
 export function signInWithPassword(
   username: string,
   password: string,
-  /* The six digits from an authenticator app, where the account has one. Sent
-   * as `totp`, which is what Keycloak's direct-grant OTP validator reads first
-   * -- it also answers to `otp`, and neither name is in OpenID Connect, so
-   * this is one of the few places in this file that is provider-shaped.
+  /* The six digits the account's second factor produced, where it has one.
+   *
+   * **Sent under both names, because this code does not know which factor it
+   * came from and must not have to.** `totp` is what Keycloak's direct-grant
+   * OTP validator reads first (it also answers to `otp`); `sms_code` is what
+   * this realm's SMS authenticator reads. Neither name is in OpenID Connect,
+   * so this is one of the few places in this file that is provider-shaped.
+   *
+   * Asking the browser to know which factor an account has would mean telling
+   * it, at the login card, before anybody has proved anything -- which is
+   * exactly the question the refusals are shaped to refuse. Sending the digits
+   * twice costs a query parameter, and whichever authenticator is actually in
+   * the flow finds them under the name it looks for. See
+   * apps/main-gui/docs/authentication.md.
    *
    * Left out entirely rather than sent empty when there is none: an account
    * with no second factor is refused for sending one, and a blank one would
    * be sending one.
    *
-   * **A code is good once.** The realm sets `otpPolicyCodeReusable` false, so
-   * a second attempt inside the same thirty seconds with the same digits is
-   * refused even though they are the digits the app is showing. The card says
-   * to wait for the next code rather than retrying the same one. */
-  totp?: string,
+   * **A code is good once, both ways.** The realm sets `otpPolicyCodeReusable`
+   * false, so a second attempt inside the same thirty seconds with the same
+   * digits is refused even though they are the digits the app is showing; a
+   * texted code is spent on being read, so a wrong guess costs a new message.
+   * The card says to wait for the next code rather than retrying the same
+   * one. */
+  code?: string,
 ): Promise<TokenSet> {
   const body = new URLSearchParams({
     grant_type: "password",
@@ -210,7 +222,10 @@ export function signInWithPassword(
     username,
     password,
   });
-  if (totp) body.set("totp", totp);
+  if (code) {
+    body.set("totp", code);
+    body.set("sms_code", code);
+  }
   return exchange(body);
 }
 

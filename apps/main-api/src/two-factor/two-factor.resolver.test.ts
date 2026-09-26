@@ -5,9 +5,9 @@ import { TwoFactorResolver } from "./two-factor.resolver.js";
 import { TwoFactorService } from "./two-factor.service.js";
 
 /*
- * Five operations, and which of them a stranger may reach.
+ * Seven operations, and which of them a stranger may reach.
  *
- * Four are behind the login: the guard is global, so the absence of the
+ * Six are behind the login: the guard is global, so the absence of the
  * @Public marker is the whole of what keeps a session in front of them. The
  * account comes off the principal every time and never off an argument -- an
  * operation that took a login name would be a way to strip the second factor
@@ -18,9 +18,11 @@ import { TwoFactorService } from "./two-factor.service.js";
  * password and an unspent code, and the service answers one sentence however
  * it fails.
  *
- * There is no enable operation, which is the shape of the feature rather than
- * an omission: turning a factor on ends at the provider's own page, with a
- * browser, because the secret behind it is shown to a person once.
+ * There is no enable operation for the authenticator app, which is the shape
+ * of the feature rather than an omission: turning that one on ends at the
+ * provider's own page, with a browser, because the secret behind it is shown
+ * to a person once. The two SMS operations are the same idea for a factor with
+ * no secret to mint: send a code to a number, then prove it came back.
  */
 
 const isPublic = (operation: keyof TwoFactorResolver) =>
@@ -43,6 +45,10 @@ function setup() {
       jest.fn<(principal: Principal, kind: string) => Promise<unknown>>(),
     disable:
       jest.fn<(principal: Principal, kind: string) => Promise<unknown>>(),
+    startSmsEnrollment:
+      jest.fn<(principal: Principal, number: string) => Promise<unknown>>(),
+    confirmSmsEnrollment:
+      jest.fn<(principal: Principal, code: string) => Promise<unknown>>(),
     recoveryCodes: jest.fn<(principal: Principal) => Promise<unknown>>(),
     generateRecoveryCodes:
       jest.fn<(principal: Principal) => Promise<unknown>>(),
@@ -65,6 +71,8 @@ describe("who may reach these operations", () => {
     expect(isPublic("confirmTwoFactorMethod")).toBe(false);
     expect(isPublic("disableTwoFactorMethod")).toBe(false);
     expect(isPublic("generateRecoveryCodes")).toBe(false);
+    expect(isPublic("startSmsEnrollment")).toBe(false);
+    expect(isPublic("confirmSmsEnrollment")).toBe(false);
   });
 
   it("lets somebody who cannot login spend a recovery code", () => {
@@ -122,6 +130,30 @@ describe("what each operation is given", () => {
       "marcus",
       "secret",
       "abcdefghij",
+    );
+  });
+
+  it("sends a code to the number the session's account typed", async () => {
+    const { resolver, service } = setup();
+
+    await resolver.startSmsEnrollment(principal, "+15555550123");
+
+    expect(service.startSmsEnrollment).toHaveBeenCalledWith(
+      principal,
+      "+15555550123",
+    );
+  });
+
+  /* The code and the principal, and no number. Which number it proves is the
+   * database's answer rather than this request's claim. */
+  it("confirms with the code alone", async () => {
+    const { resolver, service } = setup();
+
+    await resolver.confirmSmsEnrollment(principal, "483920");
+
+    expect(service.confirmSmsEnrollment).toHaveBeenCalledWith(
+      principal,
+      "483920",
     );
   });
 });

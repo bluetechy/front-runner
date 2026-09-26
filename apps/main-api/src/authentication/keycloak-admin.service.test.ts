@@ -1212,10 +1212,18 @@ describe("the second factors an account holds", () => {
     ...over,
   });
 
-  it("reads an authenticator app off the credential list", async () => {
+  /* Two reads, not one, and the reason is the shape of the two factors rather
+   * than an inefficiency: an authenticator app is a credential and a phone
+   * number is an attribute on the account, so they are in two different places
+   * at Keycloak and neither read can answer for the other. */
+  const answering = (credentials: unknown[], attributes: unknown = {}) =>
     fetchMock
       .mockResolvedValueOnce(token())
-      .mockResolvedValueOnce(ok([{ type: "password" }, totp()]));
+      .mockResolvedValueOnce(ok(credentials))
+      .mockResolvedValueOnce(ok({ id: "subject-marcus", attributes }));
+
+  it("reads an authenticator app off the credential list", async () => {
+    answering([{ type: "password" }, totp()]);
     const service = new KeycloakAdminService(config);
 
     await expect(service.secondFactors("subject-marcus")).resolves.toEqual([
@@ -1228,8 +1236,8 @@ describe("the second factors an account holds", () => {
     ]);
   });
 
-  it("asks for the account's credentials and nothing else", async () => {
-    fetchMock.mockResolvedValueOnce(token()).mockResolvedValueOnce(ok([]));
+  it("asks for the account's credentials and then the account itself", async () => {
+    answering([]);
     const service = new KeycloakAdminService(config);
 
     await service.secondFactors("subject-marcus");
@@ -1237,36 +1245,29 @@ describe("the second factors an account holds", () => {
     expect(String(fetchMock.mock.calls[1]![0])).toBe(
       "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus/credentials",
     );
+    expect(String(fetchMock.mock.calls[2]![0])).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus",
+    );
   });
 
   // A counter-based credential is not an authenticator app as this product
   // means one, and a row claiming it was would be wrong in both directions.
   it("leaves a counter-based one-time password out", async () => {
-    fetchMock
-      .mockResolvedValueOnce(token())
-      .mockResolvedValueOnce(
-        ok([totp({ credentialData: '{"subType":"hotp","counter":0}' })]),
-      );
+    answering([totp({ credentialData: '{"subType":"hotp","counter":0}' })]);
     const service = new KeycloakAdminService(config);
 
     await expect(service.secondFactors("subject-marcus")).resolves.toEqual([]);
   });
 
   it("leaves out an otp credential whose data will not parse", async () => {
-    fetchMock
-      .mockResolvedValueOnce(token())
-      .mockResolvedValueOnce(ok([totp({ credentialData: "not json" })]));
+    answering([totp({ credentialData: "not json" })]);
     const service = new KeycloakAdminService(config);
 
     await expect(service.secondFactors("subject-marcus")).resolves.toEqual([]);
   });
 
   it("carries no label and no date where Keycloak gives none", async () => {
-    fetchMock
-      .mockResolvedValueOnce(token())
-      .mockResolvedValueOnce(
-        ok([totp({ userLabel: "", createdDate: "whenever" })]),
-      );
+    answering([totp({ userLabel: "", createdDate: "whenever" })]);
     const service = new KeycloakAdminService(config);
 
     await expect(service.secondFactors("subject-marcus")).resolves.toEqual([
@@ -1289,6 +1290,149 @@ describe("the second factors an account holds", () => {
     await expect(service.secondFactors("subject-marcus")).rejects.toThrow(
       "would not say what this account uses",
     );
+  });
+
+  it("throws on the same terms when it cannot read the account itself", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([]))
+      .mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).rejects.toThrow(
+      "would not say what this account uses",
+    );
+  });
+});
+
+describe("the phone number an account is texted at", () => {
+  const answering = (attributes: unknown) =>
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok([]))
+      .mockResolvedValueOnce(ok({ id: "subject-marcus", attributes }));
+
+  it("reads a number off the account as a second factor", async () => {
+    answering({
+      phoneNumber: ["+15555550123"],
+      phoneNumberVerifiedAt: ["2026-09-10T10:00:00.000Z"],
+    });
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).resolves.toEqual([
+      {
+        kind: "sms",
+        id: "phone",
+        label: "\u2022\u2022\u2022\u2022 0123",
+        createdAt: new Date("2026-09-10T10:00:00.000Z"),
+      },
+    ]);
+  });
+
+  /* The number never leaves here whole. A security page that printed it would
+   * be handing it to whoever is reading over a shoulder, or to whoever already
+   * has the session and is looking for the next thing to take over. */
+  it("cuts the number down to its last four digits", async () => {
+    answering({ phoneNumber: ["+442079460958"] });
+    const service = new KeycloakAdminService(config);
+
+    const [factor] = await service.secondFactors("subject-marcus");
+
+    expect(factor?.label).toBe("\u2022\u2022\u2022\u2022 0958");
+    expect(factor?.label).not.toContain("2079");
+  });
+
+  it("carries no date where the account has none", async () => {
+    answering({ phoneNumber: ["+15555550123"] });
+    const service = new KeycloakAdminService(config);
+
+    const [factor] = await service.secondFactors("subject-marcus");
+
+    expect(factor?.createdAt).toBeNull();
+  });
+
+  it("carries no date where the one on the account will not parse", async () => {
+    answering({
+      phoneNumber: ["+15555550123"],
+      phoneNumberVerifiedAt: ["whenever"],
+    });
+    const service = new KeycloakAdminService(config);
+
+    const [factor] = await service.secondFactors("subject-marcus");
+
+    expect(factor?.createdAt).toBeNull();
+  });
+
+  it.each([
+    ["no attributes at all", {}],
+    ["an empty list", { phoneNumber: [] }],
+    ["a blank number", { phoneNumber: ["   "] }],
+    ["something that is not a list", { phoneNumber: 15555550123 }],
+  ])("answers no SMS factor for %s", async (_name, attributes) => {
+    answering(attributes);
+    const service = new KeycloakAdminService(config);
+
+    await expect(service.secondFactors("subject-marcus")).resolves.toEqual([]);
+  });
+});
+
+describe("writing a phone number onto the account", () => {
+  const body = () =>
+    JSON.parse(String(fetchMock.mock.calls[2]![1]?.body)) as {
+      attributes: Record<string, unknown>;
+    };
+
+  it("writes the number and when it was proved", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok({ id: "subject-marcus", attributes: {} }))
+      .mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.setSecondFactorPhone("subject-marcus", "+15555550123");
+
+    const [url, init] = fetchMock.mock.calls[2]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus",
+    );
+    expect(init?.method).toBe("PUT");
+    expect(body().attributes.phoneNumber).toEqual(["+15555550123"]);
+    expect(
+      String((body().attributes.phoneNumberVerifiedAt as string[])[0]),
+    ).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  /* Read, change, write. Keycloak's user update replaces the whole attribute
+   * map, so a PUT carrying only these two keys would quietly delete every
+   * other attribute the realm has ever put on the account. */
+  it("keeps every other attribute the account already had", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(
+        ok({
+          id: "subject-marcus",
+          attributes: { locale: ["es-MX"], phoneNumber: ["+15555550000"] },
+        }),
+      )
+      .mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.setSecondFactorPhone("subject-marcus", "+15555550123");
+
+    expect(body().attributes.locale).toEqual(["es-MX"]);
+    expect(body().attributes.phoneNumber).toEqual(["+15555550123"]);
+  });
+
+  it("reads a refusal as an outage", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(ok({ id: "subject-marcus", attributes: {} }))
+      .mockResolvedValueOnce(failed(500));
+    const service = new KeycloakAdminService(config);
+
+    await expect(
+      service.setSecondFactorPhone("subject-marcus", "+15555550123"),
+    ).rejects.toThrow("would not change two-factor authentication");
   });
 });
 
@@ -1333,5 +1477,38 @@ describe("taking a second factor away", () => {
     await service.removeSecondFactor("subject-marcus", "a b");
 
     expect(String(fetchMock.mock.calls[1]![0])).toContain("/credentials/a%20b");
+  });
+
+  /* The phone factor is an attribute rather than a credential, so taking it
+   * off is a write to the account. The id is what says which of the two this
+   * is: the caller took it out of secondFactors, and only this file knows what
+   * its own ids mean. */
+  it("clears the number instead of deleting a credential", async () => {
+    fetchMock
+      .mockResolvedValueOnce(token())
+      .mockResolvedValueOnce(
+        ok({
+          id: "subject-marcus",
+          attributes: {
+            locale: ["es-MX"],
+            phoneNumber: ["+15555550123"],
+            phoneNumberVerifiedAt: ["2026-09-10T10:00:00.000Z"],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(ok());
+    const service = new KeycloakAdminService(config);
+
+    await service.removeSecondFactor("subject-marcus", "phone");
+
+    const [url, init] = fetchMock.mock.calls[2]!;
+    expect(String(url)).toBe(
+      "http://keycloak-idp:8080/admin/realms/front-runner/users/subject-marcus",
+    );
+    expect(init?.method).toBe("PUT");
+    const { attributes } = JSON.parse(String(init?.body)) as {
+      attributes: Record<string, unknown>;
+    };
+    expect(attributes).toEqual({ locale: ["es-MX"] });
   });
 });

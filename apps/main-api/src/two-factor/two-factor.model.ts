@@ -49,6 +49,22 @@ export class TwoFactorMethod {
   Recommended!: boolean;
 }
 
+// A text message is on its way, and this is what the dialog says while it
+// waits for the six digits back.
+//
+// The number in it is masked. It is the number that was just typed into the
+// box above, so there is nothing here the person does not already know -- but
+// it is read back to them as the account will hold it, which is how somebody
+// who mistyped a digit finds out before they are waiting for a message that is
+// never coming.
+@ObjectType()
+export class PhoneEnrollment {
+  @Field(() => String)
+  PhoneNumber!: string;
+  @Field(() => GraphQLISODateTime)
+  SentAt!: Date;
+}
+
 // What the RECOVERY CODES card shows.
 //
 // No code is in it and none ever will be: the codes exist in one answer, to

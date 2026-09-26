@@ -164,17 +164,24 @@ export function TwoFactorDialog({
  * only for an account with no recovery codes, because that is the account
  * that a lost phone locks out.
  *
- * Turning it off says what stops being asked for, what that leaves, and that
- * turning it on again is the same trip rather than an undo.
+ * Turning it off says what stops being asked for, what that leaves, and what
+ * turning it on again would cost. None of those is an undo, which is the
+ * thing worth saying: an authenticator app means the trip out again, and a
+ * phone number means answering another message.
  */
 function sentences(
   request: TwoFactorRequest,
   hasRecoveryCodes: boolean,
 ): string[] {
   const name = request.method.Name;
+  /* "your SMS/Text message code" is not a sentence anybody would write, so
+   * the SMS row is named for what it is in a sentence rather than by its row
+   * title. The other kind reads as itself. */
+  const inASentence =
+    request.method.Kind === "sms" ? "texted code" : name.toLowerCase();
   if (request.action === "enable")
     return [
-      `This page will go to our identity provider, which will show you a QR code to scan with your ${name.toLowerCase()}. Have it ready: the code is shown once.`,
+      `This page will go to our identity provider, which will show you a QR code to scan with your ${inASentence}. Have it ready: the code is shown once.`,
       "From then on, logging in asks for the six digits your app is showing as well as your password.",
       ...(hasRecoveryCodes
         ? []
@@ -183,8 +190,10 @@ function sentences(
           ]),
     ];
   return [
-    `Logging in will stop asking for your ${name.toLowerCase()} code.`,
+    `Logging in will stop asking for your ${inASentence}.`,
     "Your account will be protected by its password alone.",
-    "You can turn it on again here, which means the same trip out to set it up.",
+    request.method.Kind === "sms"
+      ? "You can turn it on again here, which means proving the number again."
+      : "You can turn it on again here, which means the same trip out to set it up.",
   ];
 }

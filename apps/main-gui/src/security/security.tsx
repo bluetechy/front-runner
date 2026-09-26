@@ -26,6 +26,7 @@ import { TwoFactorList } from "./two-factor-list";
 import { useTwoFactor, type TwoFactorMethod } from "./two-factor-api";
 import { RecoveryCodesCard } from "./recovery-codes-card";
 import { RecoveryCodesDialog } from "./recovery-codes-dialog";
+import { SmsDialog } from "./sms-dialog";
 import { UserNameCard } from "./user-name-card";
 import { PrivacyCard } from "./privacy-card";
 import { useEmails, type UserEmail } from "./email-api";
@@ -99,6 +100,8 @@ export function Security({
     error: factorsError,
     disable: disableFactor,
     confirm: confirmFactor,
+    startSms,
+    confirmSms,
     generate: generateCodes,
   } = useTwoFactor();
   const navigate = useNavigate();
@@ -125,6 +128,16 @@ export function Security({
     null,
   );
   const [busyKind, setBusyKind] = useState<string | null>(null);
+
+  /* Attaching a phone number, which is the one factor that is set up on this
+   * page rather than at the provider. Three pieces of state and they are the
+   * whole of the dialog: whether it is open, the masked number the API says it
+   * texted (null while the number box is the one showing), and whatever it
+   * refused with. The refusal is held here rather than shown as a toast
+   * because it belongs beside the box that caused it. */
+  const [addingPhone, setAddingPhone] = useState(false);
+  const [textedTo, setTextedTo] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   /* The ten codes, for as long as the dialog showing them is open, and never
    * anywhere else. They are held here rather than in the hook because this is
@@ -337,6 +350,16 @@ export function Security({
    * -- the page is gone the moment it starts. The row is only left busy so
    * that a second press cannot start a second trip. The same shape as
    * connecting a provider, above. */
+  /* The SMS dialog, from the row. Opened straight rather than behind the
+   * confirmation the other kinds get: nothing is lost by opening it, the page
+   * does not go anywhere, and the warning that would have been in a
+   * confirmation is in the dialog itself, beside the box. */
+  function startAddingPhone() {
+    setTextedTo(null);
+    setPhoneError(null);
+    setAddingPhone(true);
+  }
+
   async function enabling(request: TwoFactorRequest) {
     setBusyKind(request.method.Kind);
     try {
@@ -344,6 +367,55 @@ export function Security({
     } catch (failure: unknown) {
       report(failure, "We could not reach the identity provider.");
       setFactorRequest(null);
+      setBusyKind(null);
+    }
+  }
+
+  /* The first half: a code goes to a number somebody typed, and nothing at
+   * all changes on the account. What comes back is the number as the API
+   * masked it, which is what the dialog reads out while it waits. */
+  async function textingCode(phoneNumber: string) {
+    setBusyKind("sms");
+    setPhoneError(null);
+    try {
+      const started = await startSms(phoneNumber);
+      setTextedTo(started.PhoneNumber);
+    } catch (failure: unknown) {
+      setPhoneError(
+        failure instanceof Error
+          ? failure.message
+          : "That code could not be sent.",
+      );
+    } finally {
+      setBusyKind(null);
+    }
+  }
+
+  /* The second half, and the only half that writes anything. The code goes up
+   * on its own: which number it proves is the API's answer rather than
+   * anything this page could claim. */
+  async function confirmingCode(code: string) {
+    setBusyKind("sms");
+    setPhoneError(null);
+    try {
+      await confirmSms(code);
+      setAddingPhone(false);
+      setTextedTo(null);
+      setNotice({
+        /* Both halves, as the returning-from-the-provider notice says both:
+         * what happens now, and the thing somebody will not come back for
+         * once they believe they are finished. */
+        message:
+          "Text messages are on. Logging in will ask for a code from now on: make a set of recovery codes below in case you lose the phone.",
+        tone: "success",
+      });
+    } catch (failure: unknown) {
+      setPhoneError(
+        failure instanceof Error
+          ? failure.message
+          : "That code was not accepted.",
+      );
+    } finally {
       setBusyKind(null);
     }
   }
@@ -636,9 +708,10 @@ export function Security({
           }}
         >
           A second factor is something you have as well as something you know,
-          so a stolen password is not enough on its own. Turning one on sends
-          you to our identity provider to scan a code, and from then on logging
-          in asks for six digits as well as your password.
+          so a stolen password is not enough on its own. An authenticator app is
+          set up at our identity provider, by scanning a code; a phone number is
+          set up here, by answering a message we text to it. Either way, logging
+          in asks for six digits as well as your password from then on.
         </Typography>
 
         <TwoFactorList
@@ -648,7 +721,14 @@ export function Security({
           busyKind={busyKind}
           canEnable={canConfigureSecondFactor}
           onEnable={(method: TwoFactorMethod) =>
-            setFactorRequest({ method, action: "enable" })
+            /* SMS asks its own question, in its own dialog: there is nothing
+             * to warn somebody about before it, because it does not leave the
+             * page and nothing changes until a code comes back. Everything
+             * else goes through the confirmation first, because pressing it
+             * takes the page away. */
+            method.Kind === "sms"
+              ? startAddingPhone()
+              : setFactorRequest({ method, action: "enable" })
           }
           onDisable={(method: TwoFactorMethod) =>
             setFactorRequest({ method, action: "disable" })
@@ -730,6 +810,24 @@ export function Security({
             ? enabling(request)
             : disabling(request))
         }
+      />
+
+      <SmsDialog
+        open={addingPhone}
+        busy={busyKind === "sms"}
+        error={phoneError}
+        sentTo={textedTo}
+        onClose={() => {
+          setAddingPhone(false);
+          setTextedTo(null);
+          setPhoneError(null);
+        }}
+        onBack={() => {
+          setTextedTo(null);
+          setPhoneError(null);
+        }}
+        onSend={(phoneNumber) => void textingCode(phoneNumber)}
+        onConfirm={(code) => void confirmingCode(code)}
       />
 
       {/* The one dialog on this page that is not closed by the backdrop: the

@@ -49,10 +49,19 @@ import { useSession } from "./session";
  * Somebody without a second factor reads it as "check your password" and
  * types again; somebody with one fills in the box.
  *
- * A code is good once. The realm sets `otpPolicyCodeReusable` false, so
- * pressing Login twice with the same six digits is refused the second time
- * even though the app is still showing them, which is why a refusal with a
- * code in the box says to wait for the next one.
+ * **One box for both factors.** The digits go up under both of the names the
+ * realm's two authenticators read, and whichever one is actually in the flow
+ * finds them. The card never learns which factor the account has, and it must
+ * not: knowing would mean being told at the login form, before anybody has
+ * proved anything, which is the question the identical refusals exist to
+ * refuse. It also makes the refusal do double duty for a texted code, because
+ * the refusal is the moment Keycloak sends one.
+ *
+ * A code is good once, either way. The realm sets `otpPolicyCodeReusable`
+ * false, so pressing Login twice with the same six digits from an app is
+ * refused the second time even though the app is still showing them; a texted
+ * code is spent the moment it is read, so a wrong guess costs a fresh message.
+ * Both are why a refusal with a code in the box says to wait for the next one.
  */
 
 /*
@@ -73,8 +82,8 @@ function refusal(failure: unknown, asked: boolean, code: string): string {
    * anything composed here. */
   if (failure.code !== "invalid_grant") return failure.message;
   if (asked && code)
-    return "That code was not accepted. Codes work once, so wait for your app to show the next one and try again.";
-  return "That did not work. Check your email address and password, and if your account uses two-factor authentication, add the code from your authenticator app.";
+    return "That code was not accepted. Codes work once, so wait for your app to show the next one, or for a new text message, and try again.";
+  return "That did not work. Check your email address and password, and if your account uses two-factor authentication, add the code from your authenticator app or the one we have just texted you.";
 }
 
 /* "1 code" or "4 codes", written out rather than left as "4 code(s)". */
@@ -139,7 +148,7 @@ export function LoginDialog({
   const [code, setCode] = useState("");
   const [asksForCode, setAsksForCode] = useState(false);
 
-  /* The way through for somebody whose authenticator app is gone. It takes
+  /* The way through for somebody whose phone is gone. It takes
    * the same email address and password as the form above it, plus one code
    * off the sheet, and it does not login: it takes the second factor off the
    * account so that the ordinary form does. */
@@ -335,7 +344,7 @@ export function LoginDialog({
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder="6-digit code from your authenticator app"
+              placeholder="6-digit code from your app or text message"
               label={null}
               value={code}
               onChange={(event) =>
@@ -371,7 +380,7 @@ export function LoginDialog({
           >
             {recovering
               ? "Spending a code turns two-factor authentication off, and each code works once. "
-              : "Lost the phone with your authenticator app? "}
+              : "Lost the phone your codes arrive on? "}
             <Link
               component="button"
               type="button"

@@ -1,14 +1,15 @@
 // What this API needs from whoever holds the accounts.
 //
-// Sixteen operations and no more. This application's own truth -- profiles,
+// Seventeen operations and no more. This application's own truth -- profiles,
 // organizations, the email addresses somebody has proved they read -- lives in
 // dbo, so the identity provider is only ever asked about the credential half:
 // which account somebody named, what address it logs in with, what its
 // password is, when that password was last set, whether somebody typing one
 // has it right, which other providers it can be logged in from and which of
-// those it has already been, which second factors it holds, which attempts to
-// use it were refused, and which sessions are open or have ended. That is what keeps this list short, and a
-// short list is what keeps the provider replaceable.
+// those it has already been, which second factors it holds and what number one
+// of them texts, which attempts to use it were refused, and which sessions are
+// open or have ended. That is what keeps this list short, and a short list is
+// what keeps the provider replaceable.
 //
 // Every one of them is an intent rather than an errand. `endOtherSessions`
 // takes the session to keep instead of answering with a list for somebody else
@@ -114,25 +115,31 @@ export interface LinkedLogin {
   userName: string | null;
 }
 
-// A second factor the provider holds for an account: today the authenticator
-// app, and whatever else a provider learns to hold.
+// A second factor the provider holds for an account: the authenticator app, a
+// phone number to text, and whatever else a provider learns to hold.
 //
-// `kind` is the port's word rather than the provider's. Keycloak calls its
-// credential "otp" and stamps a "subType" of "totp" inside it; a provider that
-// held a passkey would call that something else again, and the security page
-// draws rows rather than credential types. Implementations map their own
-// vocabulary onto this one, and a factor an implementation has no word for is
-// left out rather than guessed at.
+// `kind` is the port's word rather than the provider's, and the two kinds here
+// are not even the same sort of thing at the provider. Keycloak calls the
+// first one an "otp" credential and stamps a "subType" of "totp" inside it;
+// the second is not a credential at all but an attribute on the account, read
+// at login by an authenticator running inside Keycloak. A provider that held a
+// passkey would call that something else again. The security page draws rows
+// rather than credential types, so implementations map their own vocabulary
+// onto this one, and a factor an implementation has no word for is left out
+// rather than guessed at.
 //
 // `id` is the provider's handle for it, and the one field here that is not for
 // reading: removeSecondFactor is addressed by it. `createdAt` is when it was
 // set up, which is the line the card shows, and null where the provider will
 // not say.
 export interface SecondFactor {
-  kind: "authenticator-app";
+  kind: "authenticator-app" | "sms";
   id: string;
   // What it was labeled where it was set up ("iPhone"), which is the provider's
-  // to have asked for and is null wherever nobody did.
+  // to have asked for and is null wherever nobody did. For a phone number it
+  // is the number with all but the last digits taken out, because the card
+  // shows it and a security page is exactly the wrong place to print somebody's
+  // phone number in full.
   label: string | null;
   createdAt: Date | null;
 }
@@ -333,4 +340,29 @@ export abstract class IdentityAdminService {
   // is the direction this makes login easier -- and what is worth saying about
   // it is a sentence on a page rather than a refusal here.
   abstract removeSecondFactor(subjectId: string, id: string): Promise<void>;
+
+  // Put a phone number on the account as a second factor, and take the SMS
+  // row's word for it that the number has been proved.
+  //
+  // **The exception to "setting one up is not here".** An authenticator app
+  // cannot be created through an admin API because its secret is minted and
+  // shown once at the provider; a phone number is not a secret and has nothing
+  // to mint, so the only question about it is whether the person setting it up
+  // can answer it. That question is settled before this is called -- a code
+  // was sent to the number and typed back -- and this writes the answer.
+  //
+  // Which makes the rule about the caller absolute: **nothing may call this
+  // with a number that has not just been proved.** A number written here is a
+  // number the provider will text a login code to, so an unproved one is a
+  // second factor pointed at somebody else's phone. The only caller is
+  // TwoFactorService.confirmSmsEnrollment, and the number it passes comes out
+  // of dbo.SpendPhoneVerification rather than out of the request.
+  //
+  // Implementations throw ServiceUnavailableException when the provider will
+  // not take it. Replacing a number that is already there is not an error: it
+  // is what somebody who changed phones does.
+  abstract setSecondFactorPhone(
+    subjectId: string,
+    phoneNumber: string,
+  ): Promise<void>;
 }

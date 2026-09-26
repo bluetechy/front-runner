@@ -233,6 +233,33 @@ describe("logging in with an email address and a password", () => {
       signInWithPassword("member@example.test", "a"),
     ).resolves.toMatchObject({ idToken: null });
   });
+
+  /* Under both names, because this code does not know which second factor the
+   * account has and must not: being told would mean being told at the login
+   * form, before anybody has proved anything. Whichever authenticator is in
+   * the realm's flow finds the digits under the name it reads. */
+  it("sends a code as both totp and sms_code", async () => {
+    issuing();
+
+    await signInWithPassword("member@example.test", "a", "483920");
+
+    expect(Object.fromEntries(body())).toMatchObject({
+      totp: "483920",
+      sms_code: "483920",
+    });
+  });
+
+  /* Left out rather than sent empty: an account with no second factor is
+   * refused for sending one, and a blank one is sending one. */
+  it("sends neither name when there is no code", async () => {
+    issuing();
+
+    await signInWithPassword("member@example.test", "a");
+
+    const sent = Object.fromEntries(body());
+    expect(sent.totp).toBeUndefined();
+    expect(sent.sms_code).toBeUndefined();
+  });
 });
 
 describe("when a login fails", () => {

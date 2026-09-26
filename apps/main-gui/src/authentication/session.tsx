@@ -49,10 +49,11 @@ interface Session {
     email: string,
     password: string,
     remember: boolean,
-    /* The code from an authenticator app, where the account has one and the
-     * card has asked for it. Passed straight through: this provider decides
-     * whether it was needed, and the login card cannot know. */
-    totp?: string,
+    /* The code from whichever second factor the account has, where it has one
+     * and the card has asked for it. Passed straight through: the provider
+     * decides whether it was needed and which factor it belongs to, and the
+     * login card cannot know either. */
+    code?: string,
   ) => Promise<void>;
   /* Used by the redirect callback, which has already done the exchange. */
   adoptTokens: (tokens: TokenSet, remember: boolean) => void;
@@ -158,9 +159,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       email: string,
       password: string,
       remember: boolean,
-      totp?: string,
+      code?: string,
     ) => {
-      apply(await signInWithPassword(email, password, totp), remember);
+      apply(await signInWithPassword(email, password, code), remember);
     },
     [apply],
   );

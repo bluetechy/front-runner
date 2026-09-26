@@ -5,6 +5,11 @@ import { startRedirect } from "./identity-provider";
  * Turning on an authenticator app, which happens at the identity provider and
  * nowhere else.
  *
+ * Only the authenticator app. SMS is set up on the security page itself, in a
+ * dialog, because there is no secret to mint: a phone number is proved by a
+ * message sent to it and typed back, which needs no browser sent anywhere.
+ * See apps/main-gui/src/security/sms-dialog.tsx.
+ *
  * The secret behind an authenticator app is minted by the provider and shown
  * to a person exactly once, as a QR code on a page. No admin API hands one
  * out -- Keycloak's has no operation that creates an OTP credential at all --
@@ -28,19 +33,27 @@ import { startRedirect } from "./identity-provider";
 
 const PENDING_KEY = "front-runner.configuring-factor";
 
-/* Whether this deployment can ask the provider to run a setup page at all.
- * Two empty values and there is nothing to ask with, so the card draws no
- * Enable button rather than a button that sends somebody nowhere -- the same
- * way an empty link path leaves the SSO card reading only. */
+/* Whether this deployment can set this kind up at all.
+ *
+ * For the authenticator app that is a question about configuration: two empty
+ * values and there is nothing to send the browser with, so the card draws no
+ * Turn on button rather than a button that sends somebody nowhere, the same
+ * way an empty link path leaves the SSO card reading only.
+ *
+ * For SMS it is always true, because nothing here is involved: the dialog on
+ * the security page asks main-api to text a code. Whether main-api has
+ * anywhere to text it to is a different question with a different answer, and
+ * it is on the row itself as `Available`. */
 export function canConfigureSecondFactor(kind: string): boolean {
+  if (kind === "sms") return true;
   return (
     actionFor(kind) !== "" && import.meta.env.VITE_IDP_ACTION_PARAMETER !== ""
   );
 }
 
 /* What the provider calls the action that sets this kind up. Only the
- * authenticator app has one: SMS is not the provider's to configure until it
- * has an authenticator of its own. */
+ * authenticator app has one: an SMS factor is a number on the account rather
+ * than a credential the provider mints, so there is no setup page to ask for. */
 function actionFor(kind: string): string {
   return kind === "authenticator-app"
     ? import.meta.env.VITE_IDP_TOTP_ACTION

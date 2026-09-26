@@ -1,0 +1,5 @@
+# How Keycloak discovers the two authenticators in this JAR. Without this file
+# the JAR loads and nothing in it is ever offered, which looks exactly like a
+# realm misconfiguration and is not one.
+com.frontrunner.keycloak.sms.SmsAuthenticatorFactory
+com.frontrunner.keycloak.sms.SmsDirectGrantAuthenticatorFactory

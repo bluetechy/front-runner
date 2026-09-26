@@ -5,14 +5,16 @@ import type {
   Principal,
   SecondFactor,
 } from "../authentication/index.js";
+import type { ConfigService } from "@nestjs/config";
 import type { DatabaseService } from "../database/index.js";
 import type { SecurityEventsService } from "../security-events/index.js";
+import type { SmsService } from "../sms/index.js";
 import { TwoFactorService } from "./two-factor.service.js";
 
 /*
  * Two-factor authentication, and the way back in when it is lost.
  *
- * Four things here are worth more than the rest.
+ * Five things here are worth more than the rest.
  *
  * **What a returning browser is believed about.** `confirm` is handed a kind
  * off a URL. It is not written down: it names something to go and ask the
@@ -30,6 +32,12 @@ import { TwoFactorService } from "./two-factor.service.js";
  * **Every subject id comes from the session**, except in the public operation,
  * where it comes from the provider's answer about a name plus a password that
  * was checked. Nothing takes an account off a request and acts on it.
+ *
+ * **A phone number is written onto the account only after it has answered.**
+ * Starting an enrollment changes nothing at the provider, and confirming one
+ * writes the number the database says the code was sent to rather than any
+ * number in the request. Between them, those two are the whole reason somebody
+ * cannot point a second factor at a phone they do not own.
  */
 
 const principal: Principal = {
@@ -53,7 +61,21 @@ const app: SecondFactor = {
   createdAt: new Date("2026-09-01T10:00:00.000Z"),
 };
 
-function setup(factors: SecondFactor[] = [], rows: unknown[] = []) {
+/* The SMS factor is an attribute rather than a credential at the provider, so
+ * its id is the implementation's fixed word for one and its label is the
+ * number already cut down to the last four digits. */
+const phone: SecondFactor = {
+  kind: "sms",
+  id: "phone",
+  label: "\u2022\u2022\u2022\u2022 0123",
+  createdAt: new Date("2026-09-10T10:00:00.000Z"),
+};
+
+function setup(
+  factors: SecondFactor[] = [],
+  rows: unknown[] = [],
+  { smsAvailable = true }: { smsAvailable?: boolean } = {},
+) {
   const db = {
     query: jest.fn<(sql: string, values: unknown[]) => Promise<unknown[]>>(),
   };
@@ -66,11 +88,14 @@ function setup(factors: SecondFactor[] = [], rows: unknown[] = []) {
     secondFactors: jest.fn<(subject: string) => Promise<SecondFactor[]>>(),
     removeSecondFactor:
       jest.fn<(subject: string, id: string) => Promise<void>>(),
+    setSecondFactorPhone:
+      jest.fn<(subject: string, number: string) => Promise<void>>(),
   };
   identity.findAccount.mockResolvedValue(account);
   identity.verifyPassword.mockResolvedValue(true);
   identity.secondFactors.mockResolvedValue(factors);
   identity.removeSecondFactor.mockResolvedValue(undefined);
+  identity.setSecondFactorPhone.mockResolvedValue(undefined);
 
   const events = {
     record:
@@ -85,14 +110,27 @@ function setup(factors: SecondFactor[] = [], rows: unknown[] = []) {
   };
   events.record.mockResolvedValue(undefined);
 
+  const sms = {
+    available: smsAvailable,
+    send: jest.fn<(to: string, text: string) => Promise<boolean>>(),
+  };
+  sms.send.mockResolvedValue(true);
+
+  const config = {
+    get: (key: string) => (key === "MAIL_FROM_NAME" ? "Front Runner" : ""),
+  } as unknown as ConfigService;
+
   return {
     db,
     identity,
     events,
+    sms,
     service: new TwoFactorService(
       db as unknown as DatabaseService,
       identity as unknown as IdentityAdminService,
       events as unknown as SecurityEventsService,
+      sms as unknown as SmsService,
+      config,
     ),
   };
 }
@@ -124,8 +162,8 @@ describe("what the card is drawn from", () => {
   /* A row this installation cannot use is still a row. Dropping it would hide
    * the reason it is missing from the one page whose job is saying what
    * protects an account. */
-  it("keeps the SMS row, says it is not available, and says it is the weaker one", async () => {
-    const { service } = setup([app]);
+  it("keeps the SMS row and says it is not available where there is nowhere to send", async () => {
+    const { service } = setup([app], [], { smsAvailable: false });
 
     const [, sms] = await service.methods(principal);
 
@@ -133,8 +171,51 @@ describe("what the card is drawn from", () => {
       Kind: "sms",
       Available: false,
       Configured: false,
-      Recommended: false,
     });
+  });
+
+  it("offers SMS where there is somewhere to send", async () => {
+    const { service } = setup([app]);
+
+    const [, sms] = await service.methods(principal);
+
+    expect(sms).toMatchObject({ Kind: "sms", Available: true });
+  });
+
+  /* A judgment about the method rather than about this deployment, so it does
+   * not move when the credentials do. */
+  it("never recommends SMS, available or not", async () => {
+    for (const smsAvailable of [true, false]) {
+      const { service } = setup([app], [], { smsAvailable });
+
+      const [, sms] = await service.methods(principal);
+
+      expect(sms).toMatchObject({ Recommended: false });
+    }
+  });
+
+  it("marks the SMS row from the account, with the number already cut down", async () => {
+    const { service } = setup([phone]);
+
+    const [, sms] = await service.methods(principal);
+
+    expect(sms).toMatchObject({
+      Configured: true,
+      ConfiguredAt: phone.createdAt,
+      Label: "\u2022\u2022\u2022\u2022 0123",
+    });
+  });
+
+  /* A number put on an account while the site could send messages is still on
+   * it the week the credentials expire, and Keycloak is still asking for a
+   * code. Drawing that as "off" would be telling somebody they have no second
+   * factor while they do. */
+  it("still says a number is configured when there is nowhere to send", async () => {
+    const { service } = setup([phone], [], { smsAvailable: false });
+
+    const [, sms] = await service.methods(principal);
+
+    expect(sms).toMatchObject({ Available: false, Configured: true });
   });
 
   it("recommends the authenticator app", async () => {
@@ -462,5 +543,169 @@ describe("spending one from the login card", () => {
       "RecoveryCodeUsed",
       expect.not.stringContaining("turned off"),
     );
+  });
+});
+
+describe("turning the SMS factor off", () => {
+  it("removes the number by the id the provider gave it", async () => {
+    const { identity, service } = setup([app, phone]);
+
+    await service.disable(principal, "sms");
+
+    expect(identity.removeSecondFactor).toHaveBeenCalledWith(
+      "subject-marcus",
+      "phone",
+    );
+  });
+
+  /* One kind at a time. Somebody turning off SMS keeps their authenticator
+   * app, which is the whole reason the card has two rows. */
+  it("leaves the authenticator app alone", async () => {
+    const { identity, service } = setup([app, phone]);
+
+    await service.disable(principal, "sms");
+
+    expect(identity.removeSecondFactor).toHaveBeenCalledTimes(1);
+  });
+
+  it("says so when there was no number on the account", async () => {
+    const { service } = setup([app]);
+
+    await expect(service.disable(principal, "sms")).rejects.toThrow(
+      "not turned on",
+    );
+  });
+});
+
+/*
+ * Attaching a phone number, which is the one factor this API sets up itself.
+ *
+ * It is two operations because the proof is a round trip through a handset,
+ * and the split is where all the safety is: the first writes nothing onto the
+ * account, and the second writes a number it read out of the database rather
+ * than one it was handed.
+ */
+describe("starting an SMS enrollment", () => {
+  it("sends a code and writes the number down as unproved", async () => {
+    const { db, sms, service } = setup([], [{ SentAt: new Date() }]);
+
+    await service.startSmsEnrollment(principal, "+15555550123");
+
+    expect(db.query.mock.calls[0]?.[0]).toContain("StartPhoneVerification");
+    expect(db.query.mock.calls[0]?.[1]?.[0]).toBe("subject-marcus");
+    expect(db.query.mock.calls[0]?.[1]?.[1]).toBe("+15555550123");
+    expect(sms.send).toHaveBeenCalledWith(
+      "+15555550123",
+      expect.stringContaining("confirm this phone number"),
+    );
+  });
+
+  /* The whole point of the first half. A number on the account before it has
+   * answered is a second factor pointed at a phone somebody else is holding. */
+  it("changes nothing at the provider", async () => {
+    const { identity, service } = setup([], [{ SentAt: new Date() }]);
+
+    await service.startSmsEnrollment(principal, "+15555550123");
+
+    expect(identity.setSecondFactorPhone).not.toHaveBeenCalled();
+  });
+
+  /* Stored hashed, as every secret in this API is: a copy of the table must
+   * not be a list of live codes. */
+  it("stores a hash rather than the code it sent", async () => {
+    const { db, sms, service } = setup([], [{ SentAt: new Date() }]);
+
+    await service.startSmsEnrollment(principal, "+15555550123");
+
+    const stored = String(db.query.mock.calls[0]?.[1]?.[2]);
+    const message = String(sms.send.mock.calls[0]?.[1]);
+    expect(stored).toMatch(/^[0-9a-f]{64}$/);
+    expect(message).not.toContain(stored);
+  });
+
+  it("reads the number back masked, so a mistyped digit is caught here", async () => {
+    const { service } = setup([], [{ SentAt: new Date() }]);
+
+    const started = await service.startSmsEnrollment(principal, "+15555550123");
+
+    expect(started.PhoneNumber).toBe("•••• 0123");
+  });
+
+  it("says so rather than sending nowhere when SMS is not available", async () => {
+    const { db, service } = setup([], [{ SentAt: new Date() }], {
+      smsAvailable: false,
+    });
+
+    await expect(
+      service.startSmsEnrollment(principal, "+15555550123"),
+    ).rejects.toThrow("not available");
+    expect(db.query).not.toHaveBeenCalled();
+  });
+
+  /* Reported, because the dialog is about to sit there waiting for digits
+   * that are not coming. */
+  it("says so when the message did not go out", async () => {
+    const { sms, service } = setup([], [{ SentAt: new Date() }]);
+    sms.send.mockResolvedValue(false);
+
+    await expect(
+      service.startSmsEnrollment(principal, "+15555550123"),
+    ).rejects.toThrow("could not be sent");
+  });
+});
+
+describe("confirming an SMS enrollment", () => {
+  const proved = [{ PhoneNumber: "+15555550123" }];
+
+  it("writes the number the database says the code was sent to", async () => {
+    const { identity, service } = setup([], proved);
+
+    await service.confirmSmsEnrollment(principal, "483920");
+
+    expect(identity.setSecondFactorPhone).toHaveBeenCalledWith(
+      "subject-marcus",
+      "+15555550123",
+    );
+  });
+
+  it("spends the code against the account the session names", async () => {
+    const { db, service } = setup([], proved);
+
+    await service.confirmSmsEnrollment(principal, "483920");
+
+    expect(db.query.mock.calls[0]?.[0]).toContain("SpendPhoneVerification");
+    expect(db.query.mock.calls[0]?.[1]?.[0]).toBe("subject-marcus");
+  });
+
+  it("sends a hash of the code rather than the code", async () => {
+    const { db, service } = setup([], proved);
+
+    await service.confirmSmsEnrollment(principal, "483920");
+
+    expect(String(db.query.mock.calls[0]?.[1]?.[1])).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("records it, naming the last four digits and no more", async () => {
+    const { events, service } = setup([], proved);
+
+    await service.confirmSmsEnrollment(principal, "483920");
+
+    const [, type, description] = events.record.mock.calls[0] ?? [];
+    expect(type).toBe("TwoFactorEnabled");
+    expect(description).toContain("0123");
+    expect(description).not.toContain("+15555550123");
+  });
+
+  /* A wrong code, an expired one, five guesses already spent and nothing
+   * started at all are one row-shaped absence from the database, and one
+   * sentence out of here. */
+  it("refuses a code the database will not spend, and writes nothing", async () => {
+    const { identity, events, service } = setup([], []);
+
+    await expect(
+      service.confirmSmsEnrollment(principal, "483920"),
+    ).rejects.toThrow("not right, or it has expired");
+    expect(identity.setSecondFactorPhone).not.toHaveBeenCalled();
+    expect(events.record).not.toHaveBeenCalled();
   });
 });

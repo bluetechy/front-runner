@@ -11,6 +11,7 @@ import { PasswordResetModule } from "./password-reset/index.js";
 import { PasswordChangeModule } from "./password-change/index.js";
 import { SingleSignOnModule } from "./single-sign-on/index.js";
 import { TwoFactorModule } from "./two-factor/index.js";
+import { SmsModule } from "./sms/index.js";
 import { OrganizationsModule } from "./organizations/index.js";
 import { TeamsModule } from "./teams/index.js";
 import { BadgesModule } from "./badges/index.js";
@@ -34,6 +35,7 @@ import { SecurityEventsModule } from "./security-events/index.js";
     PasswordChangeModule,
     SingleSignOnModule,
     TwoFactorModule,
+    SmsModule,
     OrganizationsModule,
     TeamsModule,
     BadgesModule,

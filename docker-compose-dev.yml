@@ -21,6 +21,13 @@ services:
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PUBLISHED_PORT}
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
+      # Read by the SMS authenticator in the image, not by Keycloak itself:
+      # where main-api's gateway route is and what to present to it. They are
+      # environment variables rather than realm configuration because a secret
+      # in realm configuration is a secret in the realm export, and the realm
+      # export is a file in this repository. See apps/keycloak-idp/plugin.
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL}
+      SMS_GATEWAY_SECRET: ${SMS_GATEWAY_SECRET}
     depends_on:
       main-db:
         condition: service_healthy
@@ -84,6 +91,14 @@ services:
       # switch and need none. The realm has to be keeping LOGIN_ERROR, LOGOUT
       # and REFRESH_TOKEN_ERROR events -- see apps/keycloak-idp/README.md.
       SECURITY_LOG_FAILED_LOGINS: ${SECURITY_LOG_FAILED_LOGINS:-true}
+      # Twilio, and the secret Keycloak's SMS authenticator presents when it
+      # asks for a login code to be carried. Empty in this repository: with
+      # nothing here main-api reports SMS unavailable, the security page says
+      # so, and the gateway route refuses every caller.
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      SMS_GATEWAY_SECRET: ${SMS_GATEWAY_SECRET:-}
     depends_on:
       main-db:
         condition: service_healthy

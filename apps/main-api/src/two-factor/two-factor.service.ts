@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { createHash, randomInt } from "node:crypto";
 import {
   IdentityAdminService,
@@ -7,8 +8,10 @@ import {
 } from "../authentication/index.js";
 import { DatabaseService } from "../database/index.js";
 import { SecurityEventsService } from "../security-events/index.js";
+import { SmsService, enrollmentCode } from "../sms/index.js";
 import {
   GeneratedRecoveryCodes,
+  PhoneEnrollment,
   RecoveryCodeStatus,
   RecoveryCodeUse,
   TwoFactorMethod,
@@ -47,6 +50,8 @@ export class TwoFactorService {
     private readonly db: DatabaseService,
     private readonly identity: IdentityAdminService,
     private readonly events: SecurityEventsService,
+    private readonly sms: SmsService,
+    private readonly config: ConfigService,
   ) {}
 
   // Every kind this product offers, marked up with what this account has done
@@ -58,7 +63,7 @@ export class TwoFactorService {
   // saying what protects an account.
   async methods(principal: Principal): Promise<TwoFactorMethod[]> {
     const subjectId = await this.subject(principal);
-    return draw(await this.identity.secondFactors(subjectId));
+    return this.draw(await this.identity.secondFactors(subjectId));
   }
 
   // The browser is back from the provider's setup page.
@@ -74,7 +79,7 @@ export class TwoFactorService {
   ): Promise<TwoFactorMethod[]> {
     const subjectId = await this.subject(principal);
     const factors = await this.identity.secondFactors(subjectId);
-    const rows = draw(factors);
+    const rows = this.draw(factors);
     const row = rows.find((method) => method.Kind === kind);
 
     if (row?.Configured)
@@ -121,7 +126,95 @@ export class TwoFactorService {
       principal.device ?? undefined,
     );
 
-    return draw(await this.identity.secondFactors(subjectId));
+    return this.draw(await this.identity.secondFactors(subjectId));
+  }
+
+  // Start attaching a phone number: send a code to it, and remember what has
+  // to come back.
+  //
+  // **Nothing about the account changes here.** The number is written into
+  // dbo.PhoneVerifications and nowhere else, because at this point all anybody
+  // has done is type it: a number written onto the account before it answers
+  // would be a second factor pointed at a phone somebody else is holding, and
+  // that is the whole attack this pair of operations exists to close.
+  //
+  // The code is made here rather than in the database, for the reason every
+  // secret in this API is. Six digits rather than ten characters, because it
+  // is read off a lock screen and typed into a box within a minute; what makes
+  // six digits safe is not their entropy but the ten minutes and the five
+  // guesses dbo.SpendPhoneVerification allows.
+  //
+  // A message that did not go out is said so, and the row is left behind. It
+  // costs nothing: the next attempt retires it.
+  async startSmsEnrollment(
+    principal: Principal,
+    phoneNumber: string,
+  ): Promise<PhoneEnrollment> {
+    const subjectId = await this.subject(principal);
+
+    if (!this.sms.available)
+      throw new BadRequestException(
+        "Text messages are not available on this site yet. Use an authenticator app instead.",
+      );
+
+    const code = newDigits();
+    const [started] = await this.db.query<{ SentAt: Date }>(
+      'SELECT * FROM dbo."StartPhoneVerification"($1, $2, $3)',
+      [subjectId, phoneNumber, hashOf(code)],
+    );
+    if (!started)
+      throw new BadRequestException(
+        "That code could not be sent. Try again in a moment.",
+      );
+
+    const sent = await this.sms.send(
+      phoneNumber,
+      enrollmentCode(this.productName(), code),
+    );
+    if (!sent)
+      throw new BadRequestException(
+        "That code could not be sent to that number. Check it and try again.",
+      );
+
+    return { PhoneNumber: masked(phoneNumber), SentAt: started.SentAt };
+  }
+
+  // The six digits came back. Write the number onto the account.
+  //
+  // **The number comes out of the database rather than off the request**, and
+  // that is the hinge of the whole thing: the only number this can turn into a
+  // second factor is the one a code was sent to and answered. A number in this
+  // call's arguments would let somebody hold a code sent to their own phone
+  // and spend it against a different number entirely.
+  //
+  // One sentence for every way it fails, as elsewhere: a wrong code, an
+  // expired one, five guesses already spent and nothing started at all are all
+  // the same thing to the person typing, which is that it did not work.
+  async confirmSmsEnrollment(
+    principal: Principal,
+    code: string,
+  ): Promise<TwoFactorMethod[]> {
+    const subjectId = await this.subject(principal);
+
+    const [proved] = await this.db.query<{ PhoneNumber: string }>(
+      'SELECT * FROM dbo."SpendPhoneVerification"($1, $2)',
+      [subjectId, hashOf(code)],
+    );
+    if (!proved)
+      throw new BadRequestException(
+        "That code is not right, or it has expired. Ask for a new one.",
+      );
+
+    await this.identity.setSecondFactorPhone(subjectId, proved.PhoneNumber);
+
+    await this.events.record(
+      principal.loginName,
+      "TwoFactorEnabled",
+      `${nameOf("sms")} was turned on for your account, on the number ending ${proved.PhoneNumber.slice(-4)}.`,
+      principal.device ?? undefined,
+    );
+
+    return this.draw(await this.identity.secondFactors(subjectId));
   }
 
   // How many codes are left, and when the set was made.
@@ -256,6 +349,61 @@ export class TwoFactorService {
     };
   }
 
+  // The provider's factors, as the card's rows.
+  //
+  // Every kind is a row whether or not the account has it and whether or not
+  // this installation can offer it. SMS is drawn with `Available: false`
+  // wherever there are no Twilio credentials, which is the same honesty a
+  // login provider with no credentials gets: the row says the method exists
+  // and this site cannot do it, rather than disappearing and leaving somebody
+  // to wonder whether it was ever there.
+  //
+  // A method on the class rather than a function beside it, because whether
+  // SMS can be offered is a fact about this running deployment and the service
+  // is what holds it.
+  private draw(factors: SecondFactor[]): TwoFactorMethod[] {
+    const app = factors.find((factor) => factor.kind === "authenticator-app");
+    const phone = factors.find((factor) => factor.kind === "sms");
+
+    return [
+      {
+        Kind: "authenticator-app",
+        Name: "Authenticator app",
+        Available: true,
+        Configured: app !== undefined,
+        ConfiguredAt: app?.createdAt ?? null,
+        Label: app?.label ?? null,
+        Recommended: true,
+      },
+      {
+        Kind: "sms",
+        Name: "SMS/Text message",
+        Available: this.sms.available,
+        // Answered from the account rather than from availability. A number
+        // put on an account while the site could send messages is still on it
+        // the week the credentials expire, and a card that drew it as off
+        // would be telling somebody they have no second factor while Keycloak
+        // is still asking them for one.
+        Configured: phone !== undefined,
+        ConfiguredAt: phone?.createdAt ?? null,
+        Label: phone?.label ?? null,
+        // Answered false even where it is on offer, because the judgment is
+        // about the method rather than about this installation: messages can
+        // be intercepted, numbers can be taken over at a phone shop, and
+        // delivery is nobody's promise.
+        Recommended: false,
+      },
+    ];
+  }
+
+  // What this deployment calls itself in a text message, which is the name its
+  // mail already goes out under. A second setting for the same words would be
+  // a deployment whose messages and email came from apparently different
+  // companies.
+  private productName(): string {
+    return this.config.get<string>("MAIL_FROM_NAME") ?? "Front Runner";
+  }
+
   // The account behind the session, which is where every subject id in here
   // comes from. Never off the request: an operation that let a caller name the
   // account whose second factor it was turning off would be a way to strip the
@@ -299,39 +447,23 @@ function hashOf(code: string): string {
   return createHash("sha256").update(code).digest("hex");
 }
 
-// The provider's factors, as the card's rows.
-//
-// Every kind is a row whether or not the account has it and whether or not
-// this installation can offer it. SMS is drawn and cannot be turned on until
-// the Keycloak authenticator and the messages behind it exist -- see
-// apps/keycloak-idp and the SMS notes in docs -- and until then it says so
-// rather than being quietly missing.
-function draw(factors: SecondFactor[]): TwoFactorMethod[] {
-  const app = factors.find((factor) => factor.kind === "authenticator-app");
+// Six digits, with the leading zeros kept. randomInt over the whole range
+// rather than six draws of one digit, for the same reason a recovery code is
+// drawn a character at a time from a fixed alphabet: one call with the right
+// bounds is harder to get subtly wrong than six.
+function newDigits(): string {
+  return String(randomInt(1_000_000)).padStart(6, "0");
+}
 
-  return [
-    {
-      Kind: "authenticator-app",
-      Name: "Authenticator app",
-      Available: true,
-      Configured: app !== undefined,
-      ConfiguredAt: app?.createdAt ?? null,
-      Label: app?.label ?? null,
-      Recommended: true,
-    },
-    {
-      Kind: "sms",
-      Name: "SMS/Text message",
-      Available: false,
-      Configured: false,
-      ConfiguredAt: null,
-      Label: null,
-      // Answered false even where it is not on offer, because the judgment is
-      // about the method rather than about this installation: the day it is
-      // switched on, it is still the weaker of the two.
-      Recommended: false,
-    },
-  ];
+// The last four digits and nothing else, which is what the dialog reads back
+// while the message is on its way. The same shape KeycloakAdminService writes
+// onto the row, arrived at separately because this one is masking a number
+// that has not been written anywhere yet.
+function masked(phoneNumber: string): string {
+  const digits = phoneNumber.replace(/\D/g, "");
+  return digits.length <= 4
+    ? digits
+    : `\u2022\u2022\u2022\u2022 ${digits.slice(-4)}`;
 }
 
 // The port's word for a factor, as this vertical's kind. One entry today; the
@@ -339,6 +471,7 @@ function draw(factors: SecondFactor[]): TwoFactorMethod[] {
 // a branch in three places.
 const KINDS: Record<SecondFactor["kind"], string> = {
   "authenticator-app": "authenticator-app",
+  sms: "sms",
 };
 
 // What to call a kind in a sentence.

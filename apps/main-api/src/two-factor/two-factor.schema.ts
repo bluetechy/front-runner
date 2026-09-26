@@ -42,3 +42,42 @@ export const recoveryCodeSchema = z
     (code) => /^[a-z0-9]{10}$/.test(code),
     "That recovery code is not valid or has already been used.",
   );
+
+/* A phone number to text a login code to, in E.164.
+ *
+ * Folded rather than merely checked: people write their own number with
+ * spaces, dashes, brackets and a leading zero, and all of those are the same
+ * number to them. What is stripped is punctuation and nothing else -- a
+ * missing country code is refused rather than guessed at, because guessing
+ * one is how a number in Toronto becomes a number in Kansas and the login
+ * code goes to a stranger.
+ *
+ * The bounds are E.164's own: a country code that cannot start with zero, and
+ * between seven and fifteen digits all told. Everything past that shape is
+ * Twilio's to refuse, and it will, which is the right place for it: whether a
+ * well-formed number is a phone that exists is not a question this API can
+ * answer offline. */
+export const phoneNumberSchema = z
+  .string()
+  .trim()
+  .transform((number) => number.replace(/[\s().\-\u2013\u2014]/g, ""))
+  .refine(
+    (number) => /^\+[1-9]\d{6,14}$/.test(number),
+    "Write the number with its country code, like +1 555 555 0123.",
+  );
+
+/* The six digits that came back in the message.
+ *
+ * Spaces come out for the reason they come out of a recovery code: a code read
+ * off a lock screen and typed into a box collects them, and what is compared
+ * is a hash. The sentence is the one a wrong code gets, because from the
+ * reader's side a code that is the wrong shape and a code that is wrong are
+ * the same thing -- it did not work. */
+export const verificationCodeSchema = z
+  .string()
+  .trim()
+  .transform((code) => code.replace(/[\s-]/g, ""))
+  .refine(
+    (code) => /^\d{6}$/.test(code),
+    "That code is not right, or it has expired. Ask for a new one.",
+  );

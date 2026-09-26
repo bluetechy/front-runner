@@ -19,7 +19,7 @@ import {
 // IdentityAdminService against Keycloak's admin API. The only file in this
 // API that knows Keycloak has realms, and the only one that would be replaced
 // wholesale by a move to another provider -- see identity-admin.service.ts for
-// the operations it answers and why there are only sixteen.
+// the operations it answers and why there are only seventeen.
 //
 // Six things, in the language of that port.
 //
@@ -50,13 +50,22 @@ import {
 // browser to it; what this service does is the reading either side of it and
 // the taking away. See apps/main-api/src/single-sign-on.
 //
-// And the second factors an account holds: reading them, and taking one away.
-// Setting one up is not here and cannot be, for a sharper version of the
-// reason connecting Google is not -- Keycloak's admin API has no operation
-// that creates an OTP credential at all, because the secret behind one is
-// shown to a person once, on a page, as a QR code. So the security page sends
-// the browser to Keycloak with kc_action=CONFIGURE_TOTP and this reads what
-// came back. See apps/main-api/src/two-factor.
+// And the second factors an account holds: reading them, taking one away, and
+// writing down the phone number one of them texts. Setting up an authenticator
+// app is not here and cannot be, for a sharper version of the reason
+// connecting Google is not -- Keycloak's admin API has no operation that
+// creates an OTP credential at all, because the secret behind one is shown to
+// a person once, on a page, as a QR code. So the security page sends the
+// browser to Keycloak with kc_action=CONFIGURE_TOTP and this reads what came
+// back.
+//
+// The SMS factor is the one that does not work that way, and the difference is
+// worth reading: there is no secret to mint, only a number to write down, so
+// it is an attribute on the account rather than a credential. What proves the
+// number is a code sent to it and typed back, which happens in main-api before
+// this is asked to write anything; what checks the code at login is an
+// authenticator running inside Keycloak, reading the same attribute. See
+// apps/main-api/src/two-factor and apps/keycloak-idp/plugin.
 //
 // And reading back which logins the realm refused, which is the one thing here
 // that is not about an account somebody named. A refused password mints no
@@ -554,10 +563,19 @@ export class KeycloakAdminService extends IdentityAdminService {
     }
 
     const credentials: unknown = await response.json().catch(() => null);
-    if (!Array.isArray(credentials)) return [];
-    return credentials
-      .map(readSecondFactor)
-      .filter((factor): factor is SecondFactor => factor !== null);
+    const factors = Array.isArray(credentials)
+      ? credentials
+          .map(readSecondFactor)
+          .filter((factor): factor is SecondFactor => factor !== null)
+      : [];
+
+    // And the one that is not a credential at all. A phone number lives on the
+    // account as an attribute, because there is nothing to store: the secret
+    // in an SMS factor is possession of the handset, and what Keycloak needs
+    // written down is only where to send the code. The authenticator in
+    // apps/keycloak-idp/plugin reads the same attribute at login.
+    const phone = readPhoneFactor(await this.attributes(subjectId));
+    return phone ? [...factors, phone] : factors;
   }
 
   // Take one away.
@@ -566,6 +584,16 @@ export class KeycloakAdminService extends IdentityAdminService {
   // it means the account has no such credential, which is the state that was
   // asked for.
   async removeSecondFactor(subjectId: string, id: string): Promise<void> {
+    // The phone factor is an attribute rather than a credential, so taking it
+    // off is a write to the account rather than a DELETE on a credential.
+    // Branching on the id rather than on a kind argument keeps the port's
+    // signature honest: the caller took this id out of secondFactors, and the
+    // implementation is the only thing that knows what its own ids mean.
+    if (id === PHONE_FACTOR_ID) {
+      await this.writePhone(subjectId, null);
+      return;
+    }
+
     const response = await this.send(
       `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}/credentials/${encodeURIComponent(id)}`,
       { method: "DELETE" },
@@ -575,6 +603,95 @@ export class KeycloakAdminService extends IdentityAdminService {
     if (response.status === 401 || response.status === 403) this.token = null;
     throw new ServiceUnavailableException(
       "The identity provider would not turn off two-factor authentication for this account",
+    );
+  }
+
+  // Write the phone number a login code will be texted to.
+  //
+  // The number is written beside the moment it was proved, and both of them
+  // are written together: a number with no date beside it would be a number
+  // that arrived here by some route this code does not know about, and the
+  // card would have nothing to date the row with.
+  async setSecondFactorPhone(
+    subjectId: string,
+    phoneNumber: string,
+  ): Promise<void> {
+    await this.writePhone(subjectId, phoneNumber);
+  }
+
+  // The whole account as Keycloak holds it, for the two operations that have
+  // to read it before they write it.
+  //
+  // It throws rather than answering an empty object, on the terms
+  // secondFactors throws: this is read to find out whether the account has an
+  // SMS factor, and an outage drawn as "no factor" is an account drawn as
+  // unprotected when nobody knows whether it is.
+  private async user(subjectId: string): Promise<Record<string, unknown>> {
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}`,
+      { method: "GET" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.token = null;
+      throw new ServiceUnavailableException(
+        "The identity provider would not say what this account uses for two-factor authentication",
+      );
+    }
+
+    const body: unknown = await response.json().catch(() => null);
+    return body && typeof body === "object"
+      ? (body as Record<string, unknown>)
+      : {};
+  }
+
+  // The account's attributes: every key a list of strings, whatever is in it.
+  private async attributes(
+    subjectId: string,
+  ): Promise<Record<string, unknown>> {
+    const attributes = (await this.user(subjectId)).attributes;
+    return attributes && typeof attributes === "object"
+      ? (attributes as Record<string, unknown>)
+      : {};
+  }
+
+  // Put a number on the account, or take one off.
+  //
+  // **The whole account is read and written back, not just the attributes**,
+  // and that is not caution -- it is the difference between this working and
+  // this deleting somebody's email address. Keycloak 26 validates a user
+  // update against the realm's user profile, and a field the body leaves out
+  // is a field it clears: a PUT carrying only `attributes` wipes the address,
+  // the first name and the last name, and the account is then refused at the
+  // token endpoint with "Account is not fully set up". (Learned the way these
+  // things are learned.) Reading first also keeps every other attribute the
+  // realm has put on the account, which a replaced map would lose.
+  private async writePhone(
+    subjectId: string,
+    phoneNumber: string | null,
+  ): Promise<void> {
+    const account = await this.user(subjectId);
+    const attributes: Record<string, unknown> = {
+      ...(account.attributes as Record<string, unknown> | undefined),
+    };
+
+    if (phoneNumber) {
+      attributes[PHONE_ATTRIBUTE] = [phoneNumber];
+      attributes[PHONE_VERIFIED_ATTRIBUTE] = [new Date().toISOString()];
+    } else {
+      delete attributes[PHONE_ATTRIBUTE];
+      delete attributes[PHONE_VERIFIED_ATTRIBUTE];
+    }
+
+    const response = await this.send(
+      `/admin/realms/${encodeURIComponent(this.realm)}/users/${encodeURIComponent(subjectId)}`,
+      { method: "PUT", body: JSON.stringify({ ...account, attributes }) },
+    );
+
+    if (response.ok) return;
+    if (response.status === 401 || response.status === 403) this.token = null;
+    throw new ServiceUnavailableException(
+      "The identity provider would not change two-factor authentication for this account",
     );
   }
 
@@ -890,6 +1007,73 @@ function readLinkedLogin(body: unknown): LinkedLogin | null {
 // "createdDate" is epoch milliseconds, and nonsense in it is dropped the way
 // passwordChangedAt drops it -- a factor dated 1970 is a line on a card that
 // would make somebody think they had set it up in another life.
+// What the phone factor is called at Keycloak, and what the port calls it back.
+//
+// The attribute name is deliberately plain: it is read by the SMS
+// authenticator inside Keycloak (see apps/keycloak-idp/plugin) and by an
+// administrator looking at the account in Keycloak's own console, and both of
+// those are better served by "phoneNumber" than by anything cleverer. The
+// second attribute is when the number was proved, which is the only date there
+// is to show on the card: an attribute has no created date of its own.
+const PHONE_ATTRIBUTE = "phoneNumber";
+const PHONE_VERIFIED_ATTRIBUTE = "phoneNumberVerifiedAt";
+
+// The id the port addresses this factor by.
+//
+// A fixed word rather than a generated one, because there is nothing to
+// generate from: an attribute has no id at Keycloak, and an account has one
+// number rather than a list of them. It only has to be a value no credential
+// id could collide with, and Keycloak's credential ids are UUIDs.
+const PHONE_FACTOR_ID = "phone";
+
+// The account's attributes, as a second-factor row, or null where there is no
+// number on the account.
+//
+// **The number is cut down before it leaves here.** What the card needs is
+// enough to recognize which phone, and a security page that printed somebody's
+// full number would be handing it to whoever is reading over their shoulder --
+// or to whoever already has the session and is looking for something to take
+// over next.
+function readPhoneFactor(
+  attributes: Record<string, unknown>,
+): SecondFactor | null {
+  const number = firstOf(attributes[PHONE_ATTRIBUTE]);
+  if (!number) return null;
+
+  const proved = firstOf(attributes[PHONE_VERIFIED_ATTRIBUTE]);
+  const at = proved ? new Date(proved) : null;
+
+  return {
+    kind: "sms",
+    id: PHONE_FACTOR_ID,
+    label: maskedNumber(number),
+    // A date Keycloak will not parse reads as no date rather than as an
+    // invalid one, the way every other timestamp in this file does.
+    createdAt: at && Number.isFinite(at.getTime()) ? at : null,
+  };
+}
+
+// Keycloak writes every attribute as a list, whatever it holds. Anything that
+// is not a list of at least one non-empty string reads as nothing at all.
+function firstOf(value: unknown): string | null {
+  const first = Array.isArray(value) ? value[0] : value;
+  return typeof first === "string" && first.trim() ? first.trim() : null;
+}
+
+// "+15555550123" as "•••• 0123": the last four digits and nothing else.
+//
+// The last four are what everybody recognizes their own number by, and they
+// are also what a bank asks for, which is the argument for showing no more
+// than them. The country code is not kept either: it would narrow the number
+// for somebody reading the page over a shoulder, and an account has one number
+// rather than a list to tell apart.
+function maskedNumber(number: string): string {
+  const digits = number.replace(/\D/g, "");
+  return digits.length <= 4
+    ? digits
+    : `\u2022\u2022\u2022\u2022 ${digits.slice(-4)}`;
+}
+
 function readSecondFactor(body: unknown): SecondFactor | null {
   const credential = body as {
     id?: unknown;

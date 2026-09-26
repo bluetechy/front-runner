@@ -146,12 +146,13 @@ That is a real trade, and it is worth naming:
   an account that owes one gets `invalid_grant` and cannot sign in from the
   dialog at all.
 
-  **Multi-factor is the exception, and it is now built.** Keycloak's direct
-  grant flow carries a conditional OTP subflow, so an account with an
-  authenticator app can login from the card by sending the code with the
-  password: see [the second factor](#the-second-factor). What stays true is
-  everything else on this list — a required action still cannot be run from
-  here, which is exactly why _setting up_ a second factor is a redirect.
+  **Multi-factor is the exception, and it is now built.** The realm's direct
+  grant flow carries both second factors in a conditional subflow, so an
+  account with an authenticator app or a phone number can login from the card
+  by sending the code with the password: see
+  [the second factor](#the-second-factor). What stays true is everything else
+  on this list — a required action still cannot be run from here, which is
+  exactly why _setting up_ an authenticator app is a redirect.
 
 The redirect flow is already built here, because the social buttons need it.
 Turning the dialog's Login button into `startRedirect({ kind: "login" })`
@@ -160,18 +161,27 @@ the mock-up's form stops being where people sign in.
 
 ## The second factor
 
-An account with an authenticator app is asked for six digits as well as a
-password, and the login card asks for them itself rather than handing the
-browser to Keycloak. Keycloak's built-in `direct grant` flow carries a
-conditional OTP subflow, so the code goes on the same token request:
+An account with a second factor is asked for six digits as well as a password,
+and the login card asks for them itself rather than handing the browser to
+Keycloak. The realm's direct grant flow carries both factors as alternatives
+in a conditional subflow, so the code goes on the same token request:
 
 ```text
-grant_type=password & username & password & totp=123456
+grant_type=password & username & password & totp=123456 & sms_code=123456
 ```
 
-`totp` is the parameter Keycloak's `direct-grant-validate-otp` reads first; it
-answers to `otp` as well, and neither name is in OpenID Connect, so this is
-one of the few provider-shaped lines in `identity-provider.ts`.
+**The same digits go up under both names, and that is not laziness.** `totp`
+is what Keycloak's `direct-grant-validate-otp` reads first (it answers to
+`otp` as well); `sms_code` is what this realm's own SMS authenticator reads,
+from `apps/keycloak-idp/plugin`. Neither name is in OpenID Connect, so these
+are the provider-shaped lines in `identity-provider.ts`.
+
+Sending both is what lets the card stay ignorant of which factor the account
+has — and it has to stay ignorant, because the only way to know would be to
+be told at the login form, before anybody has proved anything. That is exactly
+the question the identical refusals below exist to refuse. Whichever
+authenticator is actually in the flow finds the digits under the name it looks
+for, and the cost is one query parameter.
 
 **The card cannot know when to ask, and does not pretend to.** Verified
 against Keycloak 26.7.4: a wrong password, a missing code, a wrong code, an
@@ -188,10 +198,24 @@ refusal it keeps what was typed, adds a code box under it, and says both of
 the things the refusal can mean. Somebody without a second factor reads it as
 "check your password"; somebody with one fills in the box.
 
-A code is good **once**: the realm sets `otpPolicyCodeReusable` false, so
-pressing Login twice inside the same thirty seconds is refused even though the
-app is still showing those digits. A refusal with a code already in the box
-says to wait for the next one rather than to try again.
+That shape does double duty for SMS, because the refusal is the moment the
+message is sent. The first grant arrives with no code in it, the authenticator
+texts one and refuses in the same words a wrong password gets, and the card
+does what it was already going to do: keep what was typed and show the box.
+Nothing had to be added to the card for the second factor to become two.
+
+A code is good **once**, both ways. The realm sets `otpPolicyCodeReusable`
+false, so pressing Login twice inside the same thirty seconds with the app's
+digits is refused even though the app is still showing them; a texted code is
+spent on being read, so a wrong guess costs a fresh message. A refusal with a
+code already in the box says to wait for the next one rather than to try
+again.
+
+One refusal is not the same as the others, deliberately. A site with no Twilio
+credentials answers `503 temporarily_unavailable` rather than `invalid_grant`,
+because that is not a statement about anybody's credentials and asking
+somebody to type a code they will never receive would be worse than saying the
+site is having trouble.
 
 Two other paths need no code at all and are unaffected: the social buttons,
 because Keycloak's own browser flow asks for it on its own page, and
@@ -201,7 +225,10 @@ because Keycloak's own browser flow asks for it on its own page, and
 
 Neither of those is the dialog's. Setting up an authenticator app is a
 redirect to Keycloak with `kc_action=CONFIGURE_TOTP`, started from the
-security page, because the secret is minted there and shown once. Spending a
+security page, because the secret is minted there and shown once. Attaching a
+phone number is a dialog on that same page, because there is no secret to mint
+and the only question is whether a message sent to the number comes back.
+Spending a
 recovery code is a `@Public` mutation on main-api, offered by this card under
 the code box, because Keycloak's token endpoint will accept nothing but a
 valid code and there is no way through it for somebody whose phone is gone.
@@ -310,16 +337,16 @@ back. The whole flow is written up in
 Keycloak is a choice, not an assumption, and the code is arranged so that the
 choice is small. What a swap actually costs:
 
-| Where                                               | What changes                                                                         |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `VITE_IDP_ISSUER_URL`, `VITE_IDP_CLIENT_ID`         | Point at the new issuer. Every endpoint follows from discovery                       |
-| `VITE_IDP_HINT_PARAMETER`                           | The new provider's name for the social hint, or empty                                |
-| `VITE_IDP_LINK_PATH`                                | Where the new provider links an account, or empty if it has no such flow             |
-| `VITE_IDP_ACTION_PARAMETER`, `VITE_IDP_TOTP_ACTION` | How the new provider is asked to run its own authenticator-app setup, or empty       |
-| `IDP_ISSUER_URL`, `IDP_JWKS_URL`, `IDP_AUDIENCE`    | `main-api`'s half of the same three facts                                            |
-| `IDP_ACCESS_TOKEN_TYPE`                             | What the provider stamps `typ` with. Keycloak writes `Bearer`                        |
-| `apps/main-api/src/authentication/`                 | A new file beside `keycloak-admin.service.ts`, and one `useClass` line in the module |
-| `apps/keycloak-idp/`                                | Replaced wholesale: an image, a container and whatever provisions it                 |
+| Where                                               | What changes                                                                                             |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `VITE_IDP_ISSUER_URL`, `VITE_IDP_CLIENT_ID`         | Point at the new issuer. Every endpoint follows from discovery                                           |
+| `VITE_IDP_HINT_PARAMETER`                           | The new provider's name for the social hint, or empty                                                    |
+| `VITE_IDP_LINK_PATH`                                | Where the new provider links an account, or empty if it has no such flow                                 |
+| `VITE_IDP_ACTION_PARAMETER`, `VITE_IDP_TOTP_ACTION` | How the new provider is asked to run its own authenticator-app setup, or empty                           |
+| `IDP_ISSUER_URL`, `IDP_JWKS_URL`, `IDP_AUDIENCE`    | `main-api`'s half of the same three facts                                                                |
+| `IDP_ACCESS_TOKEN_TYPE`                             | What the provider stamps `typ` with. Keycloak writes `Bearer`                                            |
+| `apps/main-api/src/authentication/`                 | A new file beside `keycloak-admin.service.ts`, and one `useClass` line in the module                     |
+| `apps/keycloak-idp/`                                | Replaced wholesale: an image, a container, the SMS authenticator in `plugin/` and whatever provisions it |
 
 What does **not** change: the four verticals that ask for an account
 (`registration`, `emails`, `password-reset`, the guard) inject
@@ -328,8 +355,10 @@ that port, so they pass unchanged against a new provider. In the browser, only
 `identity-provider.ts` knows a provider exists.
 
 What is genuinely provider-shaped and has to be redone by hand: the realm
-import in `apps/keycloak-idp/realm`, the social provider aliases, the mail
-templates, and the user-visible copy that names the real thing (the privacy
+import in `apps/keycloak-idp/realm`, the SMS authenticator in
+`apps/keycloak-idp/plugin` (which is Keycloak's SPI and nobody else's), the
+`totp` and `sms_code` parameter names on the grant, the social provider
+aliases, the mail templates, and the user-visible copy that names the real thing (the privacy
 page's list of processors, and the dashboard's "Identity from Keycloak" label).
 Naming the actual processor is the point of that copy, so it is not something
 an abstraction should hide.

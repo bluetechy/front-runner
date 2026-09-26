@@ -42,6 +42,10 @@ node_modules
 # Build output
 /apps/*/dist/
 
+# Maven, for the Keycloak provider in apps/keycloak-idp/plugin. The image
+# builds it in Docker, so this only appears when somebody runs mvn by hand.
+**/target/
+
 # Claude Code
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
